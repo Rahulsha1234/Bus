@@ -45,19 +45,36 @@ $user = get_logged_user();
             display: flex;
             align-items: center;
             gap: 12px;
-            color: var(--text-muted);
+            color: rgba(255,255,255,0.55);
             text-decoration: none;
-            padding: 0.8rem 1rem;
+            padding: 0.75rem 1rem;
             border-radius: 10px;
             font-weight: 500;
+            font-size: 0.9rem;
             transition: all 0.2s ease;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.25rem;
+            border-left: 3px solid transparent;
         }
-        .sidebar-link:hover, .sidebar-link.active {
-            color: white;
-            background: rgba(99, 102, 241, 0.1);
-            border-left: 3px solid var(--accent-indigo);
+        .sidebar-link i {
+            width: 18px;
+            text-align: center;
+            font-size: 0.95rem;
+        }
+        .sidebar-link:hover {
+            color: rgba(255,255,255,0.9);
+            background: rgba(255, 255, 255, 0.06);
+            border-left-color: rgba(129,140,248,0.5);
             padding-left: calc(1rem - 3px);
+        }
+        .sidebar-link.active {
+            color: #ffffff;
+            background: rgba(129, 140, 248, 0.15);
+            border-left: 3px solid #818cf8;
+            padding-left: calc(1rem - 3px);
+            font-weight: 600;
+        }
+        .sidebar-link.active i {
+            color: #818cf8;
         }
     </style>
 </head>
@@ -76,31 +93,37 @@ $user = get_logged_user();
             </div>
 
             <nav>
-                <?php 
+                <?php
                 $cur = basename($_SERVER['SCRIPT_NAME']);
+                // Map sub-pages back to their parent nav item
+                $nav_map = [
+                    'configure_layout.php' => 'buses.php',
+                    'trip_pricing.php'     => 'trips.php',
+                ];
+                $cur_nav = $nav_map[$cur] ?? $cur;
                 ?>
-                <a href="<?= BASE_URL ?>/agent/dashboard.php" class="sidebar-link <?= ($cur === 'dashboard.php') ? 'active' : '' ?>">
+                <a href="<?= BASE_URL ?>/agent/dashboard.php" class="sidebar-link <?= ($cur_nav === 'dashboard.php') ? 'active' : '' ?>">
                     <i class="fa-solid fa-chart-pie"></i>Dashboard
                 </a>
-                <a href="<?= BASE_URL ?>/agent/buses.php" class="sidebar-link <?= ($cur === 'buses.php') ? 'active' : '' ?>">
+                <a href="<?= BASE_URL ?>/agent/buses.php" class="sidebar-link <?= ($cur_nav === 'buses.php') ? 'active' : '' ?>">
                     <i class="fa-solid fa-bus-simple"></i>Manage Buses
                 </a>
-                <a href="<?= BASE_URL ?>/agent/routes.php" class="sidebar-link <?= ($cur === 'routes.php') ? 'active' : '' ?>">
+                <a href="<?= BASE_URL ?>/agent/routes.php" class="sidebar-link <?= ($cur_nav === 'routes.php') ? 'active' : '' ?>">
                     <i class="fa-solid fa-route"></i>Manage Routes
                 </a>
-                <a href="<?= BASE_URL ?>/agent/trips.php" class="sidebar-link <?= ($cur === 'trips.php') ? 'active' : '' ?>">
+                <a href="<?= BASE_URL ?>/agent/trips.php" class="sidebar-link <?= ($cur_nav === 'trips.php') ? 'active' : '' ?>">
                     <i class="fa-solid fa-calendar-days"></i>Schedule Trips
                 </a>
-                <a href="<?= BASE_URL ?>/agent/seats.php" class="sidebar-link <?= ($cur === 'seats.php') ? 'active' : '' ?>">
+                <a href="<?= BASE_URL ?>/agent/seats.php" class="sidebar-link <?= ($cur_nav === 'seats.php') ? 'active' : '' ?>">
                     <i class="fa-solid fa-chair"></i>Hold/Release Seats
                 </a>
-                <a href="<?= BASE_URL ?>/agent/bookings.php" class="sidebar-link <?= ($cur === 'bookings.php') ? 'active' : '' ?>">
+                <a href="<?= BASE_URL ?>/agent/bookings.php" class="sidebar-link <?= ($cur_nav === 'bookings.php') ? 'active' : '' ?>">
                     <i class="fa-solid fa-receipt"></i>Bookings List
                 </a>
-                <a href="<?= BASE_URL ?>/agent/manage_cancellations.php" class="sidebar-link <?= ($cur === 'manage_cancellations.php') ? 'active' : '' ?>">
+                <a href="<?= BASE_URL ?>/agent/manage_cancellations.php" class="sidebar-link <?= ($cur_nav === 'manage_cancellations.php') ? 'active' : '' ?>">
                     <i class="fa-solid fa-ban"></i>Cancellations
                 </a>
-                <a href="<?= BASE_URL ?>/agent/settlements.php" class="sidebar-link <?= ($cur === 'settlements.php') ? 'active' : '' ?>">
+                <a href="<?= BASE_URL ?>/agent/settlements.php" class="sidebar-link <?= ($cur_nav === 'settlements.php') ? 'active' : '' ?>">
                     <i class="fa-solid fa-wallet"></i>Settlements
                 </a>
                 
