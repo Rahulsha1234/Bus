@@ -92,7 +92,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
             INSERT INTO bookings (
                 booking_reference, trip_id, customer_id, customer_name, customer_email, customer_phone, 
                 total_amount, admin_commission, agent_net_earning, payment_status, payment_gateway, transaction_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'paid', 'Razorpay', ?, NOW())
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'paid', 'Razorpay', ?)
         ");
         
         $mock_tx_id = 'pay_mock_' . bin2hex(random_bytes(8));
@@ -202,8 +202,8 @@ try {
         VALUES (:trip_id, :seat, 'hold', :expires, :session)
         ON DUPLICATE KEY UPDATE 
             status = 'hold', 
-            hold_expires_at = :expires, 
-            locked_by_session = :session
+            hold_expires_at = :expires_update, 
+            locked_by_session = :session_update
     ");
 
     foreach ($seats as $seat) {
@@ -211,7 +211,9 @@ try {
             ':trip_id' => $trip_id,
             ':seat' => $seat,
             ':expires' => $expire_time,
-            ':session' => $session_id
+            ':session' => $session_id,
+            ':expires_update' => $expire_time,
+            ':session_update' => $session_id
         ]);
     }
 

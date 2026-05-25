@@ -76,14 +76,16 @@ try {
         VALUES (:trip_id, :seat, 'hold', :expires, :session)
         ON DUPLICATE KEY UPDATE 
             status = 'hold', 
-            hold_expires_at = :expires, 
-            locked_by_session = :session
+            hold_expires_at = :expires_update, 
+            locked_by_session = :session_update
     ");
     $hold_stmt->execute([
         ':trip_id' => $trip_id,
         ':seat' => $seat,
         ':expires' => $expires,
-        ':session' => $session_marker
+        ':session' => $session_marker,
+        ':expires_update' => $expires,
+        ':session_update' => $session_marker
     ]);
 
     log_activity($pdo, $agent_id, 'SEAT_HOLD_MANUAL', "Placed manual hold on Trip $trip_id, Seat $seat.");

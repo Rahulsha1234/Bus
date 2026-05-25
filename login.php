@@ -41,8 +41,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = "Please fill in all fields.";
         } else {
             // Find user by username or email
-            $stmt = $pdo->prepare("SELECT * FROM users WHERE username = :login OR email = :login LIMIT 1");
-            $stmt->execute([':login' => $login_input]);
+            $stmt = $pdo->prepare("SELECT * FROM users WHERE username = :username OR email = :email LIMIT 1");
+            $stmt->execute([
+                ':username' => $login_input,
+                ':email' => $login_input
+            ]);
             $user_row = $stmt->fetch();
 
             if ($user_row && password_verify($password, $user_row['password'])) {
