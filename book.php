@@ -1,18 +1,25 @@
 <?php
 /**
- * Seat Booking Page
+ * Seat Booking Page (Customer View with Real-time Locks & Safety Rules)
  */
 require_once __DIR__ . '/includes/auth_middleware.php';
 
-$trip_id = $_GET['trip_id'] ?? '';
-if (empty($trip_id)) {
+$trip_id = intval($_GET['trip_id'] ?? 0);
+if ($trip_id === 0) {
     header("Location: " . BASE_URL . "/index.php");
     exit();
 }
 
 $page_title = "Select Seats";
 
-// Fetch Trip Details
+// Redirect to login if guest
+if (!is_logged_in()) {
+    $_SESSION['redirect_url'] = BASE_URL . "/book.php?trip_id=" . $trip_id;
+    header("Location: " . BASE_URL . "/login.php");
+    exit();
+}
+
+// Fetch Trip details
 try {
     $stmt = $pdo->prepare("
         SELECT 
@@ -20,129 +27,229 @@ try {
             t.departure_time,
             t.arrival_time,
             t.base_fare,
+            b.id AS bus_id,
             b.bus_name,
             b.bus_type,
             b.seat_layout_type,
             b.total_seats,
+            r.id AS route_id,
             r.source,
-            r.destination
+            r.destination,
+            r.pickup_points,
+            r.drop_points
         FROM trips t
         JOIN buses b ON t.bus_id = b.id
         JOIN routes r ON t.route_id = r.id
-        WHERE t.id = :trip_id
+        WHERE t.id = :trip_id AND t.status = 'active'
         LIMIT 1
     ");
     $stmt->execute([':trip_id' => $trip_id]);
     $trip = $stmt->fetch();
     
     if (!$trip) {
-        die("Trip not found.");
+        die("Trip voyage scheduled operations not found.");
     }
     
-    // Fetch seat statuses
-    $seats_stmt = $pdo->prepare("
-        SELECT seat_number, status, hold_expires_at 
-        FROM trip_seats 
-        WHERE trip_id = :trip_id
-    ");
-    $seats_stmt->execute([':trip_id' => $trip_id]);
-    $db_seats = $seats_stmt->fetchAll();
+    // Fetch Boarding and Dropping points
+    $boarding_stations = $pdo->prepare("SELECT point_name AS name, departure_time AS time FROM boarding_points WHERE route_id = ?");
+    $boarding_stations->execute([$trip['route_id']]);
+    $boardings = $boarding_stations->fetchAll();
     
-    // Convert to easy lookup array
-    $seat_status_lookup = [];
+    if (empty($boardings)) {
+        // Fallback to route json points
+        $boardings = json_decode($trip['pickup_points'], true) ?? [];
+    }
+
+    $dropping_stations = $pdo->prepare("SELECT point_name AS name, arrival_time AS time FROM dropping_points WHERE route_id = ?");
+    $dropping_stations->execute([$trip['route_id']]);
+    $droppings = $dropping_stations->fetchAll();
+
+    if (empty($droppings)) {
+        // Fallback to route json points
+        $droppings = json_decode($trip['drop_points'], true) ?? [];
+    }
+
+    // Fetch custom seating layout grid dimensions
+    $layout_stmt = $pdo->prepare("SELECT rows_count, cols_count, layout_type FROM bus_layouts WHERE bus_id = ? LIMIT 1");
+    $layout_stmt->execute([$trip['bus_id']]);
+    $layout = $layout_stmt->fetch();
+
+    $rows_count = $layout ? intval($layout['rows_count']) : ($trip['seat_layout_type'] === '2x1_sleeper' ? 10 : 10);
+    $cols_count = $layout ? intval($layout['cols_count']) : ($trip['seat_layout_type'] === '2x1_sleeper' ? 3 : 5);
+
+    // Fetch seat statuses & pricing overrides
+    $seats_stmt = $pdo->prepare("
+        SELECT 
+            s.seat_number, s.row_pos, s.col_pos, s.seat_type, s.is_active,
+            ts.status AS seat_status, ts.locked_at, ts.locked_by_session, ts.hold_expires_at,
+            sp.base_price AS trip_base, sp.current_price AS trip_cur, sp.offer_price AS trip_off
+        FROM bus_seats s
+        LEFT JOIN trip_seats ts ON s.seat_number = ts.seat_number AND ts.trip_id = ?
+        LEFT JOIN seat_pricing sp ON s.seat_number = sp.seat_number AND sp.trip_id = ?
+        WHERE s.bus_id = ? AND s.is_active = 1
+    ");
+    $seats_stmt->execute([$trip_id, $trip_id, $trip['bus_id']]);
+    $db_seats = $seats_stmt->fetchAll();
+
+    // Map dynamic seats
+    $seats_lookup = [];
     $now = date('Y-m-d H:i:s');
+    $ten_mins_ago = date('Y-m-d H:i:s', strtotime('-10 minutes'));
+    $session_id = session_id();
+
+    // Fill defaults if layout was never configured
+    if (empty($db_seats)) {
+        if ($trip['seat_layout_type'] === '2x1_sleeper') {
+            for ($i = 1; $i <= 15; $i++) {
+                $db_seats[] = ['seat_number' => "L$i", 'row_pos' => intval(($i-1)/2), 'col_pos' => ($i-1)%2, 'seat_type' => 'Lower Sleeper', 'is_active' => 1];
+                $db_seats[] = ['seat_number' => "U$i", 'row_pos' => intval(($i-1)/2), 'col_pos' => ($i-1)%2, 'seat_type' => 'Upper Sleeper', 'is_active' => 1];
+            }
+        } else {
+            for ($i = 1; $i <= 40; $i++) {
+                $db_seats[] = ['seat_number' => strval($i), 'row_pos' => intval(($i-1)/4), 'col_pos' => ($i-1)%4 + (($i-1)%4 >= 2 ? 1 : 0), 'seat_type' => 'Normal', 'is_active' => 1];
+            }
+        }
+    }
+
+    // Load booked genders to check female protection rules
+    $gender_stmt = $pdo->prepare("
+        SELECT bs.seat_number, bs.passenger_gender 
+        FROM booking_seats bs
+        JOIN bookings b ON bs.booking_id = b.id
+        WHERE b.trip_id = ? AND b.status = 'active'
+    ");
+    $gender_stmt->execute([$trip_id]);
+    $booked_genders = $gender_stmt->fetchAll(PDO::FETCH_KEY_PAIR) ?: [];
+
+    // Parse statuses
     foreach ($db_seats as $s) {
-        $status = $s['status'];
-        // If status is hold but expired, treat as available
-        if ($status === 'hold' && !empty($s['hold_expires_at']) && strtotime($s['hold_expires_at']) < strtotime($now)) {
+        $seatNum = $s['seat_number'];
+        $status = !empty($s['seat_status']) ? $s['seat_status'] : 'available';
+
+        // Check locks expiration
+        if ($status === 'temp_locked') {
+            if (empty($s['locked_at']) || $s['locked_at'] <= $ten_mins_ago) {
+                $status = 'available';
+            } elseif ($s['locked_by_session'] === $session_id) {
+                $status = 'selected';
+            }
+        }
+        // Check holds expiration
+        if ($status === 'hold' && !empty($s['hold_expires_at']) && $s['hold_expires_at'] < $now) {
             $status = 'available';
         }
-        $seat_status_lookup[$s['seat_number']] = $status;
+
+        // Apply booked gender coloring overrides
+        if ($status === 'booked' && ($booked_genders[$seatNum] ?? '') === 'Female') {
+            $status = 'female_booked';
+        }
+
+        // Map pricing
+        $base = !empty($s['trip_off']) ? floatval($s['trip_off']) : (!empty($s['trip_cur']) ? floatval($s['trip_cur']) : (!empty($s['trip_base']) ? floatval($s['trip_base']) : floatval($trip['base_fare'])));
+
+        $seats_lookup[$seatNum] = [
+            'number' => $seatNum,
+            'row' => intval($s['row_pos']),
+            'col' => intval($s['col_pos']),
+            'type' => $s['seat_type'] ?? 'Normal',
+            'status' => $status,
+            'price' => $base
+        ];
     }
+
+    // Apply adjacent Female Protection rules
+    foreach ($seats_lookup as $seatNum => $sInfo) {
+        if ($sInfo['status'] === 'female_booked') {
+            // Find adjacent column
+            $adj_col = -1;
+            if ($sInfo['col'] === 0) $adj_col = 1;
+            elseif ($sInfo['col'] === 1) $adj_col = 0;
+            elseif ($sInfo['col'] === 3) $adj_col = 4;
+            elseif ($sInfo['col'] === 4) $adj_col = 3;
+
+            if ($adj_col !== -1) {
+                // Find adjacent seat in lookup
+                foreach ($seats_lookup as $otherNum => $otherInfo) {
+                    if ($otherInfo['row'] === $sInfo['row'] && $otherInfo['col'] === $adj_col && $otherInfo['status'] === 'available') {
+                        $seats_lookup[$otherNum]['status'] = 'female_protected';
+                    }
+                }
+            }
+        }
+    }
+
 } catch (PDOException $e) {
-    die("Error fetching trip seat mapping: " . $e->getMessage());
+    die("Error fetching voyage mapping: " . $e->getMessage());
 }
 
 require_once __DIR__ . '/includes/header.php';
 ?>
 
 <div class="row g-4">
-    <!-- Seat Layout Selection Section -->
+    <!-- Seating layout selection -->
     <div class="col-lg-7">
-        <div class="glass-card p-4" style="border-radius: 20px;">
-            <div class="d-flex align-items-center justify-content-between mb-4 border-bottom border-secondary pb-3">
+        <div class="glass-card p-4">
+            <div class="d-flex align-items-center justify-content-between mb-4 border-bottom border-secondary pb-3 flex-wrap gap-2">
                 <div>
                     <h4 class="fw-bold text-white mb-1"><i class="fa-solid fa-chair text-indigo me-2"></i>Select Your Seat</h4>
-                    <span class="text-secondary small">Click on seat to select (Max 6 seats)</span>
-                </div>
-                <!-- Interactive Legend -->
-                <div class="d-flex gap-2 flex-wrap">
-                    <div class="legend-item"><span class="legend-dot" style="background: rgba(16, 185, 129, 0.2); border: 1px solid var(--seat-available);"></span><span class="small text-secondary">Available</span></div>
-                    <div class="legend-item"><span class="legend-dot" style="background: var(--accent-indigo);"></span><span class="small text-secondary">Selected</span></div>
-                    <div class="legend-item"><span class="legend-dot" style="background: rgba(239, 68, 68, 0.2); border: 1px solid var(--seat-booked);"></span><span class="small text-secondary">Booked</span></div>
-                    <div class="legend-item"><span class="legend-dot" style="background: rgba(245, 158, 11, 0.2); border: 1px solid var(--seat-hold);"></span><span class="small text-secondary">Hold</span></div>
+                    <span class="text-secondary small">Tap on seats to choose. Orange/Black/Red seats are unavailable.</span>
                 </div>
             </div>
 
-            <!-- Seat Layout Grid -->
+            <!-- Seat status legend -->
+            <div class="d-flex gap-3 mb-4 justify-content-center flex-wrap small">
+                <div class="legend-item"><span class="legend-dot bg-success" style="background:#E2E8F0 !important; border:1px solid #CBD5E1 !important;"></span><span class="text-secondary">Available</span></div>
+                <div class="legend-item"><span class="legend-dot" style="background:var(--accent-gold-gradient);"></span><span class="text-secondary">Selected</span></div>
+                <div class="legend-item"><span class="legend-dot bg-danger" style="background:#FCA5A5 !important; border:1px solid #EF4444 !important;"></span><span class="text-secondary">Booked</span></div>
+                <div class="legend-item"><span class="legend-dot bg-warning" style="background:#FDE68A !important; border:1px solid #F59E0B !important;"></span><span class="text-secondary">Hold</span></div>
+                <div class="legend-item"><span class="legend-dot bg-dark" style="background:#1F2937 !important; border:1px solid #111827 !important;"></span><span class="text-secondary">Blocked</span></div>
+                <div class="legend-item"><span class="legend-dot bg-primary" style="background:#BFDBFE !important; border:1px solid #3B82F6 !important;"></span><span class="text-secondary">Reserved</span></div>
+                <div class="legend-item"><span class="legend-dot" style="background:#FBCFE8 !important; border:1px solid #EC4899 !important;"></span><span class="text-secondary">Female (Booked/Protected)</span></div>
+                <div class="legend-item"><span class="legend-dot bg-info" style="background:#FEF08A !important; border:1px solid #EAB308 !important;"></span><span class="text-secondary">Temp Locked</span></div>
+            </div>
+
+            <!-- Seating Grid -->
             <div class="text-center py-4">
-                <?php if ($trip['seat_layout_type'] === '2x1_sleeper'): ?>
-                    <!-- Tabs for Lower and Upper Berth -->
-                    <ul class="nav nav-pills justify-content-center mb-4 gap-2" id="berthTab" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link btn-secondary-glass active px-4 py-2" id="lower-tab" data-bs-toggle="pill" data-bs-target="#lower-berth" type="button" role="tab">Lower Berth</button>
+                <?php if ($trip['seat_layout_type'] === '2x1_sleeper' && !$layout): ?>
+                    <!-- Legacy Sleeper Layout Tabs Fallback -->
+                    <ul class="nav nav-pills justify-content-center mb-4 gap-2" role="tablist">
+                        <li class="nav-item">
+                            <button class="nav-link btn-secondary-glass active px-4 py-2" id="low-tab" data-bs-toggle="pill" data-bs-target="#low-berth" type="button" role="tab">Lower Berth</button>
                         </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link btn-secondary-glass px-4 py-2" id="upper-tab" data-bs-toggle="pill" data-bs-target="#upper-berth" type="button" role="tab">Upper Berth</button>
+                        <li class="nav-item">
+                            <button class="nav-link btn-secondary-glass px-4 py-2" id="up-tab" data-bs-toggle="pill" data-bs-target="#up-berth" type="button" role="tab">Upper Berth</button>
                         </li>
                     </ul>
 
-                    <div class="tab-content" id="berthTabContent">
-                        <!-- Lower Berth Grid -->
-                        <div class="tab-pane fade show active" id="lower-berth" role="tabpanel">
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="low-berth" role="tabpanel">
                             <div class="seat-map-container shadow-lg">
-                                <div class="d-flex justify-content-between mb-4 pb-2 border-bottom border-secondary border-opacity-20">
-                                    <span class="text-secondary small fw-semibold">FRONT</span>
-                                    <span class="text-muted small"><i class="fa-solid fa-steering-wheel me-2"></i>DRIVER</span>
-                                </div>
                                 <div class="seat-grid-sleeper">
                                     <?php 
-                                    // Sleeper berths: L1 to L15 (Columns: 2 Seats, 1 Walkway, 1 Seat)
-                                    for ($i = 1; $i <= 15; $i++) {
-                                        $seatNum = "L" . $i;
-                                        $status = $seat_status_lookup[$seatNum] ?? 'available';
-                                        
-                                        // Print seat
-                                        echo '<div class="seat sleeper-berth ' . $status . '" data-seat="' . $seatNum . '" data-price="' . $trip['base_fare'] . '">' . $seatNum . '</div>';
-                                        
-                                        // After every 2 seats, print walkthrough gap except for column alignment
-                                        if ($i % 2 === 0 && ($i + 1) % 3 === 0) {
-                                            echo '<div class="seat-walkway"></div>';
+                                    foreach ($seats_lookup as $num => $s) {
+                                        if (strpos($num, 'L') === 0) {
+                                            echo '<div class="seat sleeper-berth ' . $s['status'] . '" data-seat="' . $num . '" data-price="' . $s['price'] . '">' . $num . '</div>';
+                                            $i = intval(substr($num, 1));
+                                            if ($i % 2 === 0 && ($i + 1) % 3 === 0) {
+                                                echo '<div class="seat-walkway"></div>';
+                                            }
                                         }
                                     }
                                     ?>
                                 </div>
                             </div>
                         </div>
-
-                        <!-- Upper Berth Grid -->
-                        <div class="tab-pane fade" id="upper-berth" role="tabpanel">
+                        <div class="tab-pane fade" id="up-berth" role="tabpanel">
                             <div class="seat-map-container shadow-lg">
-                                <div class="d-flex justify-content-between mb-4 pb-2 border-bottom border-secondary border-opacity-20">
-                                    <span class="text-secondary small fw-semibold">FRONT</span>
-                                    <span class="text-muted small"><i class="fa-solid fa-steering-wheel me-2"></i>DRIVER</span>
-                                </div>
                                 <div class="seat-grid-sleeper">
                                     <?php 
-                                    // Upper berths: U1 to U15
-                                    for ($i = 1; $i <= 15; $i++) {
-                                        $seatNum = "U" . $i;
-                                        $status = $seat_status_lookup[$seatNum] ?? 'available';
-                                        
-                                        echo '<div class="seat sleeper-berth ' . $status . '" data-seat="' . $seatNum . '" data-price="' . ($trip['base_fare'] + 100) . '">' . $seatNum . '</div>'; // Upper berths get a small premium
-                                        
-                                        if ($i % 2 === 0 && ($i + 1) % 3 === 0) {
-                                            echo '<div class="seat-walkway"></div>';
+                                    foreach ($seats_lookup as $num => $s) {
+                                        if (strpos($num, 'U') === 0) {
+                                            echo '<div class="seat sleeper-berth ' . $s['status'] . '" data-seat="' . $num . '" data-price="' . $s['price'] . '">' . $num . '</div>';
+                                            $i = intval(substr($num, 1));
+                                            if ($i % 2 === 0 && ($i + 1) % 3 === 0) {
+                                                echo '<div class="seat-walkway"></div>';
+                                            }
                                         }
                                     }
                                     ?>
@@ -150,28 +257,33 @@ require_once __DIR__ . '/includes/header.php';
                             </div>
                         </div>
                     </div>
-
                 <?php else: ?>
-                    <!-- Standard Seater layout 2x2 -->
-                    <div class="seat-map-container shadow-lg" style="max-width: 450px;">
+                    <!-- Custom Grid Visual Layout (Seater, Mixed or configured Layouts) -->
+                    <div class="seat-map-container shadow-lg overflow-auto" style="max-width: 500px; margin:0 auto;">
                         <div class="d-flex justify-content-between mb-4 pb-2 border-bottom border-secondary border-opacity-20">
                             <span class="text-secondary small fw-semibold font-monospace">FRONT / ENGINE</span>
-                            <span class="text-secondary small"><i class="fa-solid fa-dharmachakra fa-spin me-2" style="color: #64748b;"></i>DRIVER</span>
+                            <span class="text-secondary small"><i class="fa-solid fa-steering-wheel"></i> DRIVER</span>
                         </div>
                         
-                        <div class="seat-grid-seater">
+                        <div style="display: inline-grid; gap: 12px; grid-template-rows: repeat(<?= $rows_count ?>, 60px); grid-template-columns: repeat(<?= $cols_count ?>, 60px);">
                             <?php 
-                            // 40 Seater Seats: Rows of 4 seats (1, 2, Walkway, 3, 4)
-                            for ($i = 1; $i <= 40; $i++) {
-                                $seatNum = strval($i);
-                                $status = $seat_status_lookup[$seatNum] ?? 'available';
-                                
-                                // Render seat
-                                echo '<div class="seat ' . $status . '" data-seat="' . $seatNum . '" data-price="' . $trip['base_fare'] . '">' . $seatNum . '</div>';
-                                
-                                // Insert walkway in the middle (after 2nd column)
-                                if ($i % 4 === 2) {
-                                    echo '<div class="seat-walkway"></div>';
+                            for ($r = 0; $r < $rows_count; $r++) {
+                                for ($c = 0; $c < $cols_count; $c++) {
+                                    // Find mapped seat
+                                    $seat = null;
+                                    foreach ($seats_lookup as $sNum => $sInfo) {
+                                        if ($sInfo['row'] === $r && $sInfo['col'] === $c) {
+                                            $seat = $sInfo;
+                                            break;
+                                        }
+                                    }
+                                    
+                                    if ($seat) {
+                                        $sleeperClass = (strpos($seat['type'], 'Sleeper') !== false) ? ' sleeper-berth' : '';
+                                        echo '<div class="seat' . $sleeperClass . ' ' . $seat['status'] . '" data-seat="' . $seat['number'] . '" data-price="' . $seat['price'] . '">' . $seat['number'] . '</div>';
+                                    } else {
+                                        echo '<div style="width:60px; height:60px;"></div>'; // Spacer/walkway
+                                    }
                                 }
                             }
                             ?>
@@ -182,65 +294,78 @@ require_once __DIR__ . '/includes/header.php';
         </div>
     </div>
 
-    <!-- Booking Summary Sidebar -->
+    <!-- Right Summary Panel -->
     <div class="col-lg-5">
-        <div class="glass-card p-4 h-100" style="border-radius: 20px;">
-            <h4 class="fw-bold text-white mb-4"><i class="fa-solid fa-file-invoice-dollar text-pink me-2"></i>Trip Summary</h4>
+        <div class="glass-card p-4 h-100">
+            <h4 class="fw-bold text-white mb-4"><i class="fa-solid fa-file-invoice-dollar text-indigo me-2"></i>Voyage Details</h4>
             
-            <div class="mb-4">
-                <span class="text-secondary small d-block">Operator Fleet</span>
+            <div class="mb-3">
+                <span class="text-secondary small d-block">Operator fleet / Brand</span>
                 <span class="text-white fw-bold fs-5"><?= htmlspecialchars($trip['bus_name']) ?></span>
-                <span class="badge bg-indigo ms-2 text-uppercase" style="font-size:0.7rem;"><?= htmlspecialchars($trip['bus_type']) ?></span>
+                <span class="badge bg-indigo ms-1 text-uppercase" style="font-size:0.7rem;"><?= htmlspecialchars($trip['bus_type']) ?></span>
             </div>
 
             <div class="row mb-4 border-bottom border-secondary border-opacity-30 pb-3">
                 <div class="col-6">
-                    <span class="text-secondary small d-block">Departure Route</span>
+                    <span class="text-secondary small d-block">Voyage Path</span>
                     <span class="text-white fw-semibold"><?= htmlspecialchars($trip['source']) ?> to <?= htmlspecialchars($trip['destination']) ?></span>
                 </div>
                 <div class="col-6 text-end">
-                    <span class="text-secondary small d-block">Date & Time</span>
+                    <span class="text-secondary small d-block">Scheduled Date</span>
                     <span class="text-white fw-semibold"><?= date('d M, H:i', strtotime($trip['departure_time'])) ?></span>
-                </div>
-            </div>
-
-            <!-- Seat calculations -->
-            <div class="mb-4">
-                <h6 class="text-indigo fw-bold small text-uppercase mb-3">Selected Seats</h6>
-                <div id="no-seat-warning" class="text-secondary small p-3 rounded bg-dark bg-opacity-20 border border-secondary border-opacity-10 text-center">
-                    No seats selected yet. Please tap on available seats.
-                </div>
-                
-                <ul class="list-group list-group-flush" id="selected-seats-list" style="display: none; background:transparent;">
-                    <!-- Appended dynamically -->
-                </ul>
-            </div>
-
-            <!-- Dynamic Invoice Summary -->
-            <div class="p-3 rounded-4 bg-dark bg-opacity-30 border border-secondary border-opacity-20 mb-4" id="invoice-block" style="display: none;">
-                <div class="d-flex justify-content-between small text-secondary mb-2">
-                    <span>Base Ticket Fare</span>
-                    <span id="invoice-base-fare">₹0.00</span>
-                </div>
-                <div class="d-flex justify-content-between small text-secondary mb-3">
-                    <span>Admin Processing GST (Included)</span>
-                    <span>₹0.00</span>
-                </div>
-                <div class="d-flex justify-content-between text-white fw-bold fs-5 pt-2 border-top border-secondary border-opacity-40">
-                    <span>Total Amount</span>
-                    <span class="text-indigo" id="invoice-total">₹0.00</span>
                 </div>
             </div>
 
             <!-- Proceed Form -->
             <form action="<?= BASE_URL ?>/checkout.php" method="POST" id="seatProceedForm">
-                <!-- CSRF Token -->
                 <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
-                <input type="hidden" name="trip_id" value="<?= htmlspecialchars($trip_id) ?>">
+                <input type="hidden" name="trip_id" value="<?= $trip_id ?>">
                 <input type="hidden" name="selected_seats" id="hidden_selected_seats" value="">
-                
-                <button type="submit" id="btnProceedCheckout" class="btn btn-primary-gradient w-100 py-3 text-uppercase fw-bold disabled" style="border-radius: 12px; letter-spacing: 0.5px;">
-                    <i class="fa-solid fa-circle-arrow-right me-2"></i>Proceed to passenger details
+
+                <!-- Boarding Station -->
+                <div class="mb-3">
+                    <label class="form-label text-secondary small fw-semibold">Select Boarding Station</label>
+                    <select name="boarding_point" id="boarding_point" class="form-select form-control-swift" required>
+                        <option value="">Choose Boarding...</option>
+                        <?php foreach ($boardings as $bs): ?>
+                            <option value="<?= htmlspecialchars($bs['name']) ?>"><?= htmlspecialchars($bs['name']) ?> (<?= htmlspecialchars($bs['time']) ?>)</option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <!-- Dropping Station -->
+                <div class="mb-4">
+                    <label class="form-label text-secondary small fw-semibold">Select Dropping Station</label>
+                    <select name="dropping_point" id="dropping_point" class="form-select form-control-swift" required>
+                        <option value="">Choose Dropping...</option>
+                        <?php foreach ($droppings as $ds): ?>
+                            <option value="<?= htmlspecialchars($ds['name']) ?>"><?= htmlspecialchars($ds['name']) ?> (<?= htmlspecialchars($ds['time']) ?>)</option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <!-- Selected seats invoice -->
+                <div class="mb-4">
+                    <h6 class="text-indigo fw-bold small text-uppercase mb-2">Selected Seats</h6>
+                    <div id="no-seat-warning" class="text-secondary small p-3 rounded bg-dark bg-opacity-20 border border-secondary border-opacity-10 text-center">
+                        Tap available seats in the map layout.
+                    </div>
+                    <ul class="list-group list-group-flush mb-4" id="selected-seats-list" style="display: none; background:transparent;"></ul>
+                </div>
+
+                <div class="p-3 rounded-4 bg-dark bg-opacity-30 border border-secondary border-opacity-20 mb-4" id="invoice-block" style="display: none;">
+                    <div class="d-flex justify-content-between small text-secondary mb-2">
+                        <span>Base Ticket Fare</span>
+                        <span id="invoice-base-fare">₹0.00</span>
+                    </div>
+                    <div class="d-flex justify-content-between text-white fw-bold fs-5 pt-2 border-top border-secondary border-opacity-40">
+                        <span>Total Amount</span>
+                        <span class="text-indigo" id="invoice-total">₹0.00</span>
+                    </div>
+                </div>
+
+                <button type="submit" id="btnProceedCheckout" class="btn btn-primary-gradient w-100 py-3 text-uppercase fw-bold disabled">
+                    <i class="fa-solid fa-circle-arrow-right me-2"></i>Proceed Details
                 </button>
             </form>
         </div>
@@ -251,28 +376,68 @@ require_once __DIR__ . '/includes/header.php';
 $(document).ready(function() {
     var selectedSeats = [];
     var maxSeats = 6;
+    var csrfToken = '<?= get_csrf_token() ?>';
+    var tripId = <?= $trip_id ?>;
 
-    // Handle Seat Click
-    $('.seat.available').click(function() {
-        var seatNum = $(this).data('seat');
-        var seatPrice = parseFloat($(this).data('price'));
+    // Load initial selection from backend if page was reloaded
+    $('.seat.selected').each(function() {
+        var num = $(this).data('seat');
+        var price = parseFloat($(this).data('price'));
+        selectedSeats.push({ number: num, price: price });
+    });
+    updateInvoice();
 
-        if ($(this).hasClass('selected')) {
-            // Remove from selected
-            $(this).removeClass('selected');
-            selectedSeats = selectedSeats.filter(item => item.number !== seatNum);
-        } else {
-            // Check max limit
-            if (selectedSeats.length >= maxSeats) {
-                alert("You can select up to " + maxSeats + " seats per ticket.");
-                return;
-            }
-            // Add to selected
-            $(this).addClass('selected');
-            selectedSeats.push({ number: seatNum, price: seatPrice });
+    // Click seat handler
+    $('.seat').click(function() {
+        var cell = $(this);
+        var seatNum = cell.data('seat');
+        var seatPrice = parseFloat(cell.data('price'));
+
+        if (cell.hasClass('booked') || cell.hasClass('hold') || cell.hasClass('blocked') || cell.hasClass('reserved') || cell.hasClass('female_booked') || cell.hasClass('temp_locked')) {
+            return;
         }
 
-        updateInvoice();
+        if (cell.hasClass('selected')) {
+            // Unlock/Deselect
+            $.ajax({
+                url: '<?= BASE_URL ?>/ajax/lock_seats.php',
+                type: 'POST',
+                data: { trip_id: tripId, seat_number: seatNum, action: 'unlock', csrf_token: csrfToken },
+                dataType: 'json',
+                success: function(res) {
+                    if (res.success) {
+                        cell.removeClass('selected');
+                        selectedSeats = selectedSeats.filter(item => item.number !== seatNum);
+                        updateInvoice();
+                    }
+                }
+            });
+        } else {
+            // Lock/Select
+            if (selectedSeats.length >= maxSeats) {
+                alert("You can select up to " + maxSeats + " seats.");
+                return;
+            }
+
+            $.ajax({
+                url: '<?= BASE_URL ?>/ajax/lock_seats.php',
+                type: 'POST',
+                data: { trip_id: tripId, seat_number: seatNum, action: 'lock', csrf_token: csrfToken },
+                dataType: 'json',
+                success: function(res) {
+                    if (res.success) {
+                        cell.addClass('selected');
+                        selectedSeats.push({ number: seatNum, price: seatPrice });
+                        updateInvoice();
+                    } else {
+                        alert(res.message);
+                    }
+                },
+                error: function() {
+                    alert("Server failed to request temporary seat lock.");
+                }
+            });
+        }
     });
 
     function updateInvoice() {
@@ -291,25 +456,23 @@ $(document).ready(function() {
         $('#btnProceedCheckout').removeClass('disabled');
 
         var totalFare = 0;
-        var seatNumsOnly = [];
+        var nums = [];
 
-        selectedSeats.forEach(function(seat) {
-            totalFare += seat.price;
-            seatNumsOnly.push(seat.number);
+        selectedSeats.forEach(function(s) {
+            totalFare += s.price;
+            nums.push(s.number);
 
             $('#selected-seats-list').append(
                 '<li class="list-group-item d-flex justify-content-between align-items-center bg-transparent border-secondary border-opacity-10 text-white py-2 px-0 small">' +
-                '<span><i class="fa-solid fa-chair text-indigo me-2"></i>Seat ' + seat.number + '</span>' +
-                '<span class="fw-semibold">₹' + seat.price.toFixed(2) + '</span>' +
+                '<span><i class="fa-solid fa-chair text-indigo me-2"></i>Seat ' + s.number + '</span>' +
+                '<span class="fw-semibold">₹' + s.price.toFixed(2) + '</span>' +
                 '</li>'
             );
         });
 
         $('#invoice-base-fare').text('₹' + totalFare.toFixed(2));
         $('#invoice-total').text('₹' + totalFare.toFixed(2));
-        
-        // Populate form inputs
-        $('#hidden_selected_seats').val(seatNumsOnly.join(','));
+        $('#hidden_selected_seats').val(nums.join(','));
     }
 });
 </script>

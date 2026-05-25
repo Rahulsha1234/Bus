@@ -1,12 +1,14 @@
 <?php
 /**
- * Agent Seat Controller (Hold/Release)
+ * Agent Seat Control Panel (Hold, Release, Block, Unblock, Seat Price Management)
  */
 require_once __DIR__ . '/header.php';
 
 $agent_id = $_SESSION['user_id'];
+$error = '';
+$success = '';
 
-// Fetch Agent's scheduled active trips to populate dropdown selector
+// Fetch Agent's scheduled active trips
 try {
     $stmt = $pdo->prepare("
         SELECT 
@@ -19,7 +21,7 @@ try {
         FROM trips t
         JOIN buses b ON t.bus_id = b.id
         JOIN routes r ON t.route_id = r.id
-        WHERE b.agent_id = ?
+        WHERE b.agent_id = ? AND t.status = 'active'
         ORDER BY t.departure_time DESC
     ");
     $stmt->execute([$agent_id]);
@@ -28,247 +30,420 @@ try {
     $trips = [];
 }
 
-// Check if a specific trip is selected
-$selected_trip_id = $_GET['trip_id'] ?? '';
+$selected_trip_id = intval($_GET['trip_id'] ?? 0);
 $trip_details = null;
-$seat_status_lookup = [];
+$seats_list = [];
 
-if (!empty($selected_trip_id)) {
-    try {
-        // Fetch Selected Trip info
-        $stmt = $pdo->prepare("
-            SELECT t.id, b.seat_layout_type, b.bus_name, r.source, r.destination 
-            FROM trips t
-            JOIN buses b ON t.bus_id = b.id
-            JOIN routes r ON t.route_id = r.id
-            WHERE t.id = ? AND b.agent_id = ?
-            LIMIT 1
-        ");
-        $stmt->execute([$selected_trip_id, $agent_id]);
-        $trip_details = $stmt->fetch();
+if ($selected_trip_id > 0) {
+    // Verify ownership
+    $stmt = $pdo->prepare("
+        SELECT t.id, t.bus_id, b.seat_layout_type, b.bus_name, r.source, r.destination 
+        FROM trips t
+        JOIN buses b ON t.bus_id = b.id
+        JOIN routes r ON t.route_id = r.id
+        WHERE t.id = ? AND b.agent_id = ? AND t.status = 'active'
+        LIMIT 1
+    ");
+    $stmt->execute([$selected_trip_id, $agent_id]);
+    $trip_details = $stmt->fetch();
 
-        if ($trip_details) {
-            // Fetch seat details
-            $seats_stmt = $pdo->prepare("SELECT seat_number, status, hold_expires_at FROM trip_seats WHERE trip_id = ?");
-            $seats_stmt->execute([$selected_trip_id]);
-            $seats = $seats_stmt->fetchAll();
+    if ($trip_details) {
+        // Handle Seat Bulk Operations
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+            $csrf_token = $_POST['csrf_token'] ?? '';
+            if (!verify_csrf_token($csrf_token)) {
+                $error = "Security token validation failed.";
+            } else {
+                $action = $_POST['action'];
+                $target_seats_str = $_POST['seats_list'] ?? '';
+                $target_seats = array_filter(array_map('trim', explode(',', $target_seats_str)));
 
-            $now = date('Y-m-d H:i:s');
-            foreach ($seats as $s) {
-                $status = $s['status'];
-                // Expired hold treats as available
-                if ($status === 'hold' && !empty($s['hold_expires_at']) && strtotime($s['hold_expires_at']) < strtotime($now)) {
-                    $status = 'available';
+                if (empty($target_seats)) {
+                    $error = "No seats selected for allocation modification.";
+                } else {
+                    try {
+                        $pdo->beginTransaction();
+
+                        if ($action === 'hold') {
+                            $stmt = $pdo->prepare("
+                                INSERT INTO trip_seats (trip_id, seat_number, status, hold_expires_at)
+                                VALUES (?, ?, 'hold', NULL)
+                                ON DUPLICATE KEY UPDATE status = 'hold', hold_expires_at = NULL
+                            ");
+                            foreach ($target_seats as $seat) {
+                                $stmt->execute([$selected_trip_id, $seat]);
+                            }
+                            $success = "Successfully placed " . count($target_seats) . " seat(s) on manual Hold.";
+                            log_activity($pdo, $agent_id, 'SEAT_HOLD_BULK', "Held seats (" . implode(',', $target_seats) . ") on Trip: $selected_trip_id");
+                        } 
+                        elseif ($action === 'release') {
+                            $stmt = $pdo->prepare("UPDATE trip_seats SET status = 'available', hold_expires_at = NULL WHERE trip_id = ? AND seat_number = ?");
+                            foreach ($target_seats as $seat) {
+                                $stmt->execute([$selected_trip_id, $seat]);
+                            }
+                            $success = "Successfully released " . count($target_seats) . " seat(s) back to available pool.";
+                            log_activity($pdo, $agent_id, 'SEAT_RELEASE_BULK', "Released seats (" . implode(',', $target_seats) . ") on Trip: $selected_trip_id");
+                        } 
+                        elseif ($action === 'block') {
+                            $stmt = $pdo->prepare("
+                                INSERT INTO trip_seats (trip_id, seat_number, status)
+                                VALUES (?, ?, 'blocked')
+                                ON DUPLICATE KEY UPDATE status = 'blocked'
+                            ");
+                            foreach ($target_seats as $seat) {
+                                $stmt->execute([$selected_trip_id, $seat]);
+                            }
+                            $success = "Successfully Blocked " . count($target_seats) . " seat(s).";
+                            log_activity($pdo, $agent_id, 'SEAT_BLOCK_BULK', "Blocked seats (" . implode(',', $target_seats) . ") on Trip: $selected_trip_id");
+                        } 
+                        elseif ($action === 'unblock') {
+                            $stmt = $pdo->prepare("UPDATE trip_seats SET status = 'available' WHERE trip_id = ? AND seat_number = ?");
+                            foreach ($target_seats as $seat) {
+                                $stmt->execute([$selected_trip_id, $seat]);
+                            }
+                            $success = "Successfully Unblocked " . count($target_seats) . " seat(s).";
+                            log_activity($pdo, $agent_id, 'SEAT_UNBLOCK_BULK', "Unblocked seats (" . implode(',', $target_seats) . ") on Trip: $selected_trip_id");
+                        } 
+                        elseif ($action === 'price') {
+                            $base_price = floatval($_POST['base_price'] ?? 0.00);
+                            $current_price = floatval($_POST['current_price'] ?? 0.00);
+                            $offer_price = floatval($_POST['offer_price'] ?? 0.00);
+
+                            if ($base_price <= 0 || $current_price <= 0 || $offer_price <= 0) {
+                                $error = "Fares must be positive numeric values.";
+                            } else {
+                                $stmt = $pdo->prepare("
+                                    INSERT INTO seat_pricing (trip_id, seat_number, base_price, current_price, offer_price)
+                                    VALUES (?, ?, ?, ?, ?)
+                                    ON DUPLICATE KEY UPDATE base_price = VALUES(base_price), current_price = VALUES(current_price), offer_price = VALUES(offer_price)
+                                ");
+                                foreach ($target_seats as $seat) {
+                                    $stmt->execute([$selected_trip_id, $seat, $base_price, $current_price, $offer_price]);
+                                }
+                                $success = "Pricing overrides applied to " . count($target_seats) . " seat(s).";
+                                log_activity($pdo, $agent_id, 'PRICE_OVERRIDE_BULK', "Override fares for seats (" . implode(',', $target_seats) . ") on Trip: $selected_trip_id");
+                            }
+                        }
+
+                        if (empty($error)) {
+                            $pdo->commit();
+                        } else {
+                            $pdo->rollBack();
+                        }
+                    } catch (Exception $e) {
+                        if ($pdo->inTransaction()) {
+                            $pdo->rollBack();
+                        }
+                        $error = "Allocation Action failed: " . $e->getMessage();
+                    }
                 }
-                $seat_status_lookup[$s['seat_number']] = $status;
             }
         }
-    } catch (PDOException $e) {
-        // Fail silently
+
+        // Fetch Grid Dimension details
+        $layout_stmt = $pdo->prepare("SELECT * FROM bus_layouts WHERE bus_id = ? LIMIT 1");
+        $layout_stmt->execute([$trip_details['bus_id']]);
+        $layout = $layout_stmt->fetch();
+
+        $rows_count = $layout ? intval($layout['rows_count']) : 10;
+        $cols_count = $layout ? intval($layout['cols_count']) : 5;
+
+        // Fetch all seats configured for this bus, left-joining status overrides
+        $seats_stmt = $pdo->prepare("
+            SELECT 
+                s.seat_number, s.row_pos, s.col_pos, s.seat_type, s.is_active,
+                ts.status, ts.hold_expires_at,
+                sp.base_price AS current_base, sp.current_price AS current_cur
+            FROM bus_seats s
+            LEFT JOIN trip_seats ts ON s.seat_number = ts.seat_number AND ts.trip_id = ?
+            LEFT JOIN seat_pricing sp ON s.seat_number = sp.seat_number AND sp.trip_id = ?
+            WHERE s.bus_id = ? AND s.is_active = 1
+        ");
+        $seats_stmt->execute([$selected_trip_id, $selected_trip_id, $trip_details['bus_id']]);
+        $db_seats = $seats_stmt->fetchAll();
+
+        // Convert to mapped list
+        $now = date('Y-m-d H:i:s');
+        foreach ($db_seats as $s) {
+            $status = !empty($s['status']) ? $s['status'] : 'available';
+            // Expired hold behaves as available
+            if ($status === 'hold' && !empty($s['hold_expires_at']) && strtotime($s['hold_expires_at']) < strtotime($now)) {
+                $status = 'available';
+            }
+
+            $seats_list[] = [
+                'number' => $s['seat_number'],
+                'row' => intval($s['row_pos']),
+                'col' => intval($s['col_pos']),
+                'type' => $s['seat_type'],
+                'status' => $status,
+                'price' => !empty($s['current_cur']) ? floatval($s['current_cur']) : (!empty($s['current_base']) ? floatval($s['current_base']) : 500.00)
+            ];
+        }
     }
 }
 ?>
 
-<div class="row g-4 mb-4">
-    <!-- Trip Selector Sidebar -->
-    <div class="col-lg-4">
-        <div class="glass-card p-4 shadow-lg h-100">
-            <h5 class="fw-bold text-white mb-4"><i class="fa-solid fa-list-check text-indigo me-2"></i>Select Active Schedule</h5>
+<?php if (!empty($error)): ?>
+    <div class="alert alert-danger border-0 bg-danger bg-opacity-10 text-danger rounded-3" role="alert">
+        <i class="fa-solid fa-triangle-exclamation me-2"></i><?= htmlspecialchars($error) ?>
+    </div>
+<?php endif; ?>
+
+<?php if (!empty($success)): ?>
+    <div class="alert alert-success border-0 bg-success bg-opacity-10 text-success rounded-3" role="alert">
+        <i class="fa-solid fa-circle-check me-2"></i><?= htmlspecialchars($success) ?>
+    </div>
+<?php endif; ?>
+
+<div class="row g-4">
+    <!-- Configuration Side Panel -->
+    <div class="col-md-4">
+        <div class="glass-card p-4">
+            <h5 class="fw-bold text-white mb-4"><i class="fa-solid fa-compass text-indigo me-2"></i>Map Control Panel</h5>
             
-            <form action="<?= htmlspecialchars($_SERVER['PHP_SELF']) ?>" method="GET">
-                <div class="mb-4">
+            <form action="" method="GET" class="mb-4">
+                <div class="mb-3">
                     <label class="form-label text-secondary small fw-semibold">Choose Trip Voyage</label>
                     <select name="trip_id" class="form-select form-control-swift" onchange="this.form.submit()" required>
                         <option value="">Select Schedule...</option>
                         <?php foreach ($trips as $t): ?>
-                            <option value="<?= $t['trip_id'] ?>" <?= ($selected_trip_id == $t['trip_id']) ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($t['source']) ?> to <?= htmlspecialchars($t['destination']) ?> (<?= date('d M, H:i', strtotime($t['departure_time'])) ?>) - <?= htmlspecialchars($t['bus_number']) ?>
+                            <option value="<?= $t['trip_id'] ?>" <?= ($selected_trip_id === intval($t['trip_id'])) ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($t['source']) ?> to <?= htmlspecialchars($t['destination']) ?> (<?= date('d M, H:i', strtotime($t['departure_time'])) ?>)
                             </option>
                         <?php endforeach; ?>
                     </select>
                 </div>
             </form>
-            
+
             <?php if ($trip_details): ?>
-                <div class="p-3 rounded-4 bg-dark bg-opacity-20 border border-secondary border-opacity-10 mt-4 small text-secondary">
-                    <h6 class="text-white fw-bold mb-2">Instructions</h6>
-                    <p class="mb-2"><span class="badge bg-success bg-opacity-20 text-success border border-success border-opacity-10 me-2"><i class="fa-solid fa-tap"></i>Tap Seat</span>Click an available green seat to place it on manual **Offline Hold**.</p>
-                    <p class="mb-0"><span class="badge bg-warning bg-opacity-20 text-warning border border-warning border-opacity-10 me-2"><i class="fa-solid fa-rotate"></i>Release</span>Click a held yellow seat to instantly **Release** it back to the public pool.</p>
-                </div>
+                <hr class="border-secondary mb-4">
+                
+                <form action="" method="POST" id="seatActionForm">
+                    <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
+                    <input type="hidden" name="seats_list" id="action_seats_list" value="">
+                    
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-semibold">Selected Seats Count:</label>
+                        <div id="selection_preview" class="p-2 border border-secondary border-opacity-10 rounded bg-dark bg-opacity-20 font-semibold small text-indigo">
+                            0 Seats Selected
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label text-secondary small fw-semibold">Execute Allocation Action</label>
+                        <select name="action" id="action_selector" class="form-select form-control-swift" required>
+                            <option value="hold">Offline Hold (Indefinite)</option>
+                            <option value="release">Release Hold / Block</option>
+                            <option value="block">Block Seats (System Block)</option>
+                            <option value="unblock">Unblock Seats</option>
+                            <option value="price">Modify Seat Fares (Trip Overrides)</option>
+                        </select>
+                    </div>
+
+                    <!-- Pricing Overrides block (Shown only if 'price' selected) -->
+                    <div id="pricing_fields" style="display: none;" class="p-3 mb-4 rounded border border-secondary border-opacity-20 bg-dark bg-opacity-10">
+                        <div class="mb-2">
+                            <label class="form-label text-secondary small">Base Price (₹)</label>
+                            <input type="number" name="base_price" class="form-control form-control-swift py-1" value="500">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label text-secondary small">Current Price (₹)</label>
+                            <input type="number" name="current_price" class="form-control form-control-swift py-1" value="500">
+                        </div>
+                        <div class="mb-0">
+                            <label class="form-label text-secondary small">Offer Price (₹)</label>
+                            <input type="number" name="offer_price" class="form-control form-control-swift py-1" value="500">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary-gradient w-100 py-3 font-semibold">
+                        Apply Allocations
+                    </button>
+                </form>
             <?php endif; ?>
         </div>
     </div>
 
-    <!-- Interactive Grid Column -->
-    <div class="col-lg-8">
-        <div class="glass-card p-4 shadow-lg h-100">
+    <!-- Seating Layout Selector -->
+    <div class="col-md-8">
+        <div class="glass-card p-4">
             <?php if (!$trip_details): ?>
-                <div class="text-center py-5 text-secondary small h-100 d-flex flex-column align-items-center justify-content-center">
-                    <i class="fa-solid fa-chair mb-3 d-block" style="font-size: 4rem; color:#475569;"></i>
-                    Please select an active trip schedule from the sidebar to load the seat allocation map.
+                <div class="text-center py-5 text-secondary small">
+                    <i class="fa-solid fa-chair mb-3 d-block" style="font-size: 3.5rem; color:#475569;"></i>
+                    Please select an active voyage from the control panel to view allocations.
                 </div>
             <?php else: ?>
-                <div class="d-flex align-items-center justify-content-between mb-4 pb-3 border-bottom border-secondary border-opacity-20">
+                <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom border-secondary border-opacity-20 flex-wrap gap-2">
                     <div>
-                        <h4 class="fw-bold text-white mb-1"><i class="fa-solid fa-compass text-pink me-2"></i>Seat Map Console</h4>
-                        <span class="text-secondary small">Trip: <?= htmlspecialchars($trip_details['source']) ?> to <?= htmlspecialchars($trip_details['destination']) ?> (<?= htmlspecialchars($trip_details['bus_name']) ?>)</span>
+                        <h5 class="fw-bold mb-0">Seat Selection Layout</h5>
+                        <span class="text-secondary small">Hold Shift to select ranges / click cells to toggle.</span>
                     </div>
-                    <!-- Legend -->
-                    <div class="d-flex gap-2">
-                        <div class="legend-item"><span class="legend-dot bg-success"></span><span class="small text-secondary">Available</span></div>
-                        <div class="legend-item"><span class="legend-dot bg-warning"></span><span class="small text-secondary">Held</span></div>
-                        <div class="legend-item"><span class="legend-dot bg-danger"></span><span class="small text-secondary">Booked</span></div>
+                    <div class="d-flex gap-1">
+                        <button type="button" id="btnSelectAll" class="btn btn-secondary-glass py-1 px-2 small">Select All</button>
+                        <button type="button" id="btnSelectNone" class="btn btn-secondary-glass py-1 px-2 small">Clear Selection</button>
                     </div>
                 </div>
 
-                <div class="text-center py-3">
-                    <?php if ($trip_details['seat_layout_type'] === '2x1_sleeper'): ?>
-                        <!-- Berth tabs -->
-                        <ul class="nav nav-pills justify-content-center mb-4 gap-2" id="agentBerthTab" role="tablist">
-                            <li class="nav-item">
-                                <button class="nav-link btn-secondary-glass active px-4 py-2" id="a-lower-tab" data-bs-toggle="pill" data-bs-target="#a-lower-berth" type="button" role="tab">Lower Berth</button>
-                            </li>
-                            <li class="nav-item">
-                                <button class="nav-link btn-secondary-glass px-4 py-2" id="a-upper-tab" data-bs-toggle="pill" data-bs-target="#a-upper-berth" type="button" role="tab">Upper Berth</button>
-                            </li>
-                        </ul>
+                <!-- Legend details -->
+                <div class="d-flex gap-3 mb-4 justify-content-center flex-wrap small">
+                    <div class="legend-item"><span class="legend-dot bg-success"></span><span class="text-secondary">Available</span></div>
+                    <div class="legend-item"><span class="legend-dot bg-warning"></span><span class="text-secondary">Held</span></div>
+                    <div class="legend-item"><span class="legend-dot bg-danger"></span><span class="text-secondary">Booked</span></div>
+                    <div class="legend-item"><span class="legend-dot bg-dark border border-secondary"></span><span class="text-secondary">Blocked</span></div>
+                    <div class="legend-item"><span class="legend-dot bg-primary"></span><span class="text-secondary">VIP Reserved</span></div>
+                    <div class="legend-item"><span class="legend-dot bg-info"></span><span class="text-secondary">Temp Locked</span></div>
+                </div>
 
-                        <div class="tab-content" id="agentBerthTabContent">
-                            <!-- Lower Berth -->
-                            <div class="tab-pane fade show active" id="a-lower-berth" role="tabpanel">
-                                <div class="seat-map-container">
-                                    <div class="d-flex justify-content-between mb-4 pb-2 border-bottom border-secondary border-opacity-15">
-                                        <span class="text-secondary small">FRONT</span>
-                                        <span class="text-secondary small"><i class="fa-solid fa-steering-wheel"></i></span>
-                                    </div>
-                                    <div class="seat-grid-sleeper">
-                                        <?php 
-                                        for ($i = 1; $i <= 15; $i++) {
-                                            $seatNum = "L" . $i;
-                                            $status = $seat_status_lookup[$seatNum] ?? 'available';
-                                            echo '<div class="seat sleeper-berth control-seat-trigger ' . $status . '" data-seat="' . $seatNum . '">' . $seatNum . '</div>';
-                                            if ($i % 2 === 0 && ($i + 1) % 3 === 0) {
-                                                echo '<div class="seat-walkway"></div>';
-                                            }
-                                        }
-                                        ?>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Upper Berth -->
-                            <div class="tab-pane fade" id="a-upper-berth" role="tabpanel">
-                                <div class="seat-map-container">
-                                    <div class="d-flex justify-content-between mb-4 pb-2 border-bottom border-secondary border-opacity-15">
-                                        <span class="text-secondary small">FRONT</span>
-                                        <span class="text-secondary small"><i class="fa-solid fa-steering-wheel"></i></span>
-                                    </div>
-                                    <div class="seat-grid-sleeper">
-                                        <?php 
-                                        for ($i = 1; $i <= 15; $i++) {
-                                            $seatNum = "U" . $i;
-                                            $status = $seat_status_lookup[$seatNum] ?? 'available';
-                                            echo '<div class="seat sleeper-berth control-seat-trigger ' . $status . '" data-seat="' . $seatNum . '">' . $seatNum . '</div>';
-                                            if ($i % 2 === 0 && ($i + 1) % 3 === 0) {
-                                                echo '<div class="seat-walkway"></div>';
-                                            }
-                                        }
-                                        ?>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                    <?php else: ?>
-                        <!-- Seater Grid -->
-                        <div class="seat-map-container" style="max-width: 450px;">
-                            <div class="d-flex justify-content-between mb-4 pb-2 border-bottom border-secondary border-opacity-15">
-                                <span class="text-secondary small">FRONT / ENGINE</span>
-                                <span class="text-secondary small"><i class="fa-solid fa-steering-wheel"></i></span>
-                            </div>
-                            <div class="seat-grid-seater">
-                                <?php 
-                                for ($i = 1; $i <= 40; $i++) {
-                                    $seatNum = strval($i);
-                                    $status = $seat_status_lookup[$seatNum] ?? 'available';
-                                    echo '<div class="seat control-seat-trigger ' . $status . '" data-seat="' . $seatNum . '">' . $seatNum . '</div>';
-                                    if ($i % 4 === 2) {
-                                        echo '<div class="seat-walkway"></div>';
-                                    }
-                                }
-                                ?>
-                            </div>
-                        </div>
-                    <?php endif; ?>
+                <div class="text-center overflow-auto py-2">
+                    <div id="seats-builder-canvas" class="mx-auto" style="display: inline-grid; gap: 10px; padding: 15px; border-radius: 12px; background: rgba(0,0,0,0.15);"></div>
                 </div>
             <?php endif; ?>
         </div>
     </div>
 </div>
 
-<!-- CSRF for AJAX -->
-<input type="hidden" id="ajax_csrf_token" value="<?= get_csrf_token() ?>">
+<style>
+.grid-cell {
+    width: 60px;
+    height: 60px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.console-seat-box {
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+    border: 1px solid var(--border-glass);
+    color: var(--text-main);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 700;
+    transition: all 0.2s ease;
+}
+.console-seat-box.available { background: rgba(78, 135, 82, 0.12); border-color: rgba(78, 135, 82, 0.35); color: var(--seat-available); }
+.console-seat-box.hold { background: rgba(217, 140, 69, 0.12); border-color: rgba(217, 140, 69, 0.35); color: var(--seat-hold); }
+.console-seat-box.booked { background: rgba(184, 92, 92, 0.12); border-color: rgba(184, 92, 92, 0.35); color: var(--seat-booked); }
+.console-seat-box.blocked { background: #1a1f2c; border-color: #2D3442; color: #4E5A70; }
+.console-seat-box.reserved { background: rgba(99, 102, 241, 0.12); border-color: rgba(99, 102, 241, 0.35); color: #818cf8; }
+.console-seat-box.temp_locked { background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.35); color: #fbbf24; }
+
+.console-seat-box.selected-action {
+    outline: 2px solid var(--accent-primary) !important;
+    outline-offset: 2px;
+}
+</style>
 
 <script>
 $(document).ready(function() {
-    
-    // Tap seat behavior
-    $('.control-seat-trigger').click(function() {
-        var seat = $(this).data('seat');
-        var tripId = '<?= $selected_trip_id ?>';
-        var csrf = $('#ajax_csrf_token').val();
-        var cell = $(this);
+    <?php if ($trip_details): ?>
+    var seats = <?= json_encode($seats_list) ?>;
+    var rows = <?= $rows_count ?>;
+    var cols = <?= $cols_count ?>;
+    var selectedSeats = [];
 
-        if (cell.hasClass('booked')) {
-            alert("This seat is permanently booked by a passenger. Booked seats cannot be manually held or released.");
-            return;
+    function renderConsoleGrid() {
+        var canvas = $('#seats-builder-canvas');
+        canvas.empty();
+        canvas.css({
+            'grid-template-rows': 'repeat(' + rows + ', 60px)',
+            'grid-template-columns': 'repeat(' + cols + ', 60px)'
+        });
+
+        for (var r = 0; r < rows; r++) {
+            var rowHeaderCell = $('<div class="grid-cell" style="cursor: pointer; font-size: 0.7rem; color: var(--text-muted);" data-row-header="' + r + '">Row ' + (r + 1) + '</div>');
+            rowHeaderCell.click(handleRowHeaderClick(r));
+            
+            for (var c = 0; c < cols; c++) {
+                var seat = seats.find(s => s.row === r && s.col === c);
+                var cell = $('<div class="grid-cell"></div>');
+
+                if (seat) {
+                    var isSelected = selectedSeats.includes(seat.number) ? ' selected-action' : '';
+                    var box = $('<div class="console-seat-box ' + seat.status + isSelected + '" data-seat="' + seat.number + '">' +
+                        '<span>' + seat.number + '</span>' +
+                        '</div>');
+                    
+                    box.click(handleSeatToggle(seat));
+                    cell.append(box);
+                }
+                canvas.append(cell);
+            }
         }
+    }
 
-        if (cell.hasClass('available')) {
-            // Initiate Hold
-            if (confirm("Hold Seat " + seat + " for offline booking?")) {
-                $.ajax({
-                    url: '<?= BASE_URL ?>/ajax/hold_seat.php',
-                    type: 'POST',
-                    data: { trip_id: tripId, seat_number: seat, csrf_token: csrf },
-                    dataType: 'json',
-                    success: function(response) {
-                        if (response.success) {
-                            cell.removeClass('available').addClass('hold');
-                            alert("Seat " + seat + " successfully put on hold.");
-                        } else {
-                            alert("Action Failed: " + response.message);
-                        }
-                    },
-                    error: function() {
-                        alert("CRITICAL: Server failed to process hold request.");
+    function handleSeatToggle(seat) {
+        return function() {
+            if (seat.status === 'booked') {
+                alert("Booked seats cannot be modified.");
+                return;
+            }
+            if (selectedSeats.includes(seat.number)) {
+                selectedSeats = selectedSeats.filter(num => num !== seat.number);
+            } else {
+                selectedSeats.push(seat.number);
+            }
+            renderConsoleGrid();
+            updateSelectionPreview();
+        };
+    }
+
+    function handleRowHeaderClick(rowIdx) {
+        return function() {
+            var rowSeats = seats.filter(s => s.row === rowIdx && s.status !== 'booked');
+            var rowSeatNums = rowSeats.map(s => s.number);
+            
+            // Check if all are already selected
+            var allSelected = rowSeatNums.every(num => selectedSeats.includes(num));
+            if (allSelected) {
+                // Remove all from selection
+                selectedSeats = selectedSeats.filter(num => !rowSeatNums.includes(num));
+            } else {
+                // Add all to selection
+                rowSeatNums.forEach(num => {
+                    if (!selectedSeats.includes(num)) {
+                        selectedSeats.push(num);
                     }
                 });
             }
-        } else if (cell.hasClass('hold')) {
-            // Initiate Release
-            if (confirm("Release held Seat " + seat + " back to available status?")) {
-                $.ajax({
-                    url: '<?= BASE_URL ?>/ajax/release_seat.php',
-                    type: 'POST',
-                    data: { trip_id: tripId, seat_number: seat, csrf_token: csrf },
-                    dataType: 'json',
-                    success: function(response) {
-                        if (response.success) {
-                            cell.removeClass('hold').addClass('available');
-                            alert("Seat " + seat + " released successfully.");
-                        } else {
-                            alert("Action Failed: " + response.message);
-                        }
-                    },
-                    error: function() {
-                        alert("CRITICAL: Server failed to process release request.");
-                    }
-                });
-            }
+            renderConsoleGrid();
+            updateSelectionPreview();
+        };
+    }
+
+    function updateSelectionPreview() {
+        $('#action_seats_list').val(selectedSeats.join(','));
+        $('#selection_preview').text(selectedSeats.length + " Seat(s) Selected (" + selectedSeats.join(', ') + ")");
+    }
+
+    $('#btnSelectAll').click(function() {
+        selectedSeats = seats.filter(s => s.status !== 'booked').map(s => s.number);
+        renderConsoleGrid();
+        updateSelectionPreview();
+    });
+
+    $('#btnSelectNone').click(function() {
+        selectedSeats = [];
+        renderConsoleGrid();
+        updateSelectionPreview();
+    });
+
+    $('#action_selector').change(function() {
+        if ($(this).val() === 'price') {
+            $('#pricing_fields').slideDown();
+        } else {
+            $('#pricing_fields').slideUp();
         }
     });
 
+    renderConsoleGrid();
+    <?php endif; ?>
 });
 </script>
 

@@ -1,6 +1,6 @@
 <?php
 /**
- * Route Scheduler CRUD
+ * Route Scheduler CRUD (Full CRUD Support)
  */
 require_once __DIR__ . '/header.php';
 
@@ -8,7 +8,7 @@ $agent_id = $_SESSION['user_id'];
 $error = '';
 $success = '';
 
-// Handle Actions (Add, Delete)
+// Handle Actions (Add, Edit, Delete)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $csrf_token = $_POST['csrf_token'] ?? '';
     
@@ -22,6 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $source = trim($_POST['source'] ?? '');
             $destination = trim($_POST['destination'] ?? '');
             $distance = intval($_POST['distance_km'] ?? 0);
+            $duration = trim($_POST['duration'] ?? '6 hours');
             
             // Pickup details array compilation
             $pickup_names = $_POST['pickup_name'] ?? [];
@@ -53,19 +54,109 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = "Please fill in all route cities, mileage distance, and at least one pickup/drop milestone.";
             } else {
                 $stmt = $pdo->prepare("
-                    INSERT INTO routes (agent_id, source, destination, distance_km, pickup_points, drop_points) 
-                    VALUES (?, ?, ?, ?, ?, ?)
+                    INSERT INTO routes (agent_id, source, destination, distance_km, duration, pickup_points, drop_points, status) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 'active')
                 ");
                 $stmt->execute([
                     $agent_id, 
                     $source, 
                     $destination, 
                     $distance, 
+                    $duration,
                     json_encode($pickups), 
                     json_encode($drops)
                 ]);
+                
+                $route_id = $pdo->lastInsertId();
+                
+                // Add Boarding Points to DB Table
+                $b_stmt = $pdo->prepare("INSERT INTO boarding_points (route_id, point_name, departure_time) VALUES (?, ?, ?)");
+                foreach ($pickups as $p) {
+                    $b_stmt->execute([$route_id, $p['name'], $p['time']]);
+                }
+                
+                // Add Dropping Points to DB Table
+                $d_stmt = $pdo->prepare("INSERT INTO dropping_points (route_id, point_name, arrival_time) VALUES (?, ?, ?)");
+                foreach ($drops as $d) {
+                    $d_stmt->execute([$route_id, $d['name'], $d['time']]);
+                }
+
                 $success = "Route registered successfully!";
-                log_activity($pdo, $agent_id, 'ROUTE_ADD', "Added route $source to $destination ($distance km)");
+                log_activity($pdo, $agent_id, 'ROUTE_ADD', "Added route $source to $destination ($distance km, $duration)");
+            }
+        }
+
+        // UPDATE ROUTE
+        elseif ($action === 'edit') {
+            $route_id = intval($_POST['route_id'] ?? 0);
+            $source = trim($_POST['source'] ?? '');
+            $destination = trim($_POST['destination'] ?? '');
+            $distance = intval($_POST['distance_km'] ?? 0);
+            $duration = trim($_POST['duration'] ?? '6 hours');
+            $status = $_POST['status'] ?? 'active';
+
+            // Pickup details array compilation
+            $pickup_names = $_POST['pickup_name'] ?? [];
+            $pickup_times = $_POST['pickup_time'] ?? [];
+            $pickups = [];
+            foreach ($pickup_names as $idx => $name) {
+                if (!empty($name)) {
+                    $pickups[] = [
+                        'name' => trim($name),
+                        'time' => $pickup_times[$idx] ?? '00:00'
+                    ];
+                }
+            }
+
+            // Drop details array compilation
+            $drop_names = $_POST['drop_name'] ?? [];
+            $drop_times = $_POST['drop_time'] ?? [];
+            $drops = [];
+            foreach ($drop_names as $idx => $name) {
+                if (!empty($name)) {
+                    $drops[] = [
+                        'name' => trim($name),
+                        'time' => $drop_times[$idx] ?? '00:00'
+                    ];
+                }
+            }
+
+            if (empty($source) || empty($destination) || $distance === 0 || empty($pickups) || empty($drops) || $route_id === 0) {
+                $error = "Please fill in all route details and milestones.";
+            } else {
+                $stmt = $pdo->prepare("
+                    UPDATE routes 
+                    SET source = ?, destination = ?, distance_km = ?, duration = ?, pickup_points = ?, drop_points = ?, status = ?
+                    WHERE id = ? AND agent_id = ?
+                ");
+                $stmt->execute([
+                    $source, 
+                    $destination, 
+                    $distance, 
+                    $duration, 
+                    json_encode($pickups), 
+                    json_encode($drops), 
+                    $status, 
+                    $route_id, 
+                    $agent_id
+                ]);
+
+                // Sync Boarding Points in DB Table
+                $pdo->prepare("DELETE FROM boarding_points WHERE route_id = ?")->execute([$route_id]);
+                $b_stmt = $pdo->prepare("INSERT INTO boarding_points (route_id, point_name, departure_time) VALUES (?, ?, ?)");
+                foreach ($pickups as $p) {
+                    $b_stmt->execute([$route_id, $p['name'], $p['time']]);
+                }
+                
+                // Sync Dropping Points in DB Table
+                $pdo->prepare("DELETE FROM dropping_points WHERE route_id = ?")->execute([$route_id]);
+                $d_stmt = $pdo->prepare("INSERT INTO dropping_points (route_id, point_name, arrival_time) VALUES (?, ?, ?)");
+                foreach ($drops as $d) {
+                    $d_stmt->execute([$route_id, $d['name'], $d['time']]);
+                }
+
+                $success = "Route updated successfully!";
+                log_activity($pdo, $agent_id, 'ROUTE_EDIT', "Updated route ID $route_id: $source to $destination");
             }
         }
 
@@ -73,13 +164,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         elseif ($action === 'delete') {
             $route_id = intval($_POST['route_id'] ?? 0);
             
-            // Verify ownership and delete
-            $stmt = $pdo->prepare("DELETE FROM routes WHERE id = ? AND agent_id = ?");
+            // Soft delete
+            $stmt = $pdo->prepare("UPDATE routes SET status = 'inactive' WHERE id = ? AND agent_id = ?");
             $stmt->execute([$route_id, $agent_id]);
             
             if ($stmt->rowCount() > 0) {
                 $success = "Route removed successfully!";
-                log_activity($pdo, $agent_id, 'ROUTE_DELETE', "Deleted route ID: $route_id");
+                log_activity($pdo, $agent_id, 'ROUTE_DELETE', "Soft deleted route ID: $route_id");
             } else {
                 $error = "Failed to delete route. Invalid ID or authorization conflict.";
             }
@@ -89,7 +180,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Fetch Agent's Routes
 try {
-    $stmt = $pdo->prepare("SELECT * FROM routes WHERE agent_id = ? ORDER BY id DESC");
+    $stmt = $pdo->prepare("SELECT * FROM routes WHERE agent_id = ? AND status = 'active' ORDER BY id DESC");
     $stmt->execute([$agent_id]);
     $routes = $stmt->fetchAll();
 } catch (PDOException $e) {
@@ -129,7 +220,7 @@ try {
                     <tr>
                         <th>Origin City</th>
                         <th>Destination City</th>
-                        <th>Distance (km)</th>
+                        <th>Distance & Duration</th>
                         <th>Boarding Stations</th>
                         <th>Drop Stations</th>
                         <th class="text-end">Actions</th>
@@ -143,7 +234,10 @@ try {
                         <tr>
                             <td><span class="fw-semibold text-white fs-6"><?= htmlspecialchars($route['source']) ?></span></td>
                             <td><span class="fw-semibold text-white fs-6"><?= htmlspecialchars($route['destination']) ?></span></td>
-                            <td><span class="font-monospace text-secondary small"><?= htmlspecialchars($route['distance_km']) ?> km</span></td>
+                            <td>
+                                <div class="text-white small"><?= htmlspecialchars($route['distance_km']) ?> km</div>
+                                <div class="text-secondary small"><?= htmlspecialchars($route['duration'] ?? 'N/A') ?></div>
+                            </td>
                             <td>
                                 <ul class="list-unstyled mb-0 small text-secondary">
                                     <?php foreach ($pickups as $p): ?>
@@ -159,7 +253,18 @@ try {
                                 </ul>
                             </td>
                             <td class="text-end">
-                                <button class="btn btn-secondary-glass py-1 px-2 text-danger small delete-route-btn" data-id="<?= $route['id'] ?>" data-bs-toggle="modal" data-bs-target="#deleteRouteModal"><i class="fa-solid fa-trash-can"></i></button>
+                                <div class="d-flex gap-2 justify-content-end">
+                                    <button class="btn btn-secondary-glass py-1 px-2 edit-route-btn" 
+                                            data-id="<?= $route['id'] ?>" 
+                                            data-source="<?= htmlspecialchars($route['source']) ?>" 
+                                            data-destination="<?= htmlspecialchars($route['destination']) ?>" 
+                                            data-distance="<?= htmlspecialchars($route['distance_km']) ?>" 
+                                            data-duration="<?= htmlspecialchars($route['duration'] ?? '') ?>" 
+                                            data-pickups='<?= htmlspecialchars($route['pickup_points'], ENT_QUOTES) ?>' 
+                                            data-drops='<?= htmlspecialchars($route['drop_points'], ENT_QUOTES) ?>' 
+                                            data-bs-toggle="modal" data-bs-target="#editRouteModal"><i class="fa-solid fa-pen-to-square"></i></button>
+                                    <button class="btn btn-secondary-glass py-1 px-2 text-danger small delete-route-btn" data-id="<?= $route['id'] ?>" data-bs-toggle="modal" data-bs-target="#deleteRouteModal"><i class="fa-solid fa-trash-can"></i></button>
+                                </div>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -183,17 +288,21 @@ try {
                     <input type="hidden" name="action" value="add">
                     
                     <div class="row">
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-3 mb-3">
                             <label class="form-label text-secondary small fw-semibold">Leaving From (Source)</label>
                             <input type="text" name="source" class="form-control form-control-swift" placeholder="e.g. Bangalore" required>
                         </div>
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-3 mb-3">
                             <label class="form-label text-secondary small fw-semibold">Going To (Destination)</label>
                             <input type="text" name="destination" class="form-control form-control-swift" placeholder="e.g. Mumbai" required>
                         </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label text-secondary small fw-semibold">Distance Mileage (km)</label>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label text-secondary small fw-semibold">Distance (km)</label>
                             <input type="number" name="distance_km" class="form-control form-control-swift" placeholder="e.g. 1000" min="10" required>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label text-secondary small fw-semibold">Duration (hrs/mins)</label>
+                            <input type="text" name="duration" class="form-control form-control-swift" placeholder="e.g. 12 hours" required>
                         </div>
                     </div>
 
@@ -202,7 +311,7 @@ try {
                         <!-- Pickups -->
                         <div class="col-md-6 mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6 class="text-indigo fw-bold mb-0">Boarding Milestones</h6>
+                                <h6 class="text-indigo fw-bold mb-0">Boarding Stations</h6>
                                 <button type="button" class="btn btn-secondary-glass py-1 px-2 small" id="addPickupRowBtn" style="font-size:0.75rem;"><i class="fa-solid fa-plus me-1"></i>Station</button>
                             </div>
                             <div id="pickupRowsContainer">
@@ -220,7 +329,7 @@ try {
                         <!-- Drops -->
                         <div class="col-md-6 mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6 class="text-pink fw-bold mb-0">Drop-off Milestones</h6>
+                                <h6 class="text-pink fw-bold mb-0">Drop-off Stations</h6>
                                 <button type="button" class="btn btn-secondary-glass py-1 px-2 small" id="addDropRowBtn" style="font-size:0.75rem;"><i class="fa-solid fa-plus me-1"></i>Station</button>
                             </div>
                             <div id="dropRowsContainer">
@@ -240,6 +349,78 @@ try {
                 <div class="modal-footer border-secondary border-opacity-20 p-4">
                     <button type="button" class="btn btn-secondary-glass" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-primary-gradient">Create Route</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- EDIT ROUTE MODAL -->
+<div class="modal fade" id="editRouteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content glass-card text-white border-secondary border-opacity-30" style="background:#131a2e; border-radius: 20px;">
+            <div class="modal-header border-secondary border-opacity-20 p-4">
+                <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-route me-2 text-indigo"></i>Modify Route</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="<?= htmlspecialchars($_SERVER['PHP_SELF']) ?>" method="POST">
+                <div class="modal-body p-4">
+                    <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
+                    <input type="hidden" name="action" value="edit">
+                    <input type="hidden" name="route_id" id="edit_route_id">
+                    
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label text-secondary small fw-semibold">Leaving From (Source)</label>
+                            <input type="text" name="source" id="edit_source" class="form-control form-control-swift" required>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label text-secondary small fw-semibold">Going To (Destination)</label>
+                            <input type="text" name="destination" id="edit_destination" class="form-control form-control-swift" required>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label text-secondary small fw-semibold">Distance (km)</label>
+                            <input type="number" name="distance_km" id="edit_distance" class="form-control form-control-swift" min="10" required>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label text-secondary small fw-semibold">Duration (hrs/mins)</label>
+                            <input type="text" name="duration" id="edit_duration" class="form-control form-control-swift" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-semibold">Route Status</label>
+                        <select name="status" id="edit_status" class="form-select form-control-swift" required>
+                            <option value="active">Active (Visible)</option>
+                            <option value="inactive">Inactive (Hidden)</option>
+                        </select>
+                    </div>
+
+                    <!-- Milestones Edit Row -->
+                    <div class="row mt-4">
+                        <!-- Pickups -->
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="text-indigo fw-bold mb-0">Boarding Stations</h6>
+                                <button type="button" class="btn btn-secondary-glass py-1 px-2 small" id="editAddPickupRowBtn" style="font-size:0.75rem;"><i class="fa-solid fa-plus me-1"></i>Station</button>
+                            </div>
+                            <div id="editPickupRowsContainer"></div>
+                        </div>
+
+                        <!-- Drops -->
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="text-pink fw-bold mb-0">Drop-off Stations</h6>
+                                <button type="button" class="btn btn-secondary-glass py-1 px-2 small" id="editAddDropRowBtn" style="font-size:0.75rem;"><i class="fa-solid fa-plus me-1"></i>Station</button>
+                            </div>
+                            <div id="editDropRowsContainer"></div>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="modal-footer border-secondary border-opacity-20 p-4">
+                    <button type="button" class="btn btn-secondary-glass" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary-gradient">Save Changes</button>
                 </div>
             </form>
         </div>
@@ -276,7 +457,42 @@ $(document).ready(function() {
         $('#delete_route_id').val($(this).data('id'));
     });
 
-    // Dynamic row addition for Pickups
+    // Handle Edit trigger
+    $('.edit-route-btn').click(function() {
+        $('#edit_route_id').val($(this).data('id'));
+        $('#edit_source').val($(this).data('source'));
+        $('#edit_destination').val($(this).data('destination'));
+        $('#edit_distance').val($(this).data('distance'));
+        $('#edit_duration').val($(this).data('duration'));
+        
+        // Rebuild dynamic milestones
+        var pickups = $(this).data('pickups');
+        var drops = $(this).data('drops');
+        
+        var pickupsContainer = $('#editPickupRowsContainer');
+        pickupsContainer.empty();
+        pickups.forEach(function(p) {
+            var row = '<div class="row g-2 mb-2 alignment-row">' +
+                      '<div class="col-8"><input type="text" name="pickup_name[]" class="form-control form-control-swift py-1" value="' + p.name + '" required></div>' +
+                      '<div class="col-3"><input type="time" name="pickup_time[]" class="form-control form-control-swift py-1" value="' + p.time + '" required></div>' +
+                      '<div class="col-1 d-flex align-items-center"><button type="button" class="btn btn-link text-danger p-0 delete-row-btn"><i class="fa-solid fa-trash-can"></i></button></div>' +
+                      '</div>';
+            pickupsContainer.append(row);
+        });
+
+        var dropsContainer = $('#editDropRowsContainer');
+        dropsContainer.empty();
+        drops.forEach(function(d) {
+            var row = '<div class="row g-2 mb-2 alignment-row">' +
+                      '<div class="col-8"><input type="text" name="drop_name[]" class="form-control form-control-swift py-1" value="' + d.name + '" required></div>' +
+                      '<div class="col-3"><input type="time" name="drop_time[]" class="form-control form-control-swift py-1" value="' + d.time + '" required></div>' +
+                      '<div class="col-1 d-flex align-items-center"><button type="button" class="btn btn-link text-danger p-0 delete-row-btn"><i class="fa-solid fa-trash-can"></i></button></div>' +
+                      '</div>';
+            dropsContainer.append(row);
+        });
+    });
+
+    // Dynamic row addition for Pickups (ADD)
     $('#addPickupRowBtn').click(function() {
         var row = '<div class="row g-2 mb-2 alignment-row">' +
                   '<div class="col-8"><input type="text" name="pickup_name[]" class="form-control form-control-swift py-1" placeholder="Station name" required></div>' +
@@ -286,7 +502,7 @@ $(document).ready(function() {
         $('#pickupRowsContainer').append(row);
     });
 
-    // Dynamic row addition for Drops
+    // Dynamic row addition for Drops (ADD)
     $('#addDropRowBtn').click(function() {
         var row = '<div class="row g-2 mb-2 alignment-row">' +
                   '<div class="col-8"><input type="text" name="drop_name[]" class="form-control form-control-swift py-1" placeholder="Station name" required></div>' +
@@ -294,6 +510,26 @@ $(document).ready(function() {
                   '<div class="col-1 d-flex align-items-center"><button type="button" class="btn btn-link text-danger p-0 delete-row-btn"><i class="fa-solid fa-trash-can"></i></button></div>' +
                   '</div>';
         $('#dropRowsContainer').append(row);
+    });
+
+    // Dynamic row addition for Pickups (EDIT)
+    $('#editAddPickupRowBtn').click(function() {
+        var row = '<div class="row g-2 mb-2 alignment-row">' +
+                  '<div class="col-8"><input type="text" name="pickup_name[]" class="form-control form-control-swift py-1" placeholder="Station name" required></div>' +
+                  '<div class="col-3"><input type="time" name="pickup_time[]" class="form-control form-control-swift py-1" required></div>' +
+                  '<div class="col-1 d-flex align-items-center"><button type="button" class="btn btn-link text-danger p-0 delete-row-btn"><i class="fa-solid fa-trash-can"></i></button></div>' +
+                  '</div>';
+        $('#editPickupRowsContainer').append(row);
+    });
+
+    // Dynamic row addition for Drops (EDIT)
+    $('#editAddDropRowBtn').click(function() {
+        var row = '<div class="row g-2 mb-2 alignment-row">' +
+                  '<div class="col-8"><input type="text" name="drop_name[]" class="form-control form-control-swift py-1" placeholder="Station name" required></div>' +
+                  '<div class="col-3"><input type="time" name="drop_time[]" class="form-control form-control-swift py-1" required></div>' +
+                  '<div class="col-1 d-flex align-items-center"><button type="button" class="btn btn-link text-danger p-0 delete-row-btn"><i class="fa-solid fa-trash-can"></i></button></div>' +
+                  '</div>';
+        $('#editDropRowsContainer').append(row);
     });
 
     // Handle dynamically added row removal

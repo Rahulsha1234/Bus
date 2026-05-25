@@ -1,6 +1,6 @@
 <?php
 /**
- * Trip Scheduler CRUD
+ * Trip Scheduler CRUD & Management
  */
 require_once __DIR__ . '/header.php';
 
@@ -8,7 +8,7 @@ $agent_id = $_SESSION['user_id'];
 $error = '';
 $success = '';
 
-// Handle Actions (Add, Delete)
+// Handle Actions (Add, Edit, Delete)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $csrf_token = $_POST['csrf_token'] ?? '';
     
@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 try {
                     $pdo->beginTransaction();
 
-                    // 1. Fetch bus details (layout, total seats) to generate trip_seats
+                    // 1. Fetch bus details
                     $bus_stmt = $pdo->prepare("SELECT total_seats, seat_layout_type FROM buses WHERE id = ? AND agent_id = ? LIMIT 1");
                     $bus_stmt->execute([$bus_id, $agent_id]);
                     $bus = $bus_stmt->fetch();
@@ -44,25 +44,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     } else {
                         // 2. Schedule Trip
                         $stmt = $pdo->prepare("
-                            INSERT INTO trips (bus_id, route_id, departure_time, arrival_time, base_fare) 
-                            VALUES (?, ?, ?, ?, ?)
+                            INSERT INTO trips (bus_id, route_id, departure_time, arrival_time, base_fare, status) 
+                            VALUES (?, ?, ?, ?, ?, 'active')
                         ");
                         $stmt->execute([$bus_id, $route_id, $dep_time, $arr_time, $fare]);
                         $trip_id = $pdo->lastInsertId();
 
-                        // 3. Initialize all seat records as 'available'
+                        // 3. Initialize all seat records
+                        // Get custom seats from layout if configured
+                        $layout_seats_stmt = $pdo->prepare("SELECT seat_number, base_price FROM bus_seats WHERE bus_id = ? AND is_active = 1");
+                        $layout_seats_stmt->execute([$bus_id]);
+                        $layout_seats = $layout_seats_stmt->fetchAll();
+
                         $seatInsertStmt = $pdo->prepare("INSERT INTO trip_seats (trip_id, seat_number, status) VALUES (?, ?, 'available')");
-                        
-                        if ($bus['seat_layout_type'] === '2x1_sleeper') {
-                            // L1-L15 and U1-U15
-                            for ($i = 1; $i <= 15; $i++) {
-                                $seatInsertStmt->execute([$trip_id, "L$i"]);
-                                $seatInsertStmt->execute([$trip_id, "U$i"]);
+                        $priceInsertStmt = $pdo->prepare("INSERT INTO seat_pricing (trip_id, seat_number, base_price, current_price, offer_price) VALUES (?, ?, ?, ?, ?)");
+
+                        if (count($layout_seats) > 0) {
+                            foreach ($layout_seats as $ls) {
+                                $seatInsertStmt->execute([$trip_id, $ls['seat_number']]);
+                                $priceInsertStmt->execute([$trip_id, $ls['seat_number'], $ls['base_price'], $ls['base_price'], $ls['base_price']]);
                             }
                         } else {
-                            // Seater 1-40
-                            for ($i = 1; $i <= 40; $i++) {
-                                $seatInsertStmt->execute([$trip_id, strval($i)]);
+                            // Standard layout fallback
+                            if ($bus['seat_layout_type'] === '2x1_sleeper') {
+                                for ($i = 1; $i <= 15; $i++) {
+                                    $seatInsertStmt->execute([$trip_id, "L$i"]);
+                                    $priceInsertStmt->execute([$trip_id, "L$i", $fare, $fare, $fare]);
+                                    $seatInsertStmt->execute([$trip_id, "U$i"]);
+                                    $priceInsertStmt->execute([$trip_id, "U$i", $fare + 100, $fare + 100, $fare + 100]);
+                                }
+                            } else {
+                                for ($i = 1; $i <= 40; $i++) {
+                                    $seatInsertStmt->execute([$trip_id, strval($i)]);
+                                    $priceInsertStmt->execute([$trip_id, strval($i), $fare, $fare, $fare]);
+                                }
                             }
                         }
 
@@ -80,39 +95,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+        // EDIT TRIP
+        elseif ($action === 'edit') {
+            $trip_id = intval($_POST['trip_id'] ?? 0);
+            $bus_id = intval($_POST['bus_id'] ?? 0);
+            $route_id = intval($_POST['route_id'] ?? 0);
+            $dep_time = $_POST['departure_time'] ?? '';
+            $arr_time = $_POST['arrival_time'] ?? '';
+            $fare = floatval($_POST['base_fare'] ?? 0.00);
+            $status = $_POST['status'] ?? 'active';
+
+            if ($trip_id === 0 || $bus_id === 0 || $route_id === 0 || empty($dep_time) || empty($arr_time) || $fare === 0.00) {
+                $error = "Please fill in all scheduling fields.";
+            } elseif (strtotime($dep_time) >= strtotime($arr_time)) {
+                $error = "Departure date/time must be earlier than Arrival date/time.";
+            } else {
+                // Verify trip ownership
+                $chk = $pdo->prepare("SELECT t.id FROM trips t JOIN buses b ON t.bus_id = b.id WHERE t.id = ? AND b.agent_id = ? LIMIT 1");
+                $chk->execute([$trip_id, $agent_id]);
+
+                if ($chk->fetchColumn()) {
+                    $stmt = $pdo->prepare("
+                        UPDATE trips 
+                        SET bus_id = ?, route_id = ?, departure_time = ?, arrival_time = ?, base_fare = ?, status = ?
+                        WHERE id = ?
+                    ");
+                    $stmt->execute([$bus_id, $route_id, $dep_time, $arr_time, $fare, $status, $trip_id]);
+                    $success = "Trip details updated successfully!";
+                    log_activity($pdo, $agent_id, 'TRIP_EDIT', "Updated Trip ID: $trip_id");
+                } else {
+                    $error = "Unauthorized trip update request.";
+                }
+            }
+        }
+
         // DELETE TRIP
         elseif ($action === 'delete') {
             $trip_id = intval($_POST['trip_id'] ?? 0);
             
-            try {
-                $pdo->beginTransaction();
+            // Verify trip ownership
+            $chk = $pdo->prepare("SELECT t.id FROM trips t JOIN buses b ON t.bus_id = b.id WHERE t.id = ? AND b.agent_id = ? LIMIT 1");
+            $chk->execute([$trip_id, $agent_id]);
+            
+            if ($chk->fetchColumn()) {
+                // Soft delete trip
+                $del = $pdo->prepare("UPDATE trips SET status = 'cancelled' WHERE id = ?");
+                $del->execute([$trip_id]);
                 
-                // Verify trip ownership through bus association
-                $chk = $pdo->prepare("
-                    SELECT t.id 
-                    FROM trips t
-                    JOIN buses b ON t.bus_id = b.id
-                    WHERE t.id = ? AND b.agent_id = ? 
-                    LIMIT 1
-                ");
-                $chk->execute([$trip_id, $agent_id]);
-                
-                if ($chk->fetchColumn()) {
-                    $del = $pdo->prepare("DELETE FROM trips WHERE id = ?");
-                    $del->execute([$trip_id]);
-                    
-                    $pdo->commit();
-                    $success = "Trip cancelled and removed successfully!";
-                    log_activity($pdo, $agent_id, 'TRIP_DELETE', "Deleted Trip ID: $trip_id");
-                } else {
-                    $pdo->rollBack();
-                    $error = "Failed to cancel trip. Unauthorized deletion request.";
-                }
-            } catch (Exception $e) {
-                if ($pdo->inTransaction()) {
-                    $pdo->rollBack();
-                }
-                $error = "Critical deletion failure: " . $e->getMessage();
+                $success = "Trip cancelled and removed successfully!";
+                log_activity($pdo, $agent_id, 'TRIP_DELETE', "Soft deleted Trip ID: $trip_id");
+            } else {
+                $error = "Failed to cancel trip. Unauthorized deletion request.";
             }
         }
     }
@@ -126,6 +159,9 @@ try {
             t.departure_time,
             t.arrival_time,
             t.base_fare,
+            t.bus_id,
+            t.route_id,
+            t.status AS trip_status,
             b.bus_name,
             b.bus_number,
             b.bus_type,
@@ -134,18 +170,18 @@ try {
         FROM trips t
         JOIN buses b ON t.bus_id = b.id
         JOIN routes r ON t.route_id = r.id
-        WHERE b.agent_id = ?
+        WHERE b.agent_id = ? AND t.status = 'active'
         ORDER BY t.departure_time DESC
     ");
     $stmt->execute([$agent_id]);
     $trips = $stmt->fetchAll();
 
-    // Fetch buses and routes lists for scheduling form selects
-    $buses_stmt = $pdo->prepare("SELECT id, bus_name, bus_number, bus_type FROM buses WHERE agent_id = ?");
+    // Fetch active buses and routes lists
+    $buses_stmt = $pdo->prepare("SELECT id, bus_name, bus_number, bus_type FROM buses WHERE agent_id = ? AND status = 'active'");
     $buses_stmt->execute([$agent_id]);
     $agent_buses = $buses_stmt->fetchAll();
 
-    $routes_stmt = $pdo->prepare("SELECT id, source, destination, distance_km FROM routes WHERE agent_id = ?");
+    $routes_stmt = $pdo->prepare("SELECT id, source, destination, distance_km FROM routes WHERE agent_id = ? AND status = 'active'");
     $routes_stmt->execute([$agent_id]);
     $agent_routes = $routes_stmt->fetchAll();
 
@@ -207,7 +243,19 @@ try {
                             <td class="text-secondary small"><?= date('d M Y, H:i', strtotime($trip['arrival_time'])) ?></td>
                             <td><span class="fw-bold text-indigo fs-6">₹<?= number_format($trip['base_fare'], 2) ?></span></td>
                             <td class="text-end">
-                                <button class="btn btn-secondary-glass py-1 px-2 text-danger small delete-trip-btn" data-id="<?= $trip['trip_id'] ?>" data-bs-toggle="modal" data-bs-target="#deleteTripModal"><i class="fa-solid fa-ban"></i></button>
+                                <div class="d-flex gap-2 justify-content-end">
+                                    <a href="trip_pricing.php?trip_id=<?= $trip['trip_id'] ?>" class="btn btn-secondary-glass py-1 px-2 small" title="Configure Seat Prices"><i class="fa-solid fa-tags text-indigo"></i></a>
+                                    <button class="btn btn-secondary-glass py-1 px-2 edit-trip-btn" 
+                                            data-id="<?= $trip['trip_id'] ?>" 
+                                            data-bus="<?= $trip['bus_id'] ?>" 
+                                            data-route="<?= $trip['route_id'] ?>" 
+                                            data-dep="<?= date('Y-m-d\TH:i', strtotime($trip['departure_time'])) ?>" 
+                                            data-arr="<?= date('Y-m-d\TH:i', strtotime($trip['arrival_time'])) ?>" 
+                                            data-fare="<?= $trip['base_fare'] ?>" 
+                                            data-status="<?= $trip['trip_status'] ?>"
+                                            data-bs-toggle="modal" data-bs-target="#editTripModal" title="Edit Trip"><i class="fa-solid fa-pen-to-square"></i></button>
+                                    <button class="btn btn-secondary-glass py-1 px-2 text-danger small delete-trip-btn" data-id="<?= $trip['trip_id'] ?>" data-bs-toggle="modal" data-bs-target="#deleteTripModal" title="Cancel Trip"><i class="fa-solid fa-ban"></i></button>
+                                </div>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -275,6 +323,71 @@ try {
     </div>
 </div>
 
+<!-- EDIT TRIP MODAL -->
+<div class="modal fade" id="editTripModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-card text-white border-secondary border-opacity-30" style="background:#131a2e; border-radius: 20px;">
+            <div class="modal-header border-secondary border-opacity-20 p-4">
+                <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-calendar-check me-2 text-indigo"></i>Modify Trip Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="<?= htmlspecialchars($_SERVER['PHP_SELF']) ?>" method="POST">
+                <div class="modal-body p-4">
+                    <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
+                    <input type="hidden" name="action" value="edit">
+                    <input type="hidden" name="trip_id" id="edit_trip_id">
+                    
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-semibold">Select Bus</label>
+                        <select name="bus_id" id="edit_bus_id" class="form-select form-control-swift" required>
+                            <?php foreach ($agent_buses as $ab): ?>
+                                <option value="<?= $ab['id'] ?>"><?= htmlspecialchars($ab['bus_name']) ?> (<?= htmlspecialchars($ab['bus_number']) ?>)</option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-semibold">Select Route</label>
+                        <select name="route_id" id="edit_route_id" class="form-select form-control-swift" required>
+                            <?php foreach ($agent_routes as $ar): ?>
+                                <option value="<?= $ar['id'] ?>"><?= htmlspecialchars($ar['source']) ?> to <?= htmlspecialchars($ar['destination']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-secondary small fw-semibold">Departure Date & Time</label>
+                            <input type="datetime-local" name="departure_time" id="edit_departure_time" class="form-control form-control-swift" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-secondary small fw-semibold">Arrival Date & Time</label>
+                            <input type="datetime-local" name="arrival_time" id="edit_arrival_time" class="form-control form-control-swift" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-semibold">Base Ticket Price (₹)</label>
+                        <input type="number" name="base_fare" id="edit_base_fare" class="form-control form-control-swift" min="50" step="10" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-semibold">Trip Status</label>
+                        <select name="status" id="edit_status" class="form-select form-control-swift" required>
+                            <option value="active">Active (Available)</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary border-opacity-20 p-4">
+                    <button type="button" class="btn btn-secondary-glass" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary-gradient">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- CANCEL TRIP CONFIRMATION MODAL -->
 <div class="modal fade" id="deleteTripModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-sm">
@@ -302,6 +415,16 @@ try {
 $(document).ready(function() {
     $('.delete-trip-btn').click(function() {
         $('#delete_trip_id').val($(this).data('id'));
+    });
+
+    $('.edit-trip-btn').click(function() {
+        $('#edit_trip_id').val($(this).data('id'));
+        $('#edit_bus_id').val($(this).data('bus'));
+        $('#edit_route_id').val($(this).data('route'));
+        $('#edit_departure_time').val($(this).data('dep'));
+        $('#edit_arrival_time').val($(this).data('arr'));
+        $('#edit_base_fare').val($(this).data('fare'));
+        $('#edit_status').val($(this).data('status'));
     });
 });
 </script>

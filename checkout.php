@@ -21,6 +21,8 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
     $cust_name = trim($_POST['contact_name'] ?? '');
     $cust_email = trim($_POST['contact_email'] ?? '');
     $cust_phone = trim($_POST['contact_phone'] ?? '');
+    $boarding_point = trim($_POST['boarding_point'] ?? '');
+    $dropping_point = trim($_POST['dropping_point'] ?? '');
 
     $passenger_names = $_POST['passenger_name'] ?? [];
     $passenger_ages = $_POST['passenger_age'] ?? [];
@@ -28,8 +30,8 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
 
     $seats = explode(',', $seats_str);
 
-    if (empty($trip_id) || empty($seats_str) || empty($cust_name) || empty($cust_email) || empty($cust_phone)) {
-        echo json_encode(['success' => false, 'message' => 'Please fill in all contact information.']);
+    if (empty($trip_id) || empty($seats_str) || empty($cust_name) || empty($cust_email) || empty($cust_phone) || empty($boarding_point) || empty($dropping_point)) {
+        echo json_encode(['success' => false, 'message' => 'Please fill in all contact, boarding, and dropping information.']);
         exit();
     }
 
@@ -62,7 +64,86 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
             }
         }
 
-        // 2. Fetch base fare to recalculate total
+        // 2. Fetch seats layout and check adjacent seat female rules
+        $coords_stmt = $pdo->prepare("
+            SELECT s.seat_number, s.row_pos, s.col_pos 
+            FROM bus_seats s
+            JOIN trips t ON s.bus_id = t.bus_id
+            WHERE t.id = ? AND s.is_active = 1
+        ");
+        $coords_stmt->execute([$trip_id]);
+        $coords_db = $coords_stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        $seat_coords = [];
+        foreach ($coords_db as $c) {
+            $seat_coords[$c['seat_number']] = [
+                'row' => intval($c['row_pos']),
+                'col' => intval($c['col_pos'])
+            ];
+        }
+
+        // Adjacency mapping helper
+        $get_adjacent_seats = function($seatNum) use ($seat_coords) {
+            if (!isset($seat_coords[$seatNum])) return [];
+            $myRow = $seat_coords[$seatNum]['row'];
+            $myCol = $seat_coords[$seatNum]['col'];
+            
+            $adj_col = -1;
+            if ($myCol === 0) $adj_col = 1;
+            elseif ($myCol === 1) $adj_col = 0;
+            elseif ($myCol === 3) $adj_col = 4;
+            elseif ($myCol === 4) $adj_col = 3;
+            
+            if ($adj_col === -1) return [];
+            
+            $adj = [];
+            foreach ($seat_coords as $sNum => $coord) {
+                if ($coord['row'] === $myRow && $coord['col'] === $adj_col) {
+                    $adj[] = $sNum;
+                }
+            }
+            return $adj;
+        };
+
+        // Current transaction passenger map
+        $current_passengers = [];
+        foreach ($seats as $index => $seat) {
+            $gender = $passenger_genders[$index] ?? 'Male';
+            $age = intval($passenger_ages[$index] ?? 25);
+            $current_passengers[$seat] = [
+                'gender' => $gender,
+                'age' => $age
+            ];
+        }
+
+        // Female safety rules check
+        foreach ($current_passengers as $seat => $passenger) {
+            if ($passenger['gender'] === 'Male' && $passenger['age'] >= 12) {
+                $adj_seats = $get_adjacent_seats($seat);
+                foreach ($adj_seats as $adj_seat) {
+                    if (isset($current_passengers[$adj_seat])) {
+                        // Group Booking Exception applies in same transaction
+                        continue;
+                    }
+                    
+                    // Check if adjacent seat is booked by Female in previous transaction
+                    $prev_chk = $pdo->prepare("
+                        SELECT COUNT(*) 
+                        FROM booking_seats bs
+                        JOIN bookings b ON bs.booking_id = b.id
+                        WHERE b.trip_id = ? AND b.status = 'active' AND bs.seat_number = ? AND bs.passenger_gender = 'Female'
+                    ");
+                    $prev_chk->execute([$trip_id, $adj_seat]);
+                    if (intval($prev_chk->fetchColumn()) > 0) {
+                        $pdo->rollBack();
+                        echo json_encode(['success' => false, 'message' => "Seat $seat is adjacent to a Female Booked seat ($adj_seat) and cannot be booked by a Male passenger."]);
+                        exit();
+                    }
+                }
+            }
+        }
+
+        // 3. Fetch base fare to recalculate total
         $trip_stmt = $pdo->prepare("SELECT base_fare FROM trips WHERE id = ? LIMIT 1");
         $trip_stmt->execute([$trip_id]);
         $base_fare = floatval($trip_stmt->fetchColumn());
@@ -79,30 +160,32 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
             $total_amount += $fare;
         }
 
-        // 3. Commission Calculations
+        // 4. Commission Calculations
         $commission_rate = 2.00; // 2%
         $admin_commission = ($total_amount * $commission_rate) / 100;
         $agent_net_earning = $total_amount - $admin_commission;
 
-        // 4. Create Booking Entry
+        // 5. Create Booking Entry
         $booking_ref = 'SB' . strtoupper(substr(uniqid(), 7)) . rand(10, 99);
         $customer_id = $_SESSION['user_id'] ?? null;
 
         $booking_stmt = $pdo->prepare("
             INSERT INTO bookings (
                 booking_reference, trip_id, customer_id, customer_name, customer_email, customer_phone, 
-                total_amount, admin_commission, agent_net_earning, payment_status, payment_gateway, transaction_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'paid', 'Razorpay', ?)
+                total_amount, admin_commission, agent_net_earning, payment_status, payment_gateway, transaction_id,
+                boarding_point, dropping_point, status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'paid', 'Razorpay', ?, ?, ?, 'active')
         ");
         
         $mock_tx_id = 'pay_mock_' . bin2hex(random_bytes(8));
         $booking_stmt->execute([
             $booking_ref, $trip_id, $customer_id, $cust_name, $cust_email, $cust_phone,
-            $total_amount, $admin_commission, $agent_net_earning, $mock_tx_id
+            $total_amount, $admin_commission, $agent_net_earning, $mock_tx_id,
+            $boarding_point, $dropping_point
         ]);
         $booking_id = $pdo->lastInsertId();
 
-        // 5. Create Passengers/Seats entries and update Seat status
+        // 6. Create Passengers/Seats entries and update Seat status
         $passenger_stmt = $pdo->prepare("
             INSERT INTO booking_seats (booking_id, seat_number, passenger_name, passenger_age, passenger_gender, price)
             VALUES (?, ?, ?, ?, ?, ?)
@@ -110,7 +193,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
         
         $update_seat_stmt = $pdo->prepare("
             UPDATE trip_seats 
-            SET status = 'booked', hold_expires_at = NULL, locked_by_session = NULL 
+            SET status = 'booked', hold_expires_at = NULL, locked_by_session = NULL, locked_at = NULL 
             WHERE trip_id = ? AND seat_number = ?
         ");
 
@@ -123,6 +206,33 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
             $passenger_stmt->execute([$booking_id, $seat, $name, $age, $gender, $price]);
             $update_seat_stmt->execute([$trip_id, $seat]);
         }
+
+        // Fetch agent of the bus to notify
+        $agent_stmt = $pdo->prepare("
+            SELECT b.agent_id 
+            FROM trips t 
+            JOIN buses b ON t.bus_id = b.id 
+            WHERE t.id = ? 
+            LIMIT 1
+        ");
+        $agent_stmt->execute([$trip_id]);
+        $agent_id = $agent_stmt->fetchColumn();
+
+        // Notify Agent
+        if ($agent_id) {
+            $notif_stmt = $pdo->prepare("
+                INSERT INTO system_notifications (user_id, user_role, message) 
+                VALUES (?, 'agent', ?)
+            ");
+            $notif_stmt->execute([$agent_id, "New Booking $booking_ref has been created."]);
+        }
+
+        // Notify Admin
+        $notif_admin = $pdo->prepare("
+            INSERT INTO system_notifications (user_id, user_role, message) 
+            VALUES (NULL, 'admin', ?)
+        ");
+        $notif_admin->execute(["New Booking $booking_ref has been created."]);
 
         // Log Activity
         log_activity($pdo, $customer_id, 'BOOKING_SUCCESS', "Successful booking $booking_ref for trip $trip_id. Total: ₹$total_amount. Seats: $seats_str.");
@@ -250,6 +360,10 @@ foreach ($seats as $seat) {
     $total_fare += $fare;
 }
 
+// Fetch boarding and dropping points
+$boarding_point = $_POST['boarding_point'] ?? '';
+$dropping_point = $_POST['dropping_point'] ?? '';
+
 // Auto-fill customer variables if logged in
 $logged_user = get_logged_user();
 $default_name = is_logged_in() && $logged_user['role'] === 'customer' ? $logged_user['username'] : '';
@@ -269,6 +383,8 @@ require_once __DIR__ . '/includes/header.php';
                 <input type="hidden" name="csrf_token" id="payment_csrf_token" value="<?= get_csrf_token() ?>">
                 <input type="hidden" name="trip_id" value="<?= htmlspecialchars($trip_id) ?>">
                 <input type="hidden" name="selected_seats" value="<?= htmlspecialchars($selected_seats) ?>">
+                <input type="hidden" name="boarding_point" value="<?= htmlspecialchars($boarding_point) ?>">
+                <input type="hidden" name="dropping_point" value="<?= htmlspecialchars($dropping_point) ?>">
 
                 <!-- Loop seats to generate passenger input card -->
                 <?php foreach ($seats as $idx => $seat): ?>

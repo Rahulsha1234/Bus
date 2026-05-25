@@ -22,7 +22,14 @@ $user = get_logged_user();
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Custom Style -->
-    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/style.css">
+    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/style.css?v=1.0.2">
+    <script>
+        (function () {
+            const theme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
+    <script src="<?= BASE_URL ?>/assets/js/theme.js" defer></script>
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
     
@@ -90,6 +97,9 @@ $user = get_logged_user();
                 <a href="<?= BASE_URL ?>/agent/bookings.php" class="sidebar-link <?= ($cur === 'bookings.php') ? 'active' : '' ?>">
                     <i class="fa-solid fa-receipt"></i>Bookings List
                 </a>
+                <a href="<?= BASE_URL ?>/agent/manage_cancellations.php" class="sidebar-link <?= ($cur === 'manage_cancellations.php') ? 'active' : '' ?>">
+                    <i class="fa-solid fa-ban"></i>Cancellations
+                </a>
                 <a href="<?= BASE_URL ?>/agent/settlements.php" class="sidebar-link <?= ($cur === 'settlements.php') ? 'active' : '' ?>">
                     <i class="fa-solid fa-wallet"></i>Settlements
                 </a>
@@ -120,6 +130,7 @@ $user = get_logged_user();
                         <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/agent/trips.php">Trips</a></li>
                         <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/agent/seats.php">Seats</a></li>
                         <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/agent/bookings.php">Bookings</a></li>
+                        <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/agent/manage_cancellations.php">Cancellations</a></li>
                         <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/agent/settlements.php">Settlements</a></li>
                         <li><hr class="dropdown-divider border-secondary"></li>
                         <li><a class="dropdown-item text-danger py-2" href="<?= BASE_URL ?>/logout.php">Logout</a></li>

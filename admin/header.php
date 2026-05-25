@@ -22,7 +22,14 @@ $user = get_logged_user();
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Custom Style -->
-    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/style.css">
+    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/style.css?v=1.0.2">
+    <script>
+        (function () {
+            const theme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
+    <script src="<?= BASE_URL ?>/assets/js/theme.js" defer></script>
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
     
@@ -87,6 +94,9 @@ $user = get_logged_user();
                 <a href="<?= BASE_URL ?>/admin/owner_control.php" class="sidebar-link <?= ($cur === 'owner_control.php') ? 'active' : '' ?>">
                     <i class="fa-solid fa-shield-halved"></i>Owner Controls
                 </a>
+                <a href="<?= BASE_URL ?>/admin/audit_logs.php" class="sidebar-link <?= ($cur === 'audit_logs.php') ? 'active' : '' ?>">
+                    <i class="fa-solid fa-clock-rotate-left"></i>Activity Logs
+                </a>
                 
                 <hr class="border-secondary my-4">
                 
@@ -113,6 +123,7 @@ $user = get_logged_user();
                         <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/admin/bookings.php">Bookings</a></li>
                         <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/admin/settlements.php">Settlements</a></li>
                         <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/admin/owner_control.php">Owner Controls</a></li>
+                        <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/admin/audit_logs.php">Activity Logs</a></li>
                         <li><hr class="dropdown-divider border-secondary"></li>
                         <li><a class="dropdown-item text-danger py-2" href="<?= BASE_URL ?>/logout.php">Logout</a></li>
                     </ul>

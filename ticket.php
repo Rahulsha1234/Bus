@@ -23,8 +23,11 @@ try {
             b.total_amount,
             b.payment_status,
             b.created_at,
+            b.boarding_point,
+            b.dropping_point,
             t.departure_time,
             t.arrival_time,
+            bs.id AS bus_id,
             bs.bus_name,
             bs.bus_number,
             bs.bus_type,
@@ -52,6 +55,17 @@ try {
     ");
     $seats_stmt->execute([':booking_id' => $booking['booking_id']]);
     $passengers = $seats_stmt->fetchAll();
+
+    // Fetch Operator Contact details
+    $op_stmt = $pdo->prepare("SELECT * FROM operator_contacts WHERE bus_id = ? LIMIT 1");
+    $op_stmt->execute([$booking['bus_id']]);
+    $operator = $op_stmt->fetch() ?: [
+        'operator_name' => 'SwiftBus Fleet Operations',
+        'contact_number' => '+1 (555) 234-5678',
+        'whatsapp_number' => '+1 (555) 234-5678',
+        'emergency_number' => '+1 (555) 911-0099',
+        'support_email' => 'support@swiftbus-fleet.com'
+    ];
 
 } catch (PDOException $e) {
     die("Error retrieving booking details: " . $e->getMessage());
@@ -97,7 +111,7 @@ require_once __DIR__ . '/includes/header.php';
         <!-- Ticket print toolbar (no-print helper) -->
         <div class="d-flex justify-content-between align-items-center mb-4 no-print">
             <a href="<?= BASE_URL ?>/index.php" class="btn btn-secondary-glass py-2 px-3 small"><i class="fa-solid fa-house me-2"></i>Book Another</a>
-            <button onclick="window.print()" class="btn btn-primary-gradient py-2 px-4 fw-bold"><i class="fa-solid fa-print me-2"></i>Print / Download PDF</button>
+            <a href="<?= BASE_URL ?>/ticket_pdf.php?ref=<?= urlencode($ref) ?>" target="_blank" class="btn btn-primary-gradient py-2 px-4 fw-bold"><i class="fa-solid fa-file-pdf me-2"></i>Download E-Ticket PDF</a>
         </div>
 
         <!-- STUNNING INVOICE TICKET CONTAINER -->
@@ -156,6 +170,21 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
             </div>
 
+            <!-- Boarding & Dropping Points -->
+            <h5 class="text-indigo fw-bold mb-3 small text-uppercase"><i class="fa-solid fa-location-dot me-2"></i>Milestones Selected</h5>
+            <div class="p-4 rounded-4 bg-dark bg-opacity-20 border border-secondary border-opacity-20 mb-4">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <span class="text-secondary small d-block">BOARDING POINT</span>
+                        <span class="text-white fw-semibold"><?= htmlspecialchars($booking['boarding_point']) ?></span>
+                    </div>
+                    <div class="col-md-6 text-md-end">
+                        <span class="text-secondary small d-block">DROPPING POINT</span>
+                        <span class="text-white fw-semibold"><?= htmlspecialchars($booking['dropping_point']) ?></span>
+                    </div>
+                </div>
+            </div>
+
             <!-- Passenger Details Grid -->
             <h5 class="text-indigo fw-bold mb-3 small text-uppercase"><i class="fa-solid fa-users me-2"></i>Passenger Information</h5>
             <div class="table-responsive mb-4">
@@ -188,6 +217,11 @@ require_once __DIR__ . '/includes/header.php';
                     <div>Name: <span class="text-white fw-semibold"><?= htmlspecialchars($booking['customer_name']) ?></span></div>
                     <div>Email: <span class="text-white"><?= htmlspecialchars($booking['customer_email']) ?></span></div>
                     <div>Phone: <span class="text-white"><?= htmlspecialchars($booking['customer_phone']) ?></span></div>
+
+                    <h6 class="text-secondary fw-bold small text-uppercase mt-3 mb-2"><i class="fa-solid fa-headset me-2"></i>Bus Operator Support</h6>
+                    <div>Operator: <span class="text-white fw-semibold"><?= htmlspecialchars($operator['operator_name']) ?></span></div>
+                    <div>Phone: <span class="text-white"><?= htmlspecialchars($operator['contact_number']) ?></span></div>
+                    <div>Emergency: <span class="text-danger fw-bold"><?= htmlspecialchars($operator['emergency_number']) ?></span></div>
                 </div>
                 <div class="col-md-6 col-sm-6 text-md-end">
                     <span class="text-secondary small d-block">TOTAL FARE PAID</span>

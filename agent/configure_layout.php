@@ -1,0 +1,449 @@
+<?php
+/**
+ * Visual Seating Layout Builder
+ */
+require_once __DIR__ . '/header.php';
+
+$bus_id = intval($_GET['bus_id'] ?? 0);
+if ($bus_id === 0) {
+    header("Location: " . BASE_URL . "/agent/buses.php");
+    exit();
+}
+
+// Verify bus ownership
+$stmt = $pdo->prepare("SELECT * FROM buses WHERE id = ? AND agent_id = ? AND status = 'active' LIMIT 1");
+$stmt->execute([$bus_id, $_SESSION['user_id']]);
+$bus = $stmt->fetch();
+
+if (!$bus) {
+    die("Bus not found or access denied.");
+}
+
+$error = '';
+$success = '';
+
+// Handle Layout Save Request
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'save_layout') {
+    $csrf_token = $_POST['csrf_token'] ?? '';
+    if (!verify_csrf_token($csrf_token)) {
+        $error = "Security token validation failed.";
+    } else {
+        $rows = intval($_POST['rows_count'] ?? 10);
+        $cols = intval($_POST['cols_count'] ?? 5);
+        $layout_type = $_POST['layout_type'] ?? 'Mixed';
+        $seats_data = json_decode($_POST['seats_data'] ?? '[]', true);
+
+        try {
+            $pdo->beginTransaction();
+
+            // 1. Save layout metadata
+            $stmt = $pdo->prepare("
+                INSERT INTO bus_layouts (bus_id, rows_count, cols_count, layout_type)
+                VALUES (?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE rows_count = VALUES(rows_count), cols_count = VALUES(cols_count), layout_type = VALUES(layout_type)
+            ");
+            $stmt->execute([$bus_id, $rows, $cols, $layout_type]);
+
+            // 2. Clear old seats
+            $stmt = $pdo->prepare("DELETE FROM bus_seats WHERE bus_id = ?");
+            $stmt->execute([$bus_id]);
+
+            // 3. Insert new seats
+            $stmt = $pdo->prepare("
+                INSERT INTO bus_seats (bus_id, seat_number, row_pos, col_pos, seat_type, is_active, base_price)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ");
+            foreach ($seats_data as $seat) {
+                $stmt->execute([
+                    $bus_id,
+                    trim($seat['number']),
+                    intval($seat['row']),
+                    intval($seat['col']),
+                    $seat['type'],
+                    intval($seat['active']),
+                    floatval($seat['price'])
+                ]);
+            }
+
+            // Log activity with previous and new layout specs
+            log_activity($pdo, $_SESSION['user_id'], 'BUS_LAYOUT_SAVE', "Saved visual layout for Bus ID: $bus_id. Type: $layout_type, Rows: $rows, Cols: $cols, Seats count: " . count($seats_data));
+
+            $pdo->commit();
+            $success = "Visual seating layout saved successfully!";
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            $error = "Failed to save layout: " . $e->getMessage();
+        }
+    }
+}
+
+// Fetch existing layout settings
+$layout_stmt = $pdo->prepare("SELECT * FROM bus_layouts WHERE bus_id = ? LIMIT 1");
+$layout_stmt->execute([$bus_id]);
+$layout = $layout_stmt->fetch();
+
+$rows_count = $layout ? intval($layout['rows_count']) : 10;
+$cols_count = $layout ? intval($layout['cols_count']) : 5;
+$layout_type = $layout ? $layout['layout_type'] : 'Mixed';
+
+// Fetch existing seats
+$seats_stmt = $pdo->prepare("SELECT * FROM bus_seats WHERE bus_id = ?");
+$seats_stmt->execute([$bus_id]);
+$db_seats = $seats_stmt->fetchAll();
+
+// Map seats into a JS readable array
+$seats_json = [];
+foreach ($db_seats as $s) {
+    $seats_json[] = [
+        'number' => $s['seat_number'],
+        'row' => intval($s['row_pos']),
+        'col' => intval($s['col_pos']),
+        'type' => $s['seat_type'],
+        'active' => intval($s['is_active']),
+        'price' => floatval($s['base_price'])
+    ];
+}
+?>
+
+<?php if (!empty($error)): ?>
+    <div class="alert alert-danger border-0 bg-danger bg-opacity-10 text-danger rounded-3" role="alert">
+        <i class="fa-solid fa-triangle-exclamation me-2"></i><?= htmlspecialchars($error) ?>
+    </div>
+<?php endif; ?>
+
+<?php if (!empty($success)): ?>
+    <div class="alert alert-success border-0 bg-success bg-opacity-10 text-success rounded-3" role="alert">
+        <i class="fa-solid fa-circle-check me-2"></i><?= htmlspecialchars($success) ?>
+    </div>
+<?php endif; ?>
+
+<div class="row g-4">
+    <!-- Builder Controls -->
+    <div class="col-md-4">
+        <div class="glass-card p-4">
+            <h5 class="fw-bold mb-3"><i class="fa-solid fa-sliders text-indigo me-2"></i>Layout Dimensions</h5>
+            <div class="mb-3">
+                <label class="form-label text-secondary small fw-semibold">Grid Rows</label>
+                <input type="number" id="grid_rows" class="form-control form-control-swift" value="<?= $rows_count ?>" min="1" max="15">
+            </div>
+            <div class="mb-3">
+                <label class="form-label text-secondary small fw-semibold">Grid Columns</label>
+                <input type="number" id="grid_cols" class="form-control form-control-swift" value="<?= $cols_count ?>" min="3" max="8">
+            </div>
+            <div class="mb-3">
+                <label class="form-label text-secondary small fw-semibold">Class Classification</label>
+                <select id="layout_type" class="form-select form-control-swift">
+                    <option value="Seater" <?= $layout_type === 'Seater' ? 'selected' : '' ?>>Seater (2x2 / 2x1)</option>
+                    <option value="Sleeper" <?= $layout_type === 'Sleeper' ? 'selected' : '' ?>>Sleeper</option>
+                    <option value="Semi Sleeper" <?= $layout_type === 'Semi Sleeper' ? 'selected' : '' ?>>Semi Sleeper</option>
+                    <option value="Double Sleeper" <?= $layout_type === 'Double Sleeper' ? 'selected' : '' ?>>Double Sleeper</option>
+                    <option value="Mixed" <?= $layout_type === 'Mixed' ? 'selected' : '' ?>>Mixed Layout</option>
+                </select>
+            </div>
+            <button type="button" id="btnUpdateGrid" class="btn btn-secondary-glass w-100 mb-4">Resize Grid</button>
+
+            <hr class="border-secondary mb-4">
+
+            <h5 class="fw-bold mb-3"><i class="fa-solid fa-circle-info text-indigo me-2"></i>Instructions</h5>
+            <ul class="small text-secondary ps-3 mb-4">
+                <li class="mb-2">Click on an empty cell to add a seat.</li>
+                <li class="mb-2">Drag a seat from one cell to another to reposition.</li>
+                <li class="mb-2">Click on a seat to customize its number, type, pricing, or status.</li>
+                <li class="mb-2">For double berths (sleeper), align row placement and use prefixes U (Upper) and D (Lower).</li>
+            </ul>
+
+            <form action="" method="POST" id="layoutForm">
+                <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
+                <input type="hidden" name="action" value="save_layout">
+                <input type="hidden" name="rows_count" id="form_rows" value="<?= $rows_count ?>">
+                <input type="hidden" name="cols_count" id="form_cols" value="<?= $cols_count ?>">
+                <input type="hidden" name="layout_type" id="form_layout_type" value="<?= $layout_type ?>">
+                <input type="hidden" name="seats_data" id="form_seats_data">
+                
+                <button type="submit" id="btnSaveLayout" class="btn btn-primary-gradient w-100 py-3 font-semibold">
+                    <i class="fa-solid fa-floppy-disk me-2"></i>Save Visual Layout
+                </button>
+            </form>
+            
+            <a href="buses.php" class="btn btn-secondary-glass w-100 mt-2">Back to Fleet</a>
+        </div>
+    </div>
+
+    <!-- Seating Canvas Grid -->
+    <div class="col-md-8">
+        <div class="glass-card p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom border-secondary border-opacity-30">
+                <div>
+                    <h4 class="fw-bold text-white mb-0"><?= htmlspecialchars($bus['bus_name']) ?></h4>
+                    <span class="text-secondary small">Registration No: <?= htmlspecialchars($bus['bus_number']) ?></span>
+                </div>
+                <div class="legend-item"><span class="legend-dot bg-secondary border border-secondary"></span><span class="small text-secondary">Walkway/Empty space</span></div>
+            </div>
+
+            <!-- Canvas Grid Container -->
+            <div class="text-center overflow-auto py-3">
+                <div id="grid-canvas" class="mx-auto" style="display: inline-grid; gap: 10px; padding: 15px; border-radius: 12px; background: rgba(0,0,0,0.15);"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SEAT DETAIL MODAL -->
+<div class="modal fade" id="seatConfigModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-card p-4" style="border-radius: 20px;">
+            <div class="modal-header border-bottom border-secondary border-opacity-20 pb-3">
+                <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-chair text-indigo me-2"></i>Configure Seat</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body py-3">
+                <input type="hidden" id="modal_seat_row">
+                <input type="hidden" id="modal_seat_col">
+
+                <div class="mb-3">
+                    <label class="form-label text-secondary small fw-semibold">Seat Number / Designation</label>
+                    <input type="text" id="modal_seat_number" class="form-control form-control-swift" placeholder="e.g. A1, U1, D1" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-secondary small fw-semibold">Seat Type</label>
+                    <select id="modal_seat_type" class="form-select form-control-swift">
+                        <option value="Normal">Normal Seat</option>
+                        <option value="Sleeper">Sleeper</option>
+                        <option value="Upper Sleeper">Upper Sleeper</option>
+                        <option value="Lower Sleeper">Lower Sleeper</option>
+                        <option value="Double Sleeper Upper">Double Sleeper Upper (2 Pass)</option>
+                        <option value="Double Sleeper Lower">Double Sleeper Lower (2 Pass)</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-secondary small fw-semibold">Default Base Price (₹)</label>
+                    <input type="number" id="modal_seat_price" class="form-control form-control-swift" value="500.00" step="10">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-secondary small fw-semibold">Seat Status</label>
+                    <select id="modal_seat_active" class="form-select form-control-swift">
+                        <option value="1">Enabled (Available for booking)</option>
+                        <option value="0">Disabled (Blocked space)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-3 d-flex justify-content-between">
+                <button type="button" class="btn btn-secondary-glass" id="btnRemoveSeat">Remove Seat</button>
+                <div>
+                    <button type="button" class="btn btn-secondary-glass" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary-gradient" id="btnApplySeat">Apply Details</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.grid-cell {
+    width: 60px;
+    height: 60px;
+    border: 1px dashed var(--border-glass);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: transparent;
+    transition: all 0.2s ease;
+}
+.grid-cell:hover {
+    background: rgba(200, 169, 107, 0.08);
+    border-color: var(--accent-primary);
+}
+.builder-seat {
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+    border: 1px solid var(--accent-primary);
+    background: var(--bg-card);
+    color: var(--text-main);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    user-select: none;
+    box-shadow: var(--shadow-main);
+    cursor: grab;
+}
+.builder-seat.disabled-seat {
+    opacity: 0.4;
+    background: var(--bg-secondary);
+    border-color: var(--border-glass);
+}
+.builder-seat .seat-type-badge {
+    font-size: 0.55rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+</style>
+
+<script>
+$(document).ready(function() {
+    var seats = <?= json_encode($seats_json) ?>;
+    var rows = parseInt($('#grid_rows').val());
+    var cols = parseInt($('#grid_cols').val());
+
+    // Render visual grid
+    function renderGrid() {
+        var canvas = $('#grid-canvas');
+        canvas.empty();
+        canvas.css({
+            'grid-template-rows': 'repeat(' + rows + ', 60px)',
+            'grid-template-columns': 'repeat(' + cols + ', 60px)'
+        });
+
+        for (var r = 0; r < rows; r++) {
+            for (var c = 0; c < cols; c++) {
+                // Find seat at this position
+                var seat = findSeat(r, c);
+                var cell = $('<div class="grid-cell" data-row="' + r + '" data-col="' + c + '"></div>');
+                
+                if (seat) {
+                    var activeClass = seat.active === 1 ? '' : ' disabled-seat';
+                    var seatElement = $('<div class="builder-seat' + activeClass + '" draggable="true">' +
+                        '<span>' + seat.number + '</span>' +
+                        '<span class="seat-type-badge">' + seat.type + '</span>' +
+                        '</div>');
+                    
+                    seatElement.on('dragstart', handleDragStart(r, c));
+                    cell.append(seatElement);
+                } else {
+                    cell.on('click', handleCellClick(r, c));
+                }
+
+                cell.on('dragover', function(e) { e.preventDefault(); });
+                cell.on('drop', handleDrop(r, c));
+
+                canvas.append(cell);
+            }
+        }
+    }
+
+    function findSeat(row, col) {
+        return seats.find(s => s.row === row && s.col === col);
+    }
+
+    // Add new seat on click
+    function handleCellClick(row, col) {
+        return function() {
+            var seatNum = 'S' + (seats.length + 1);
+            seats.push({
+                number: seatNum,
+                row: row,
+                col: col,
+                type: 'Normal',
+                active: 1,
+                price: 500.00
+            });
+            renderGrid();
+        };
+    }
+
+    // Configure details modal trigger
+    $(document).on('click', '.builder-seat', function(e) {
+        e.stopPropagation();
+        var cell = $(this).parent();
+        var row = parseInt(cell.data('row'));
+        var col = parseInt(cell.data('col'));
+        var seat = findSeat(row, col);
+
+        if (seat) {
+            $('#modal_seat_row').val(row);
+            $('#modal_seat_col').val(col);
+            $('#modal_seat_number').val(seat.number);
+            $('#modal_seat_type').val(seat.type);
+            $('#modal_seat_price').val(seat.price);
+            $('#modal_seat_active').val(seat.active);
+            $('#seatConfigModal').modal('show');
+        }
+    });
+
+    // Apply config changes
+    $('#btnApplySeat').click(function() {
+        var row = parseInt($('#modal_seat_row').val());
+        var col = parseInt($('#modal_seat_col').val());
+        var seat = findSeat(row, col);
+
+        if (seat) {
+            seat.number = $('#modal_seat_number').val();
+            seat.type = $('#modal_seat_type').val();
+            seat.price = parseFloat($('#modal_seat_price').val());
+            seat.active = parseInt($('#modal_seat_active').val());
+            $('#seatConfigModal').modal('hide');
+            renderGrid();
+        }
+    });
+
+    // Remove seat
+    $('#btnRemoveSeat').click(function() {
+        var row = parseInt($('#modal_seat_row').val());
+        var col = parseInt($('#modal_seat_col').val());
+        seats = seats.filter(s => !(s.row === row && s.col === col));
+        $('#seatConfigModal').modal('hide');
+        renderGrid();
+    });
+
+    // Drag-and-drop properties
+    var dragSrcRow = null;
+    var dragSrcCol = null;
+
+    function handleDragStart(row, col) {
+        return function(e) {
+            dragSrcRow = row;
+            dragSrcCol = col;
+            e.originalEvent.dataTransfer.setData('text/plain', '');
+        };
+    }
+
+    function handleDrop(row, col) {
+        return function(e) {
+            e.preventDefault();
+            if (dragSrcRow !== null && dragSrcCol !== null) {
+                var srcSeat = findSeat(dragSrcRow, dragSrcCol);
+                var destSeat = findSeat(row, col);
+
+                if (srcSeat && !destSeat) {
+                    srcSeat.row = row;
+                    srcSeat.col = col;
+                }
+                dragSrcRow = null;
+                dragSrcCol = null;
+                renderGrid();
+            }
+        };
+    }
+
+    // Grid resize update
+    $('#btnUpdateGrid').click(function() {
+        rows = parseInt($('#grid_rows').val());
+        cols = parseInt($('#grid_cols').val());
+        // Clean seats outside the range
+        seats = seats.filter(s => s.row < rows && s.col < cols);
+        renderGrid();
+    });
+
+    // Submit Layout Form
+    $('#layoutForm').submit(function() {
+        $('#form_rows').val(rows);
+        $('#form_cols').val(cols);
+        $('#form_layout_type').val($('#layout_type').val());
+        $('#form_seats_data').val(JSON.stringify(seats));
+    });
+
+    renderGrid();
+});
+</script>
+
+<?php
+require_once __DIR__ . '/footer.php';
+?>

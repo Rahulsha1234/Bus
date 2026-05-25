@@ -12,7 +12,7 @@ if (!defined('BASE_URL')) {
 }
 
 // Database Credentials
-define('DB_HOST', 'localhost');
+define('DB_HOST', '127.0.0.1;port=3307');
 define('DB_USER', 'root');
 define('DB_PASS', '');
 define('DB_NAME', 'bus_booking');
@@ -26,12 +26,12 @@ define('COMMISSION_RATE', 2.00); // 2% commission to Super Admin
 if (session_status() == PHP_SESSION_NONE) {
     ini_set('session.cookie_httponly', 1);
     ini_set('session.use_only_cookies', 1);
-    
+
     // Enable secure cookies if HTTPS
     if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {
         ini_set('session.cookie_secure', 1);
     }
-    
+
     session_start();
 }
 

@@ -80,15 +80,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         elseif ($action === 'delete') {
             $bus_id = intval($_POST['bus_id'] ?? 0);
             
-            // Verify ownership and delete
-            $stmt = $pdo->prepare("DELETE FROM buses WHERE id = ? AND agent_id = ?");
+            // Verify ownership and soft delete
+            $stmt = $pdo->prepare("UPDATE buses SET status = 'inactive' WHERE id = ? AND agent_id = ?");
             $stmt->execute([$bus_id, $agent_id]);
             
             if ($stmt->rowCount() > 0) {
                 $success = "Bus removed successfully!";
-                log_activity($pdo, $agent_id, 'BUS_DELETE', "Deleted bus ID: $bus_id");
+                log_activity($pdo, $agent_id, 'BUS_DELETE', "Soft deleted bus ID: $bus_id");
             } else {
                 $error = "Failed to delete bus. Ownership mismatch or invalid ID.";
+            }
+        }
+
+        // UPDATE OPERATOR CONTACTS
+        elseif ($action === 'operator') {
+            $bus_id = intval($_POST['bus_id'] ?? 0);
+            $op_name = trim($_POST['operator_name'] ?? '');
+            $op_phone = trim($_POST['contact_number'] ?? '');
+            $op_whatsapp = trim($_POST['whatsapp_number'] ?? '');
+            $op_emergency = trim($_POST['emergency_number'] ?? '');
+            $op_email = trim($_POST['support_email'] ?? '');
+
+            if (empty($op_name) || empty($op_phone) || empty($op_whatsapp) || empty($op_emergency) || empty($op_email) || $bus_id === 0) {
+                $error = "Please fill in all operator contact fields.";
+            } else {
+                $stmt = $pdo->prepare("
+                    INSERT INTO operator_contacts (bus_id, operator_name, contact_number, whatsapp_number, emergency_number, support_email)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    ON DUPLICATE KEY UPDATE 
+                        operator_name = VALUES(operator_name),
+                        contact_number = VALUES(contact_number),
+                        whatsapp_number = VALUES(whatsapp_number),
+                        emergency_number = VALUES(emergency_number),
+                        support_email = VALUES(support_email)
+                ");
+                $stmt->execute([$bus_id, $op_name, $op_phone, $op_whatsapp, $op_emergency, $op_email]);
+                $success = "Operator contacts updated successfully!";
+                log_activity($pdo, $agent_id, 'BUS_OPERATOR_UPDATE', "Updated operator info for bus ID: $bus_id");
             }
         }
     }
@@ -96,7 +124,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Fetch Agent's Buses
 try {
-    $stmt = $pdo->prepare("SELECT * FROM buses WHERE agent_id = ? ORDER BY created_at DESC");
+    $stmt = $pdo->prepare("
+        SELECT b.*, op.operator_name, op.contact_number, op.whatsapp_number, op.emergency_number, op.support_email 
+        FROM buses b 
+        LEFT JOIN operator_contacts op ON b.id = op.bus_id
+        WHERE b.agent_id = ? AND b.status = 'active'
+        ORDER BY b.created_at DESC
+    ");
     $stmt->execute([$agent_id]);
     $buses = $stmt->fetchAll();
 } catch (PDOException $e) {
@@ -153,9 +187,11 @@ try {
                             <td><span class="font-monospace text-secondary small"><?= htmlspecialchars($bus['seat_layout_type']) ?></span></td>
                             <td class="text-secondary small"><?= date('d M Y', strtotime($bus['created_at'])) ?></td>
                             <td class="text-end">
-                                <div class="d-flex gap-2 justify-content-end">
-                                    <button class="btn btn-secondary-glass py-1 px-2 small edit-bus-btn" data-id="<?= $bus['id'] ?>" data-name="<?= htmlspecialchars($bus['bus_name']) ?>" data-number="<?= htmlspecialchars($bus['bus_number']) ?>" data-type="<?= htmlspecialchars($bus['bus_type']) ?>" data-bs-toggle="modal" data-bs-target="#editBusModal"><i class="fa-solid fa-pen-to-square"></i></button>
-                                    <button class="btn btn-secondary-glass py-1 px-2 text-danger small delete-bus-btn" data-id="<?= $bus['id'] ?>" data-bs-toggle="modal" data-bs-target="#deleteBusModal"><i class="fa-solid fa-trash-can"></i></button>
+                                <div class="d-flex gap-2 justify-content-end align-items-center">
+                                    <a href="configure_layout.php?bus_id=<?= $bus['id'] ?>" class="btn btn-secondary-glass py-1 px-2 small" title="Configure Seats"><i class="fa-solid fa-table-cells text-indigo"></i></a>
+                                    <button class="btn btn-secondary-glass py-1 px-2 small operator-btn" data-id="<?= $bus['id'] ?>" data-name="<?= htmlspecialchars($bus['operator_name'] ?? '') ?>" data-phone="<?= htmlspecialchars($bus['contact_number'] ?? '') ?>" data-whatsapp="<?= htmlspecialchars($bus['whatsapp_number'] ?? '') ?>" data-emergency="<?= htmlspecialchars($bus['emergency_number'] ?? '') ?>" data-email="<?= htmlspecialchars($bus['support_email'] ?? '') ?>" data-bs-toggle="modal" data-bs-target="#operatorModal" title="Operator Contact Details"><i class="fa-solid fa-phone"></i></button>
+                                    <button class="btn btn-secondary-glass py-1 px-2 small edit-bus-btn" data-id="<?= $bus['id'] ?>" data-name="<?= htmlspecialchars($bus['bus_name']) ?>" data-number="<?= htmlspecialchars($bus['bus_number']) ?>" data-type="<?= htmlspecialchars($bus['bus_type']) ?>" data-bs-toggle="modal" data-bs-target="#editBusModal" title="Edit Bus"><i class="fa-solid fa-pen-to-square"></i></button>
+                                    <button class="btn btn-secondary-glass py-1 px-2 text-danger small delete-bus-btn" data-id="<?= $bus['id'] ?>" data-bs-toggle="modal" data-bs-target="#deleteBusModal" title="Delete Bus"><i class="fa-solid fa-trash-can"></i></button>
                                 </div>
                             </td>
                         </tr>
@@ -274,6 +310,54 @@ try {
     </div>
 </div>
 
+<!-- OPERATOR DETAILS MODAL -->
+<div class="modal fade" id="operatorModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-card text-white border-secondary border-opacity-30" style="background:#131a2e; border-radius: 20px;">
+            <div class="modal-header border-secondary border-opacity-20 p-4">
+                <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-headset me-2 text-indigo"></i>Operator Contact Info</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="<?= htmlspecialchars($_SERVER['PHP_SELF']) ?>" method="POST">
+                <div class="modal-body p-4">
+                    <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
+                    <input type="hidden" name="action" value="operator">
+                    <input type="hidden" name="bus_id" id="op_bus_id">
+                    
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-semibold">Operator Name / Company</label>
+                        <input type="text" name="operator_name" id="op_operator_name" class="form-control form-control-swift" placeholder="e.g. Royal Travels" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-semibold">Support Contact Number</label>
+                        <input type="text" name="contact_number" id="op_contact_number" class="form-control form-control-swift" placeholder="e.g. +91 9876543210" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-semibold">WhatsApp Number</label>
+                        <input type="text" name="whatsapp_number" id="op_whatsapp_number" class="form-control form-control-swift" placeholder="e.g. +91 9876543210" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-semibold">Emergency Helpline Number</label>
+                        <input type="text" name="emergency_number" id="op_emergency_number" class="form-control form-control-swift" placeholder="e.g. 1800-XXX-XXXX" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-semibold">Support Email Address</label>
+                        <input type="email" name="support_email" id="op_support_email" class="form-control form-control-swift" placeholder="e.g. support@royaltravels.com" required>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary border-opacity-20 p-4">
+                    <button type="button" class="btn btn-secondary-glass" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary-gradient">Save Operator Info</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
 $(document).ready(function() {
     // Fill Edit fields
@@ -287,6 +371,16 @@ $(document).ready(function() {
     // Fill Delete fields
     $('.delete-bus-btn').click(function() {
         $('#delete_bus_id').val($(this).data('id'));
+    });
+
+    // Fill Operator details fields
+    $('.operator-btn').click(function() {
+        $('#op_bus_id').val($(this).data('id'));
+        $('#op_operator_name').val($(this).data('name'));
+        $('#op_contact_number').val($(this).data('phone'));
+        $('#op_whatsapp_number').val($(this).data('whatsapp'));
+        $('#op_emergency_number').val($(this).data('emergency'));
+        $('#op_support_email').val($(this).data('email'));
     });
 });
 </script>
