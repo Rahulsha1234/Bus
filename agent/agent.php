@@ -1,10 +1,10 @@
 <?php
 /**
- * Universal Login Page
+ * Travel Agent & Super Admin Login Page
  */
-require_once __DIR__ . '/includes/auth_middleware.php';
+require_once __DIR__ . '/../includes/auth_middleware.php';
 
-$page_title = "Login";
+$page_title = "Agent & Staff Login";
 
 // Redirect if already logged in
 if (is_logged_in()) {
@@ -22,7 +22,6 @@ if (is_logged_in()) {
 $error = '';
 $success = '';
 
-// Handle timeout message
 if (isset($_SESSION['timeout_message'])) {
     $error = $_SESSION['timeout_message'];
     unset($_SESSION['timeout_message']);
@@ -40,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($login_input) || empty($password)) {
             $error = "Please fill in all fields.";
         } else {
-            // Find user by username or email
+            // Find user
             $stmt = $pdo->prepare("SELECT * FROM users WHERE username = :username OR email = :email LIMIT 1");
             $stmt->execute([
                 ':username' => $login_input,
@@ -49,8 +48,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $user_row = $stmt->fetch();
 
             if ($user_row && password_verify($password, $user_row['password'])) {
-                if ($user_row['role'] !== 'customer') {
-                    $error = "Staff accounts cannot login here. Please use the appropriate portal.";
+                // Restrict roles
+                if (!in_array($user_row['role'], ['agent', 'admin'])) {
+                    $error = "Access denied. Customer accounts cannot login here.";
+                } elseif ($user_row['role'] === 'agent' && $user_row['status'] === 'pending') {
+                    $error = "Your agency account is pending approval by the Super Admin.";
+                } elseif ($user_row['role'] === 'agent' && $user_row['status'] === 'suspended') {
+                    $error = "Your account is currently suspended by the Super Admin.";
                 } else {
                     // Create Session
                     session_regenerate_id(true);
@@ -60,34 +64,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['user_email'] = $user_row['email'];
                     $_SESSION['LAST_ACTIVITY'] = time();
 
-                    log_activity($pdo, $user_row['id'], 'LOGIN_SUCCESS', 'Customer logged in successfully.');
+                    log_activity($pdo, $user_row['id'], 'LOGIN_SUCCESS', 'Agent/Admin logged in via Agent portal.');
 
-                    // Check if redirect url is set
-                    $redirect = $_SESSION['redirect_url'] ?? (BASE_URL . '/index.php');
-                    unset($_SESSION['redirect_url']);
-                    header("Location: " . $redirect);
+                    // Redirect
+                    if ($user_row['role'] === 'admin') {
+                        header("Location: " . BASE_URL . "/admin/dashboard.php");
+                    } else {
+                        header("Location: " . BASE_URL . "/agent/dashboard.php");
+                    }
                     exit();
                 }
             } else {
                 $error = "Invalid username/email or password.";
-                // System-wide error logger
-                log_activity($pdo, null, 'LOGIN_FAILED', "Failed login attempt for: $login_input");
+                log_activity($pdo, null, 'LOGIN_FAILED', "Failed Agent/Admin login attempt for: $login_input");
             }
         }
     }
 }
 
-// Include Header
-require_once __DIR__ . '/includes/header.php';
+require_once __DIR__ . '/../includes/header.php';
 ?>
 
 <div class="row justify-content-center">
     <div class="col-md-5">
         <div class="glass-card p-5 mt-3">
             <div class="text-center mb-4">
-                <i class="fa-solid fa-bus text-indigo" style="font-size: 3rem; color: #818cf8; filter: drop-shadow(0 0 15px rgba(129,140,248,0.4));"></i>
-                <h2 class="fw-bold mt-3 text-white">Customer Login</h2>
-                <p class="text-secondary small">Access the ticket booking engine</p>
+                <i class="fa-solid fa-briefcase text-indigo" style="font-size: 3rem; color: #818cf8; filter: drop-shadow(0 0 15px rgba(129,140,248,0.4));"></i>
+                <h2 class="fw-bold mt-3 text-white">Agent Portal Login</h2>
+                <p class="text-secondary small">Access travel agency desk & schedule management</p>
             </div>
 
             <?php if (!empty($error)): ?>
@@ -96,21 +100,15 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
             <?php endif; ?>
 
-            <?php if (!empty($success)): ?>
-                <div class="alert alert-success border-0 bg-success bg-opacity-10 text-success rounded-3" role="alert">
-                    <i class="fa-solid fa-circle-check me-2"></i><?= htmlspecialchars($success) ?>
-                </div>
-            <?php endif; ?>
-
             <form action="<?= htmlspecialchars($_SERVER['PHP_SELF']) ?>" method="POST" autocomplete="off">
                 <!-- CSRF Token -->
                 <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
 
                 <div class="mb-4">
-                    <label for="login_input" class="form-label text-secondary small fw-semibold">Username or Email Address</label>
+                    <label for="login_input" class="form-label text-secondary small fw-semibold">Username or Email</label>
                     <div class="input-group">
-                        <span class="input-group-text bg-dark border-secondary border-end-0 text-secondary" style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-user"></i></span>
-                        <input type="text" name="login_input" id="login_input" class="form-control form-control-swift border-start-0" placeholder="Enter username or email" style="border-radius: 0 12px 12px 0;" required>
+                        <span class="input-group-text bg-dark border-secondary border-end-0 text-secondary" style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-user-tie"></i></span>
+                        <input type="text" name="login_input" id="login_input" class="form-control form-control-swift border-start-0" placeholder="Agent Username or Email" style="border-radius: 0 12px 12px 0;" required>
                     </div>
                 </div>
 
@@ -123,19 +121,13 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
 
                 <div class="d-grid mb-3">
-                    <button type="submit" class="btn btn-primary-gradient py-3">Sign In</button>
+                    <button type="submit" class="btn btn-primary-gradient py-3">Sign In as Agent</button>
                 </div>
             </form>
-
-            <div class="text-center mt-4">
-                <span class="text-secondary small">Don't have an account? </span>
-                <a href="<?= BASE_URL ?>/register.php" class="text-decoration-none small text-indigo" style="color: #818cf8; font-weight: 500;">Register here</a>
-            </div>
         </div>
     </div>
 </div>
 
 <?php
-// Include Footer
-require_once __DIR__ . '/includes/footer.php';
+require_once __DIR__ . '/../includes/footer.php';
 ?>

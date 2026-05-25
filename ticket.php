@@ -21,6 +21,8 @@ try {
             b.customer_email,
             b.customer_phone,
             b.total_amount,
+            b.discount_amount,
+            b.promo_code,
             b.payment_status,
             b.created_at,
             b.boarding_point,
@@ -224,6 +226,12 @@ require_once __DIR__ . '/includes/header.php';
                     <div>Emergency: <span class="text-danger fw-bold"><?= htmlspecialchars($operator['emergency_number']) ?></span></div>
                 </div>
                 <div class="col-md-6 col-sm-6 text-md-end">
+                    <?php if ($booking['discount_amount'] > 0): ?>
+                        <div class="mb-2">
+                            <span class="text-secondary small d-block">PROMO DISCOUNT (<?= htmlspecialchars($booking['promo_code']) ?>)</span>
+                            <span class="text-success fw-bold">-₹<?= number_format($booking['discount_amount'], 2) ?></span>
+                        </div>
+                    <?php endif; ?>
                     <span class="text-secondary small d-block">TOTAL FARE PAID</span>
                     <span class="fs-2 fw-bold text-indigo" style="color:#818cf8;">₹<?= number_format($booking['total_amount'], 2) ?></span>
                     <div class="text-secondary small" style="font-size:0.75rem;">Inclusive of Processing Taxes</div>

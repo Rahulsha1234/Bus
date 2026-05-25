@@ -1,0 +1,54 @@
+/**
+ * Centralized Theme System - CSS Custom Properties
+ */
+:root {
+    /* DEFAULT LIGHT MODE VARIABLES */
+    --bg-primary: #F8F5EF;
+    --bg-secondary: #FCFAF7;
+    --card-bg: #FFFFFF;
+    --accent-primary: #C8A96B;
+    --accent-secondary: #D4AF37;
+    --text-primary: #1F1F1F;
+    --text-secondary: #5C5C5C;
+    --border-color: #E7E1D7;
+    
+    /* System States */
+    --success: #2E7D32;
+    --warning: #ED6C02;
+    --danger: #D32F2F;
+    --indigo: #C8A96B; /* Replaced purple/neon with gold accent */
+    --indigo-rgb: 200, 169, 107;
+    
+    /* Layout Constants */
+    --border-glass: rgba(231, 225, 215, 0.5);
+    --shadow-diffusion: 0 20px 40px -15px rgba(0,0,0,0.05);
+}
+
+/* DARK MODE OVERRIDES */
+[data-theme="dark"] {
+    --bg-primary: #0F1115;
+    --bg-secondary: #171A21;
+    --card-bg: #1D212B;
+    --accent-primary: #D4AF37;
+    --accent-secondary: #C8A96B;
+    --text-primary: #F5F5F5;
+    --text-secondary: #B0B0B0;
+    --border-color: #2D3442;
+    
+    /* System States */
+    --success: #2E7D32;
+    --warning: #ED6C02;
+    --danger: #D32F2F;
+    --indigo: #D4AF37;
+    --indigo-rgb: 212, 175, 55;
+    
+    /* Layout Constants */
+    --border-glass: rgba(45, 52, 66, 0.4);
+    --shadow-diffusion: 0 20px 40px -15px rgba(0,0,0,0.3);
+}
+
+body {
+    background-color: var(--bg-primary) !important;
+    color: var(--text-primary) !important;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}

@@ -353,10 +353,27 @@ require_once __DIR__ . '/includes/header.php';
                     <ul class="list-group list-group-flush mb-4" id="selected-seats-list" style="display: none; background:transparent;"></ul>
                 </div>
 
+                <!-- Promo Code Section -->
+                <div class="mb-4" id="promo-container" style="display: none;">
+                    <label class="form-label text-secondary small fw-semibold">Apply Promo Code</label>
+                    <div class="input-group">
+                        <input type="text" id="promo_code_input" class="form-control form-control-swift" placeholder="e.g. SAVE10">
+                        <button class="btn btn-outline-secondary btn-secondary-glass text-white" type="button" id="btnApplyPromo">Apply</button>
+                    </div>
+                    <div id="promo-message" class="small mt-1 text-success" style="display: none;"></div>
+                </div>
+                
+                <input type="hidden" name="applied_promo" id="hidden_promo_code" value="">
+                <input type="hidden" name="discount_amount" id="hidden_discount_amount" value="0.00">
+
                 <div class="p-3 rounded-4 bg-dark bg-opacity-30 border border-secondary border-opacity-20 mb-4" id="invoice-block" style="display: none;">
                     <div class="d-flex justify-content-between small text-secondary mb-2">
                         <span>Base Ticket Fare</span>
                         <span id="invoice-base-fare">₹0.00</span>
+                    </div>
+                    <div class="d-flex justify-content-between small text-secondary mb-2" id="invoice-discount-row" style="display: none !important;">
+                        <span>Discount Applied</span>
+                        <span class="text-success" id="invoice-discount-val">-₹0.00</span>
                     </div>
                     <div class="d-flex justify-content-between text-white fw-bold fs-5 pt-2 border-top border-secondary border-opacity-40">
                         <span>Total Amount</span>
@@ -440,19 +457,69 @@ $(document).ready(function() {
         }
     });
 
+    function resetPromo() {
+        $('#hidden_promo_code').val('');
+        $('#hidden_discount_amount').val('0.00');
+        $('#promo_code_input').val('');
+        $('#promo-message').hide().text('');
+        $('#invoice-discount-row').attr('style', 'display: none !important;');
+    }
+
+    $('#btnApplyPromo').click(function() {
+        var code = $('#promo_code_input').val().trim();
+        var subtotal = 0;
+        selectedSeats.forEach(function(s) { subtotal += s.price; });
+        
+        if (code === '') {
+            resetPromo();
+            $('#invoice-total').text('₹' + subtotal.toFixed(2));
+            return;
+        }
+
+        $.ajax({
+            url: '<?= BASE_URL ?>/ajax/apply_promo.php',
+            type: 'POST',
+            data: { promo_code: code, subtotal: subtotal, csrf_token: csrfToken },
+            dataType: 'json',
+            success: function(res) {
+                if (res.success) {
+                    $('#hidden_promo_code').val(res.promo_code);
+                    $('#hidden_discount_amount').val(res.discount.toFixed(2));
+                    $('#promo-message').show().removeClass('text-danger').addClass('text-success').text(res.message);
+                    
+                    $('#invoice-discount-row').removeAttr('style');
+                    $('#invoice-discount-val').text('-₹' + res.discount.toFixed(2));
+                    $('#invoice-total').text('₹' + res.final_fare.toFixed(2));
+                } else {
+                    $('#promo-message').show().removeClass('text-success').addClass('text-danger').text(res.message);
+                    $('#hidden_promo_code').val('');
+                    $('#hidden_discount_amount').val('0.00');
+                    $('#invoice-discount-row').attr('style', 'display: none !important;');
+                    $('#invoice-total').text('₹' + subtotal.toFixed(2));
+                }
+            },
+            error: function() {
+                alert("Failed to communicate with discount server.");
+            }
+        });
+    });
+
     function updateInvoice() {
         if (selectedSeats.length === 0) {
             $('#no-seat-warning').show();
             $('#selected-seats-list').hide();
             $('#invoice-block').hide();
+            $('#promo-container').hide();
             $('#btnProceedCheckout').addClass('disabled');
             $('#hidden_selected_seats').val('');
+            resetPromo();
             return;
         }
 
         $('#no-seat-warning').hide();
         $('#selected-seats-list').show().empty();
         $('#invoice-block').show();
+        $('#promo-container').show();
         $('#btnProceedCheckout').removeClass('disabled');
 
         var totalFare = 0;
@@ -471,8 +538,15 @@ $(document).ready(function() {
         });
 
         $('#invoice-base-fare').text('₹' + totalFare.toFixed(2));
-        $('#invoice-total').text('₹' + totalFare.toFixed(2));
         $('#hidden_selected_seats').val(nums.join(','));
+
+        // If promo is already active, trigger re-evaluation, otherwise set standard total
+        var appliedPromo = $('#hidden_promo_code').val();
+        if (appliedPromo !== '') {
+            $('#btnApplyPromo').click();
+        } else {
+            $('#invoice-total').text('₹' + totalFare.toFixed(2));
+        }
     }
 });
 </script>

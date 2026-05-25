@@ -160,10 +160,33 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
             $total_amount += $fare;
         }
 
+        // Fetch and re-validate promo code discount server-side
+        $applied_promo = trim($_POST['applied_promo'] ?? '');
+        $calculated_discount = 0.00;
+        if (!empty($applied_promo)) {
+            $code = strtoupper($applied_promo);
+            if ($code === 'SAVE10') {
+                $calculated_discount = $total_amount * 0.10;
+            } elseif ($code === 'FLAT100') {
+                $calculated_discount = 100.00;
+            } elseif ($code === 'SUPER50') {
+                $calculated_discount = $total_amount * 0.50;
+            } elseif ($code === 'FREE') {
+                $calculated_discount = $total_amount;
+            }
+            
+            if ($calculated_discount > $total_amount) {
+                $calculated_discount = $total_amount;
+            }
+            $calculated_discount = round($calculated_discount, 2);
+        }
+        
+        $final_total = $total_amount - $calculated_discount;
+
         // 4. Commission Calculations
         $commission_rate = 2.00; // 2%
-        $admin_commission = ($total_amount * $commission_rate) / 100;
-        $agent_net_earning = $total_amount - $admin_commission;
+        $admin_commission = ($final_total * $commission_rate) / 100;
+        $agent_net_earning = $final_total - $admin_commission;
 
         // 5. Create Booking Entry
         $booking_ref = 'SB' . strtoupper(substr(uniqid(), 7)) . rand(10, 99);
@@ -173,15 +196,15 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
             INSERT INTO bookings (
                 booking_reference, trip_id, customer_id, customer_name, customer_email, customer_phone, 
                 total_amount, admin_commission, agent_net_earning, payment_status, payment_gateway, transaction_id,
-                boarding_point, dropping_point, status
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'paid', 'Razorpay', ?, ?, ?, 'active')
+                boarding_point, dropping_point, status, discount_amount, promo_code
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'paid', 'Razorpay', ?, ?, ?, 'active', ?, ?)
         ");
         
         $mock_tx_id = 'pay_mock_' . bin2hex(random_bytes(8));
         $booking_stmt->execute([
             $booking_ref, $trip_id, $customer_id, $cust_name, $cust_email, $cust_phone,
-            $total_amount, $admin_commission, $agent_net_earning, $mock_tx_id,
-            $boarding_point, $dropping_point
+            $final_total, $admin_commission, $agent_net_earning, $mock_tx_id,
+            $boarding_point, $dropping_point, $calculated_discount, !empty($applied_promo) ? $applied_promo : null
         ]);
         $booking_id = $pdo->lastInsertId();
 
@@ -364,6 +387,32 @@ foreach ($seats as $seat) {
 $boarding_point = $_POST['boarding_point'] ?? '';
 $dropping_point = $_POST['dropping_point'] ?? '';
 
+// Fetch promo and discount values
+$applied_promo = trim($_POST['applied_promo'] ?? '');
+$discount_amount = floatval($_POST['discount_amount'] ?? 0.00);
+
+if (!empty($applied_promo)) {
+    $code = strtoupper($applied_promo);
+    $calculated_discount = 0.00;
+    if ($code === 'SAVE10') {
+        $calculated_discount = $total_fare * 0.10;
+    } elseif ($code === 'FLAT100') {
+        $calculated_discount = 100.00;
+    } elseif ($code === 'SUPER50') {
+        $calculated_discount = $total_fare * 0.50;
+    } elseif ($code === 'FREE') {
+        $calculated_discount = $total_fare;
+    }
+    
+    if ($calculated_discount > $total_fare) {
+        $calculated_discount = $total_fare;
+    }
+    $discount_amount = round($calculated_discount, 2);
+} else {
+    $discount_amount = 0.00;
+}
+$final_fare = $total_fare - $discount_amount;
+
 // Auto-fill customer variables if logged in
 $logged_user = get_logged_user();
 $default_name = is_logged_in() && $logged_user['role'] === 'customer' ? $logged_user['username'] : '';
@@ -385,6 +434,8 @@ require_once __DIR__ . '/includes/header.php';
                 <input type="hidden" name="selected_seats" value="<?= htmlspecialchars($selected_seats) ?>">
                 <input type="hidden" name="boarding_point" value="<?= htmlspecialchars($boarding_point) ?>">
                 <input type="hidden" name="dropping_point" value="<?= htmlspecialchars($dropping_point) ?>">
+                <input type="hidden" name="applied_promo" value="<?= htmlspecialchars($applied_promo) ?>">
+                <input type="hidden" name="discount_amount" value="<?= htmlspecialchars($discount_amount) ?>">
 
                 <!-- Loop seats to generate passenger input card -->
                 <?php foreach ($seats as $idx => $seat): ?>
@@ -465,9 +516,15 @@ require_once __DIR__ . '/includes/header.php';
                     <span>Base Ticket Fare</span>
                     <span>₹<?= number_format($total_fare, 2) ?></span>
                 </div>
+                <?php if ($discount_amount > 0): ?>
+                    <div class="d-flex justify-content-between text-secondary small mb-3">
+                        <span>Discount Applied (<?= htmlspecialchars($applied_promo) ?>)</span>
+                        <span class="text-success">-₹<?= number_format($discount_amount, 2) ?></span>
+                    </div>
+                <?php endif; ?>
                 <div class="d-flex justify-content-between text-white fw-bold fs-5 pt-3 border-top border-secondary border-opacity-30">
                     <span>Total Price</span>
-                    <span class="text-indigo">₹<?= number_format($total_fare, 2) ?></span>
+                    <span class="text-indigo">₹<?= number_format($final_fare, 2) ?></span>
                 </div>
             </div>
         </div>
@@ -494,7 +551,7 @@ require_once __DIR__ . '/includes/header.php';
             <div class="modal-body p-4">
                 <div class="text-center mb-4">
                     <span class="text-secondary small d-block">AMOUNT TO PAY</span>
-                    <h2 class="fw-bold text-indigo" style="font-size: 2.5rem; color:#818cf8;">₹<?= number_format($total_fare, 2) ?></h2>
+                    <h2 class="fw-bold text-indigo" style="font-size: 2.5rem; color:#818cf8;">₹<?= number_format($final_fare, 2) ?></h2>
                 </div>
 
                 <div class="p-3 rounded-4 bg-dark bg-opacity-30 border border-secondary border-opacity-20 mb-4 small text-secondary">

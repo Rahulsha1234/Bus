@@ -22,59 +22,168 @@ if (!$bus) {
 $error = '';
 $success = '';
 
-// Handle Layout Save Request
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'save_layout') {
+// Handle Template Save / Apply / Delete Actions
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $csrf_token = $_POST['csrf_token'] ?? '';
     if (!verify_csrf_token($csrf_token)) {
         $error = "Security token validation failed.";
     } else {
-        $rows = intval($_POST['rows_count'] ?? 10);
-        $cols = intval($_POST['cols_count'] ?? 5);
-        $layout_type = $_POST['layout_type'] ?? 'Mixed';
-        $seats_data = json_decode($_POST['seats_data'] ?? '[]', true);
+        $action = $_POST['action'];
 
-        try {
-            $pdo->beginTransaction();
+        // SAVE TEMPLATE
+        if ($action === 'save_template') {
+            $template_name = trim($_POST['template_name'] ?? '');
+            $rows = intval($_POST['rows_count'] ?? 10);
+            $cols = intval($_POST['cols_count'] ?? 5);
+            $layout_type = $_POST['layout_type'] ?? 'Mixed';
+            $seats_data = $_POST['seats_data'] ?? '[]';
 
-            // 1. Save layout metadata
-            $stmt = $pdo->prepare("
-                INSERT INTO bus_layouts (bus_id, rows_count, cols_count, layout_type)
-                VALUES (?, ?, ?, ?)
-                ON DUPLICATE KEY UPDATE rows_count = VALUES(rows_count), cols_count = VALUES(cols_count), layout_type = VALUES(layout_type)
-            ");
-            $stmt->execute([$bus_id, $rows, $cols, $layout_type]);
-
-            // 2. Clear old seats
-            $stmt = $pdo->prepare("DELETE FROM bus_seats WHERE bus_id = ?");
-            $stmt->execute([$bus_id]);
-
-            // 3. Insert new seats
-            $stmt = $pdo->prepare("
-                INSERT INTO bus_seats (bus_id, seat_number, row_pos, col_pos, seat_type, is_active, base_price)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            ");
-            foreach ($seats_data as $seat) {
-                $stmt->execute([
-                    $bus_id,
-                    trim($seat['number']),
-                    intval($seat['row']),
-                    intval($seat['col']),
-                    $seat['type'],
-                    intval($seat['active']),
-                    floatval($seat['price'])
-                ]);
+            if (empty($template_name)) {
+                $error = "Please enter a template name.";
+            } else {
+                try {
+                    $stmt = $pdo->prepare("
+                        INSERT INTO layout_templates (agent_id, template_name, rows_count, cols_count, layout_type, seats_data)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    ");
+                    $stmt->execute([$_SESSION['user_id'], $template_name, $rows, $cols, $layout_type, $seats_data]);
+                    $success = "Template '$template_name' saved successfully!";
+                    log_activity($pdo, $_SESSION['user_id'], 'LAYOUT_TEMPLATE_SAVE', "Saved template: $template_name");
+                } catch (Exception $e) {
+                    $error = "Failed to save template: " . $e->getMessage();
+                }
             }
+        }
 
-            // Log activity with previous and new layout specs
-            log_activity($pdo, $_SESSION['user_id'], 'BUS_LAYOUT_SAVE', "Saved visual layout for Bus ID: $bus_id. Type: $layout_type, Rows: $rows, Cols: $cols, Seats count: " . count($seats_data));
+        // APPLY TEMPLATE
+        elseif ($action === 'apply_template') {
+            $template_id = intval($_POST['template_id'] ?? 0);
+            
+            try {
+                $stmt = $pdo->prepare("SELECT * FROM layout_templates WHERE id = ? AND agent_id = ? LIMIT 1");
+                $stmt->execute([$template_id, $_SESSION['user_id']]);
+                $template = $stmt->fetch();
 
-            $pdo->commit();
-            $success = "Visual seating layout saved successfully!";
-        } catch (Exception $e) {
-            $pdo->rollBack();
-            $error = "Failed to save layout: " . $e->getMessage();
+                if (!$template) {
+                    $error = "Template not found or access denied.";
+                } else {
+                    $rows = intval($template['rows_count']);
+                    $cols = intval($template['cols_count']);
+                    $layout_type = $template['layout_type'];
+                    $seats_data = json_decode($template['seats_data'], true);
+
+                    $pdo->beginTransaction();
+
+                    // Update bus layout meta
+                    $stmt = $pdo->prepare("
+                        INSERT INTO bus_layouts (bus_id, rows_count, cols_count, layout_type)
+                        VALUES (?, ?, ?, ?)
+                        ON DUPLICATE KEY UPDATE rows_count = VALUES(rows_count), cols_count = VALUES(cols_count), layout_type = VALUES(layout_type)
+                    ");
+                    $stmt->execute([$bus_id, $rows, $cols, $layout_type]);
+
+                    // Clear and insert seats
+                    $stmt = $pdo->prepare("DELETE FROM bus_seats WHERE bus_id = ?");
+                    $stmt->execute([$bus_id]);
+
+                    $stmt = $pdo->prepare("
+                        INSERT INTO bus_seats (bus_id, seat_number, row_pos, col_pos, seat_type, is_active, base_price)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ");
+                    foreach ($seats_data as $seat) {
+                        $stmt->execute([
+                            $bus_id,
+                            trim($seat['number']),
+                            intval($seat['row']),
+                            intval($seat['col']),
+                            $seat['type'],
+                            intval($seat['active']),
+                            floatval($seat['price'])
+                        ]);
+                    }
+
+                    $pdo->commit();
+                    $success = "Template '{$template['template_name']}' successfully applied to this bus!";
+                    log_activity($pdo, $_SESSION['user_id'], 'LAYOUT_TEMPLATE_APPLY', "Applied template ID $template_id to bus $bus_id");
+                    
+                    // Reload details
+                    header("Location: configure_layout.php?bus_id=" . $bus_id . "&success=" . urlencode($success));
+                    exit();
+                }
+            } catch (Exception $e) {
+                if ($pdo->inTransaction()) $pdo->rollBack();
+                $error = "Failed to apply template: " . $e->getMessage();
+            }
+        }
+
+        // DELETE TEMPLATE
+        elseif ($action === 'delete_template') {
+            $template_id = intval($_POST['template_id'] ?? 0);
+            try {
+                $stmt = $pdo->prepare("DELETE FROM layout_templates WHERE id = ? AND agent_id = ?");
+                $stmt->execute([$template_id, $_SESSION['user_id']]);
+                $success = "Template deleted successfully!";
+                log_activity($pdo, $_SESSION['user_id'], 'LAYOUT_TEMPLATE_DELETE', "Deleted template ID $template_id");
+            } catch (Exception $e) {
+                $error = "Failed to delete template: " . $e->getMessage();
+            }
+        }
+
+        // SAVE LAYOUT
+        elseif ($action === 'save_layout') {
+            $rows = intval($_POST['rows_count'] ?? 10);
+            $cols = intval($_POST['cols_count'] ?? 5);
+            $layout_type = $_POST['layout_type'] ?? 'Mixed';
+            $seats_data = json_decode($_POST['seats_data'] ?? '[]', true);
+
+            try {
+                $pdo->beginTransaction();
+
+                // 1. Save layout metadata
+                $stmt = $pdo->prepare("
+                    INSERT INTO bus_layouts (bus_id, rows_count, cols_count, layout_type)
+                    VALUES (?, ?, ?, ?)
+                    ON DUPLICATE KEY UPDATE rows_count = VALUES(rows_count), cols_count = VALUES(cols_count), layout_type = VALUES(layout_type)
+                ");
+                $stmt->execute([$bus_id, $rows, $cols, $layout_type]);
+
+                // 2. Clear old seats
+                $stmt = $pdo->prepare("DELETE FROM bus_seats WHERE bus_id = ?");
+                $stmt->execute([$bus_id]);
+
+                // 3. Insert new seats
+                $stmt = $pdo->prepare("
+                    INSERT INTO bus_seats (bus_id, seat_number, row_pos, col_pos, seat_type, is_active, base_price)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ");
+                foreach ($seats_data as $seat) {
+                    $stmt->execute([
+                        $bus_id,
+                        trim($seat['number']),
+                        intval($seat['row']),
+                        intval($seat['col']),
+                        $seat['type'],
+                        intval($seat['active']),
+                        floatval($seat['price'])
+                    ]);
+                }
+
+                // Log activity
+                log_activity($pdo, $_SESSION['user_id'], 'BUS_LAYOUT_SAVE', "Saved visual layout for Bus ID: $bus_id. Type: $layout_type, Rows: $rows, Cols: $cols, Seats count: " . count($seats_data));
+
+                $pdo->commit();
+                $success = "Visual seating layout saved successfully!";
+            } catch (Exception $e) {
+                $pdo->rollBack();
+                $error = "Failed to save layout: " . $e->getMessage();
+            }
         }
     }
+}
+
+// Check GET success message
+if (isset($_GET['success']) && empty($success)) {
+    $success = $_GET['success'];
 }
 
 // Fetch existing layout settings
@@ -103,6 +212,11 @@ foreach ($db_seats as $s) {
         'price' => floatval($s['base_price'])
     ];
 }
+
+// Fetch Agent's Saved Templates
+$templates_stmt = $pdo->prepare("SELECT * FROM layout_templates WHERE agent_id = ? ORDER BY created_at DESC");
+$templates_stmt->execute([$_SESSION['user_id']]);
+$templates = $templates_stmt->fetchAll();
 ?>
 
 <?php if (!empty($error)): ?>
@@ -164,8 +278,63 @@ foreach ($db_seats as $s) {
                     <i class="fa-solid fa-floppy-disk me-2"></i>Save Visual Layout
                 </button>
             </form>
+
+            <hr class="border-secondary my-4">
+
+            <!-- SAVE AS TEMPLATE FORM -->
+            <h5 class="fw-bold mb-3"><i class="fa-solid fa-file-export text-indigo me-2"></i>Save as Template</h5>
+            <form action="" method="POST" id="templateSaveForm" class="mb-4">
+                <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
+                <input type="hidden" name="action" value="save_template">
+                <input type="hidden" name="rows_count" id="tpl_rows" value="<?= $rows_count ?>">
+                <input type="hidden" name="cols_count" id="tpl_cols" value="<?= $cols_count ?>">
+                <input type="hidden" name="layout_type" id="tpl_layout_type" value="<?= $layout_type ?>">
+                <input type="hidden" name="seats_data" id="tpl_seats_data">
+                
+                <div class="mb-3">
+                    <label class="form-label text-secondary small fw-semibold">Template Name</label>
+                    <input type="text" name="template_name" class="form-control form-control-swift" placeholder="e.g. Sleeper 2x1 Premium" required>
+                </div>
+                <button type="submit" id="btnSaveAsTemplate" class="btn btn-secondary-glass w-100 font-semibold">
+                    <i class="fa-solid fa-cloud-arrow-up me-2"></i>Save Template
+                </button>
+            </form>
+
+            <hr class="border-secondary mb-4">
+
+            <!-- APPLY SAVED TEMPLATES -->
+            <h5 class="fw-bold mb-3"><i class="fa-solid fa-folder-open text-indigo me-2"></i>Saved Templates</h5>
+            <?php if (empty($templates)): ?>
+                <p class="text-secondary small">No templates saved yet.</p>
+            <?php else: ?>
+                <div class="d-grid gap-2">
+                    <?php foreach ($templates as $tpl): ?>
+                        <div class="d-flex gap-2">
+                            <form action="" method="POST" class="flex-grow-1">
+                                <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
+                                <input type="hidden" name="action" value="apply_template">
+                                <input type="hidden" name="template_id" value="<?= $tpl['id'] ?>">
+                                <button type="submit" class="btn btn-secondary-glass btn-sm w-100 text-start d-flex justify-content-between align-items-center">
+                                    <span><?= htmlspecialchars($tpl['template_name']) ?> <small class="text-muted">(<?= $tpl['rows_count'] ?>x<?= $tpl['cols_count'] ?>)</small></span>
+                                    <i class="fa-solid fa-chevron-right text-muted small"></i>
+                                </button>
+                            </form>
+                            <form action="" method="POST">
+                                <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
+                                <input type="hidden" name="action" value="delete_template">
+                                <input type="hidden" name="template_id" value="<?= $tpl['id'] ?>">
+                                <button type="submit" class="btn btn-danger-glass btn-sm h-100" title="Delete Template">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </form>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+
+            <hr class="border-secondary my-4">
             
-            <a href="buses.php" class="btn btn-secondary-glass w-100 mt-2">Back to Fleet</a>
+            <a href="buses.php" class="btn btn-secondary-glass w-100">Back to Fleet</a>
         </div>
     </div>
 
@@ -336,7 +505,24 @@ $(document).ready(function() {
     // Add new seat on click
     function handleCellClick(row, col) {
         return function() {
-            var seatNum = 'S' + (seats.length + 1);
+            // Automatically determine row prefix letter (A, B, C...)
+            var rowLetter = String.fromCharCode(65 + row); // 0 -> A, 1 -> B...
+            
+            // Determine column sequence position within the row
+            var colCountInRow = 1;
+            for (var c = 0; c < col; c++) {
+                if (findSeat(row, c)) {
+                    colCountInRow++;
+                }
+            }
+            
+            var seatNum = rowLetter + colCountInRow;
+            
+            // Check if name already exists, if so fall back to simple row+col representation
+            if (seats.find(s => s.number === seatNum)) {
+                seatNum = rowLetter + (col + 1);
+            }
+            
             seats.push({
                 number: seatNum,
                 row: row,
@@ -438,6 +624,14 @@ $(document).ready(function() {
         $('#form_cols').val(cols);
         $('#form_layout_type').val($('#layout_type').val());
         $('#form_seats_data').val(JSON.stringify(seats));
+    });
+
+    // Submit Template Save Form
+    $('#templateSaveForm').submit(function() {
+        $('#tpl_rows').val(rows);
+        $('#tpl_cols').val(cols);
+        $('#tpl_layout_type').val($('#layout_type').val());
+        $('#tpl_seats_data').val(JSON.stringify(seats));
     });
 
     renderGrid();

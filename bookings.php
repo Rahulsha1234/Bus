@@ -15,12 +15,13 @@ $page_title = "My Booking History";
 $customer_id = $_SESSION['user_id'];
 
 try {
-    // Fetch customer bookings
     $stmt = $pdo->prepare("
         SELECT 
             b.id AS booking_id,
             b.booking_reference,
             b.total_amount,
+            b.discount_amount,
+            b.promo_code,
             b.payment_status,
             b.boarding_point,
             b.dropping_point,
@@ -108,9 +109,12 @@ require_once __DIR__ . '/includes/header.php';
                             <td>
                                 <span class="badge bg-secondary font-monospace"><?= htmlspecialchars($b['seat_numbers']) ?></span>
                             </td>
-                            <td>
-                                <span class="text-white fw-semibold">₹<?= number_format($b['total_amount'], 2) ?></span>
-                            </td>
+                             <td>
+                                <span class="text-white fw-semibold d-block">₹<?= number_format($b['total_amount'], 2) ?></span>
+                                <?php if ($b['discount_amount'] > 0): ?>
+                                    <span class="text-success small d-block" style="font-size:0.75rem;">-₹<?= number_format($b['discount_amount'], 2) ?> (<?= htmlspecialchars($b['promo_code']) ?>)</span>
+                                <?php endif; ?>
+                             </td>
                             <td>
                                 <?php if ($b['booking_status'] === 'cancelled'): ?>
                                     <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25">CANCELLED</span>

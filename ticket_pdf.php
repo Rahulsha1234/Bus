@@ -19,6 +19,8 @@ try {
             b.customer_email,
             b.customer_phone,
             b.total_amount,
+            b.discount_amount,
+            b.promo_code,
             b.payment_status,
             b.created_at,
             b.boarding_point,
@@ -399,13 +401,18 @@ try {
                     </div>
                 </div>
             </div>
-            <div class="col-md-6 text-md-end d-flex flex-column justify-content-end align-items-md-end">
                 <div class="mb-3">
                     <div class="info-label">Customer Contact Info</div>
                     <div class="fw-semibold"><?= htmlspecialchars($booking['customer_name']) ?></div>
                     <div class="small text-muted"><?= htmlspecialchars($booking['customer_email']) ?> | <?= htmlspecialchars($booking['customer_phone']) ?></div>
                 </div>
                 <div>
+                    <?php if ($booking['discount_amount'] > 0): ?>
+                        <div class="mb-2">
+                            <span class="info-label">Discount Applied (<?= htmlspecialchars($booking['promo_code']) ?>)</span>
+                            <span class="text-success fw-bold d-block">-₹<?= number_format($booking['discount_amount'], 2) ?></span>
+                        </div>
+                    <?php endif; ?>
                     <div class="info-label">Total Fare Paid</div>
                     <div class="fs-2 fw-bold text-dark">₹<?= number_format($booking['total_amount'], 2) ?></div>
                     <div class="text-muted small" style="font-size:0.75rem;">Payment processed securely via Razorpay</div>

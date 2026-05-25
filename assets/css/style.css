@@ -1,3 +1,5 @@
+@import 'theme.css';
+
 /* 
  * SwiftBus Premium Style System - Luxury Gold & Cream Theme
  * Designed with modern CSS variables, responsive seat layouts, and smooth theme switching.
@@ -6,23 +8,18 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-    /* --- LIGHT THEME (Warm Cream & Champagne Gold) --- */
-    --bg-primary: #F8F5EF;
-    --bg-secondary: #F6F1E8;
-    --bg-card: #FFFFFF;
+    /* Map style variables to centralized variables */
+    --bg-card: var(--card-bg);
+    --text-main: var(--text-primary);
+    --text-muted: var(--text-secondary);
+    --border-glass: var(--border-color);
     
-    --accent-primary: #C8A96B;     /* Luxury Gold/Champagne */
-    --accent-secondary: #2C2C2C;   /* Deep Charcoal */
-    --accent-gold-gradient: linear-gradient(135deg, #D5BE8F 0%, #C8A96B 100%);
-    
-    --text-main: #1F1F1F;
-    --text-muted: #5C5C5C;
-    --border-glass: #E7E1D7;
+    --accent-gold-gradient: linear-gradient(135deg, #D5BE8F 0%, var(--accent-primary) 100%);
     --bg-glass: rgba(255, 255, 255, 0.85);
     
     /* Seat colors - Refined Premium Palette */
     --seat-available: #4E8752;
-    --seat-selected: #C8A96B;
+    --seat-selected: var(--accent-primary);
     --seat-booked: #B85C5C;
     --seat-hold: #D98C45;
     --seat-disabled: #BDC3C7;
@@ -36,30 +33,24 @@
     --shadow-hover: 0 15px 35px -5px rgba(200, 169, 107, 0.15);
     --input-bg: #FFFFFF;
     --text-white-fixed: #FFFFFF;
-    --body-bg-gradient: radial-gradient(circle at 50% 0%, #F6F1E8 0%, #F8F5EF 70%);
+    --body-bg-gradient: radial-gradient(circle at 50% 0%, var(--bg-secondary) 0%, var(--bg-primary) 70%);
     
     /* Close button filter */
     --btn-close-filter: invert(0) grayscale(1) brightness(0);
 }
 
 [data-theme="dark"] {
-    /* --- DARK THEME (Executive Gold & Charcoal) --- */
-    --bg-primary: #0F1115;
-    --bg-secondary: #171A21;
-    --bg-card: #1D212B;
+    --bg-card: var(--card-bg);
+    --text-main: var(--text-primary);
+    --text-muted: var(--text-secondary);
+    --border-glass: var(--border-color);
     
-    --accent-primary: #D4AF37;     /* High-contrast Gold */
-    --accent-secondary: #F5F5F5;
-    --accent-gold-gradient: linear-gradient(135deg, #E5C04A 0%, #B89522 100%);
-    
-    --text-main: #F5F5F5;
-    --text-muted: #B0B0B0;
-    --border-glass: #2D3442;
+    --accent-gold-gradient: linear-gradient(135deg, #E5C04A 0%, var(--accent-primary) 100%);
     --bg-glass: rgba(23, 26, 33, 0.85);
     
     /* Seat colors */
     --seat-available: #3B7A57;
-    --seat-selected: #D4AF37;
+    --seat-selected: var(--accent-primary);
     --seat-booked: #A64B4B;
     --seat-hold: #C67A2E;
     --seat-disabled: #3A4252;
@@ -71,9 +62,9 @@
 
     --shadow-main: 0 10px 30px -10px rgba(0, 0, 0, 0.4);
     --shadow-hover: 0 15px 35px -5px rgba(212, 175, 55, 0.25);
-    --input-bg: #1D212B;
+    --input-bg: var(--card-bg);
     --text-white-fixed: #FFFFFF;
-    --body-bg-gradient: radial-gradient(circle at 50% 0%, #171A21 0%, #0F1115 70%);
+    --body-bg-gradient: radial-gradient(circle at 50% 0%, var(--bg-secondary) 0%, var(--bg-primary) 70%);
     
     /* Close button filter */
     --btn-close-filter: invert(1);

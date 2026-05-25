@@ -268,7 +268,7 @@ try {
 <!-- SCHEDULE TRIP MODAL -->
 <div class="modal fade" id="scheduleTripModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content glass-card text-white border-secondary border-opacity-30" style="background:#131a2e; border-radius: 20px;">
+        <div class="modal-content glass-card text-white border-secondary border-opacity-30" style="border-radius: 20px;">
             <div class="modal-header border-secondary border-opacity-20 p-4">
                 <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-calendar-plus me-2 text-indigo"></i>Schedule New Trip</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -326,7 +326,7 @@ try {
 <!-- EDIT TRIP MODAL -->
 <div class="modal fade" id="editTripModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content glass-card text-white border-secondary border-opacity-30" style="background:#131a2e; border-radius: 20px;">
+        <div class="modal-content glass-card text-white border-secondary border-opacity-30" style="border-radius: 20px;">
             <div class="modal-header border-secondary border-opacity-20 p-4">
                 <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-calendar-check me-2 text-indigo"></i>Modify Trip Details</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -338,7 +338,7 @@ try {
                     <input type="hidden" name="trip_id" id="edit_trip_id">
                     
                     <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold">Select Bus</label>
+                         <label class="form-label text-secondary small fw-semibold">Select Bus</label>
                         <select name="bus_id" id="edit_bus_id" class="form-select form-control-swift" required>
                             <?php foreach ($agent_buses as $ab): ?>
                                 <option value="<?= $ab['id'] ?>"><?= htmlspecialchars($ab['bus_name']) ?> (<?= htmlspecialchars($ab['bus_number']) ?>)</option>
@@ -391,7 +391,7 @@ try {
 <!-- CANCEL TRIP CONFIRMATION MODAL -->
 <div class="modal fade" id="deleteTripModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content glass-card text-white border-secondary border-opacity-30" style="background:#131a2e; border-radius: 20px;">
+        <div class="modal-content glass-card text-white border-secondary border-opacity-30" style="border-radius: 20px;">
             <form action="<?= htmlspecialchars($_SERVER['PHP_SELF']) ?>" method="POST">
                 <div class="modal-body p-4 text-center">
                     <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
