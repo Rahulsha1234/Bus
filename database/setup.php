@@ -2,6 +2,11 @@
 /**
  * Database Setup and Seeding Script
  */
+$lock_file = __DIR__ . '/setup.lock';
+if (file_exists($lock_file)) {
+    die("<h2>Setup is locked!</h2><p>The database has already been initialized. To re-run setup, delete the file: <code>database/setup.lock</code>.</p>");
+}
+
 $host = '127.0.0.1;port=3307';
 $user = 'root';
 $pass = '';
@@ -379,6 +384,7 @@ try {
     $logStmt->execute([':user_id' => $userIds['admin']]);
 
     echo "<h3>SETUP COMPLETED SUCCESSFULLY!</h3>";
+    file_put_contents($lock_file, date('Y-m-d H:i:s'));
     echo "Use the following credentials to log in:<br>";
     echo "<b>Admin:</b> admin / admin123<br>";
     echo "<b>Agent 1 (Approved):</b> agent1 / agent123<br>";

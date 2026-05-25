@@ -45,6 +45,11 @@ try {
         ':date' => $date
     ]);
     $trips = $stmt->fetchAll();
+    
+    // Fetch unique sources from active routes only for the modify search panel
+    $sources_stmt = $pdo->query("SELECT DISTINCT source FROM routes WHERE status = 'active' ORDER BY source ASC");
+    $sources = $sources_stmt->fetchAll(PDO::FETCH_COLUMN);
+
 } catch (PDOException $e) {
     die("Database search failed: " . $e->getMessage());
 }
@@ -52,13 +57,72 @@ try {
 require_once __DIR__ . '/includes/header.php';
 ?>
 
-<!-- Search Bar Resubmission Ticker (Compact & Sleek) -->
-<div class="glass-card p-3 mb-4 d-flex flex-wrap align-items-center justify-content-between gap-3" style="border-radius: 12px;">
-    <div class="d-flex align-items-center gap-3">
-        <span class="badge bg-indigo py-2 px-3 text-uppercase" style="background:#6366f1;"><?= htmlspecialchars($source) ?> <i class="fa-solid fa-arrow-right mx-1"></i> <?= htmlspecialchars($destination) ?></span>
-        <span class="text-secondary small"><i class="fa-regular fa-calendar me-2"></i><?= date('D, d M Y', strtotime($date)) ?></span>
+<!-- Search Bar Resubmission Ticker (Compact & Sleek with Inline Edit) -->
+<div class="glass-card p-3 mb-4" style="border-radius: 12px;">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <span class="badge bg-indigo py-2 px-3 text-uppercase" style="background:#6366f1;"><?= htmlspecialchars($source) ?> <i class="fa-solid fa-arrow-right mx-1"></i> <?= htmlspecialchars($destination) ?></span>
+            <span class="text-secondary small"><i class="fa-regular fa-calendar me-2"></i><?= date('D, d M Y', strtotime($date)) ?></span>
+        </div>
+        <button class="btn btn-secondary-glass py-2 px-3 small" style="font-size: 0.85rem;" type="button" data-bs-toggle="collapse" data-bs-target="#modifySearchCollapse" aria-expanded="false" aria-controls="modifySearchCollapse">
+            <i class="fa-solid fa-pen-to-square me-2"></i>Modify Search
+        </button>
     </div>
-    <a href="<?= BASE_URL ?>/index.php" class="btn btn-secondary-glass py-2 px-3 small" style="font-size: 0.85rem;"><i class="fa-solid fa-rotate-left me-2"></i>Modify Search</a>
+
+    <!-- Collapsible Inline Search Form -->
+    <div class="collapse mt-4 pt-3 border-top border-secondary border-opacity-20" id="modifySearchCollapse">
+        <form action="<?= BASE_URL ?>/search.php" method="GET" class="row g-3 align-items-end">
+            <!-- Source dropdown -->
+            <div class="col-md-3">
+                <label for="source" class="form-label text-secondary small fw-semibold">Leaving From</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-dark border-secondary border-end-0 text-secondary" style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-location-dot"></i></span>
+                    <select name="source" id="source" class="form-select form-control-swift border-start-0" style="border-radius: 0 12px 12px 0;" required>
+                        <option value="">Select Origin...</option>
+                        <?php foreach ($sources as $src): ?>
+                            <option value="<?= htmlspecialchars($src) ?>" <?= $src === $source ? 'selected' : '' ?>><?= htmlspecialchars($src) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Swap Button -->
+            <div class="col-md-1 text-center mb-2 d-none d-md-block">
+                <button type="button" id="swapCities" class="btn btn-secondary-glass p-2 rounded-circle" style="width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+                    <i class="fa-solid fa-right-left"></i>
+                </button>
+            </div>
+
+            <!-- Destination dropdown -->
+            <div class="col-md-3">
+                <label for="destination" class="form-label text-secondary small fw-semibold">Going To</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-dark border-secondary border-end-0 text-secondary" style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-location-crosshairs"></i></span>
+                    <select name="destination" id="destination" class="form-select form-control-swift border-start-0" style="border-radius: 0 12px 12px 0;" required>
+                        <option value="">Select Destination...</option>
+                        <option value="<?= htmlspecialchars($destination) ?>" selected><?= htmlspecialchars($destination) ?></option>
+                    </select>
+                </div>
+                <div id="dest-loading" class="small text-muted mt-1" style="display:none;"><i class="fa-solid fa-spinner fa-spin me-1"></i>Loading...</div>
+            </div>
+
+            <!-- Date Picker -->
+            <div class="col-md-3">
+                <label for="date" class="form-label text-secondary small fw-semibold">Travel Date</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-dark border-secondary border-end-0 text-secondary" style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-calendar-days"></i></span>
+                    <input type="date" name="date" id="date" class="form-control form-control-swift border-start-0" style="border-radius: 0 12px 12px 0;" min="<?= date('Y-m-d') ?>" value="<?= htmlspecialchars($date) ?>" required>
+                </div>
+            </div>
+
+            <!-- Search Button -->
+            <div class="col-md-2">
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary-gradient py-2 fw-bold text-uppercase" style="font-size: 0.9rem;">Search</button>
+                </div>
+            </div>
+        </form>
+    </div>
 </div>
 
 <h4 class="fw-bold mb-4 text-white">Available Services (<?= count($trips) ?> found)</h4>
@@ -79,7 +143,8 @@ require_once __DIR__ . '/includes/header.php';
                 $dep_time = new DateTime($trip['departure_time']);
                 $arr_time = new DateTime($trip['arrival_time']);
                 $duration = $dep_time->diff($arr_time);
-                $duration_str = $duration->format('%h hrs %i mins');
+                $total_hours = ($duration->days * 24) + $duration->h;
+                $duration_str = $total_hours . ' hrs ' . $duration->i . ' mins';
                 
                 $pickups = json_decode($trip['pickup_points'], true) ?? [];
                 $drops = json_decode($trip['drop_points'], true) ?? [];
@@ -104,7 +169,7 @@ require_once __DIR__ . '/includes/header.php';
                                 </div>
                                 <div class="w-50 px-3 position-relative">
                                     <div class="text-secondary small mb-1"><?= $duration_str ?></div>
-                                    <div style="height: 2px; background: rgba(255,255,255,0.15); position: relative;">
+                                    <div style="height: 2px; background: var(--border-glass); opacity: 0.8; position: relative;">
                                         <div style="width: 8px; height: 8px; border-radius:50%; background:#818cf8; position:absolute; top:-3px; left:0;"></div>
                                         <div style="width: 8px; height: 8px; border-radius:50%; background:#db2777; position:absolute; top:-3px; right:0;"></div>
                                     </div>
@@ -176,6 +241,74 @@ require_once __DIR__ . '/includes/header.php';
         </div>
     </div>
 <?php endif; ?>
+
+<script>
+$(document).ready(function() {
+    // Dynamic destination loading on source change
+    $('#source').on('change', function() {
+        var source = $(this).val();
+        var $dest = $('#destination');
+        var $loading = $('#dest-loading');
+
+        $dest.prop('disabled', true).html('<option value="">Select Destination...</option>');
+        $loading.hide();
+
+        if (!source) {
+            return;
+        }
+
+        $loading.show();
+
+        $.getJSON('<?= BASE_URL ?>/ajax/get_destinations.php', { source: source }, function(data) {
+            $loading.hide();
+            $dest.html('<option value="">Select Destination...</option>');
+
+            $.each(data, function(i, dest) {
+                $dest.append($('<option>', { value: dest, text: dest }));
+            });
+
+            $dest.prop('disabled', false);
+        }).fail(function() {
+            $loading.hide();
+            $dest.html('<option value="">Error loading routes</option>');
+        });
+    });
+
+    // Swapper functionality
+    $('#swapCities').on('click', function() {
+        var srcVal = $('#source').val();
+        var destVal = $('#destination').val();
+
+        if (!destVal) return;
+
+        $('#source').val(destVal).trigger('change');
+
+        setTimeout(function() {
+            $('#destination').val(srcVal);
+        }, 500);
+    });
+
+    // Automatically trigger a source change on page load to sync the available destinations dropdown
+    // only if a source is currently selected
+    if ($('#source').val()) {
+        var currentDest = '<?= htmlspecialchars($destination) ?>';
+        var source = $('#source').val();
+        var $dest = $('#destination');
+        
+        $.getJSON('<?= BASE_URL ?>/ajax/get_destinations.php', { source: source }, function(data) {
+            $dest.html('<option value="">Select Destination...</option>');
+            $.each(data, function(i, dest) {
+                $dest.append($('<option>', { 
+                    value: dest, 
+                    text: dest,
+                    selected: (dest === currentDest)
+                }));
+            });
+            $dest.prop('disabled', false);
+        });
+    }
+});
+</script>
 
 <?php
 require_once __DIR__ . '/includes/footer.php';

@@ -3,6 +3,11 @@
  * Global Configuration Settings
  */
 
+// Production Error Handling (Suppress raw paths/errors, keep server logs active)
+error_reporting(E_ALL);
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+
 // Define Base URL dynamically
 if (!defined('BASE_URL')) {
     $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';

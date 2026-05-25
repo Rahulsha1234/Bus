@@ -413,10 +413,64 @@ if (!empty($applied_promo)) {
 }
 $final_fare = $total_fare - $discount_amount;
 
-// Auto-fill customer variables if logged in
-$logged_user = get_logged_user();
-$default_name = is_logged_in() && $logged_user['role'] === 'customer' ? $logged_user['username'] : '';
-$default_email = is_logged_in() ? $logged_user['email'] : '';
+// Do not auto-fill customer variables
+$default_name = '';
+$default_email = '';
+
+// Load all seat coordinates for this bus to determine adjacency
+$coords_stmt = $pdo->prepare("
+    SELECT s.seat_number, s.row_pos, s.col_pos 
+    FROM bus_seats s
+    JOIN trips t ON s.bus_id = t.bus_id
+    WHERE t.id = ? AND s.is_active = 1
+");
+$coords_stmt->execute([$trip_id]);
+$coords_db = $coords_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+$seat_coords = [];
+foreach ($coords_db as $c) {
+    $seat_coords[$c['seat_number']] = [
+        'row' => intval($c['row_pos']),
+        'col' => intval($c['col_pos'])
+    ];
+}
+
+// Fetch all booked female seats for this trip
+$female_booked_stmt = $pdo->prepare("
+    SELECT DISTINCT bs.seat_number 
+    FROM booking_seats bs
+    JOIN bookings b ON bs.booking_id = b.id
+    WHERE b.trip_id = ? AND b.status = 'active' AND bs.passenger_gender = 'Female'
+");
+$female_booked_stmt->execute([$trip_id]);
+$female_booked_seats = $female_booked_stmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
+
+// Map adjacent female booked status for the selected seats
+$is_adjacent_to_female = [];
+foreach ($seats as $seat) {
+    $is_adjacent_to_female[$seat] = false;
+    if (isset($seat_coords[$seat])) {
+        $myRow = $seat_coords[$seat]['row'];
+        $myCol = $seat_coords[$seat]['col'];
+        
+        $adj_col = -1;
+        if ($myCol === 0) $adj_col = 1;
+        elseif ($myCol === 1) $adj_col = 0;
+        elseif ($myCol === 3) $adj_col = 4;
+        elseif ($myCol === 4) $adj_col = 3;
+        
+        if ($adj_col !== -1) {
+            foreach ($seat_coords as $sNum => $coord) {
+                if ($coord['row'] === $myRow && $coord['col'] === $adj_col) {
+                    if (in_array($sNum, $female_booked_seats)) {
+                        $is_adjacent_to_female[$seat] = true;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
 
 require_once __DIR__ . '/includes/header.php';
 ?>
@@ -453,13 +507,23 @@ require_once __DIR__ . '/includes/header.php';
                                 <label class="form-label text-secondary small fw-semibold">Age</label>
                                 <input type="number" name="passenger_age[]" class="form-control form-control-swift" placeholder="Age" min="5" max="100" required>
                             </div>
-                            <div class="col-md-4 mb-3">
+                             <div class="col-md-4 mb-3">
                                 <label class="form-label text-secondary small fw-semibold">Gender</label>
                                 <select name="passenger_gender[]" class="form-select form-control-swift" required>
-                                    <option value="Male">Male</option>
-                                    <option value="Female">Female</option>
-                                    <option value="Other">Other</option>
+                                    <?php if ($is_adjacent_to_female[$seat]): ?>
+                                        <option value="Female" selected>Female</option>
+                                        <option value="Other">Other</option>
+                                    <?php else: ?>
+                                        <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
+                                        <option value="Other">Other</option>
+                                    <?php endif; ?>
                                 </select>
+                                <?php if ($is_adjacent_to_female[$seat]): ?>
+                                    <div class="text-warning small mt-1 font-semibold" style="font-size:0.75rem;">
+                                        <i class="fa-solid fa-triangle-exclamation me-1"></i> Adjacent to Female (Male not allowed)
+                                    </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>

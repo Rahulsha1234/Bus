@@ -106,9 +106,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $success = "Template '{$template['template_name']}' successfully applied to this bus!";
                     log_activity($pdo, $_SESSION['user_id'], 'LAYOUT_TEMPLATE_APPLY', "Applied template ID $template_id to bus $bus_id");
                     
-                    // Reload details
-                    header("Location: configure_layout.php?bus_id=" . $bus_id . "&success=" . urlencode($success));
-                    exit();
+                    // JS redirect because headers already sent by header.php
+                    $js_redirect = "configure_layout.php?bus_id=" . $bus_id . "&success=" . urlencode($success);
                 }
             } catch (Exception $e) {
                 if ($pdo->inTransaction()) $pdo->rollBack();
@@ -218,6 +217,9 @@ $templates_stmt = $pdo->prepare("SELECT * FROM layout_templates WHERE agent_id =
 $templates_stmt->execute([$_SESSION['user_id']]);
 $templates = $templates_stmt->fetchAll();
 ?>
+<?php if (!empty($js_redirect)): ?>
+<script>window.location.replace("<?= htmlspecialchars($js_redirect) ?>");</script>
+<?php exit(); endif; ?>
 
 <?php if (!empty($error)): ?>
     <div class="alert alert-danger border-0 bg-danger bg-opacity-10 text-danger rounded-3" role="alert">
@@ -230,6 +232,7 @@ $templates = $templates_stmt->fetchAll();
         <i class="fa-solid fa-circle-check me-2"></i><?= htmlspecialchars($success) ?>
     </div>
 <?php endif; ?>
+
 
 <div class="row g-4">
     <!-- Builder Controls -->
@@ -351,7 +354,7 @@ $templates = $templates_stmt->fetchAll();
 
             <!-- Canvas Grid Container -->
             <div class="text-center overflow-auto py-3">
-                <div id="grid-canvas" class="mx-auto" style="display: inline-grid; gap: 10px; padding: 15px; border-radius: 12px; background: rgba(0,0,0,0.15);"></div>
+                <div id="grid-canvas" class="mx-auto grid-canvas-board" style="display: inline-grid; gap: 10px; padding: 15px; border-radius: 12px;"></div>
             </div>
         </div>
     </div>
@@ -411,10 +414,26 @@ $templates = $templates_stmt->fetchAll();
 </div>
 
 <style>
+/* Grid canvas adapts to theme */
+.grid-canvas-board {
+    background: var(--grid-canvas-bg);
+    border: 1px solid var(--border-glass);
+}
+
+/* Light theme canvas background */
+:root {
+    --grid-canvas-bg: rgba(44, 44, 44, 0.06);
+    --grid-cell-border: rgba(92, 92, 92, 0.45);
+}
+[data-theme="dark"] {
+    --grid-canvas-bg: rgba(0, 0, 0, 0.25);
+    --grid-cell-border: rgba(255, 255, 255, 0.18);
+}
+
 .grid-cell {
     width: 60px;
     height: 60px;
-    border: 1px dashed var(--border-glass);
+    border: 1.5px dashed var(--grid-cell-border);
     border-radius: 8px;
     display: flex;
     align-items: center;
@@ -424,14 +443,15 @@ $templates = $templates_stmt->fetchAll();
     transition: all 0.2s ease;
 }
 .grid-cell:hover {
-    background: rgba(200, 169, 107, 0.08);
+    background: rgba(200, 169, 107, 0.1);
     border-color: var(--accent-primary);
+    border-style: solid;
 }
 .builder-seat {
     width: 100%;
     height: 100%;
     border-radius: 8px;
-    border: 1px solid var(--accent-primary);
+    border: 1.5px solid var(--accent-primary);
     background: var(--bg-card);
     color: var(--text-main);
     display: flex;
@@ -445,7 +465,7 @@ $templates = $templates_stmt->fetchAll();
     cursor: grab;
 }
 .builder-seat.disabled-seat {
-    opacity: 0.4;
+    opacity: 0.45;
     background: var(--bg-secondary);
     border-color: var(--border-glass);
 }

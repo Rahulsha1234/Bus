@@ -11,8 +11,18 @@ if (!is_logged_in()) {
     exit();
 }
 
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header("Location: " . BASE_URL . "/bookings.php");
+    exit();
+}
+
+$csrf_token = $_POST['csrf_token'] ?? '';
+if (!verify_csrf_token($csrf_token)) {
+    die("Error: Security CSRF token validation failed.");
+}
+
 $page_title = "Ticket Cancellation";
-$booking_id = intval($_GET['booking_id'] ?? 0);
+$booking_id = intval($_POST['booking_id'] ?? 0);
 $customer_id = $_SESSION['user_id'];
 
 if ($booking_id === 0) {

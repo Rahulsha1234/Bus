@@ -6,16 +6,12 @@ require_once __DIR__ . '/includes/auth_middleware.php';
 
 $page_title = "Book Bus Tickets";
 
-// Fetch unique sources and destinations from routes to populate dropdowns dynamically
+// Fetch unique sources from active routes only
 try {
-    $sources_stmt = $pdo->query("SELECT DISTINCT source FROM routes ORDER BY source ASC");
+    $sources_stmt = $pdo->query("SELECT DISTINCT source FROM routes WHERE status = 'active' ORDER BY source ASC");
     $sources = $sources_stmt->fetchAll(PDO::FETCH_COLUMN);
-
-    $destinations_stmt = $pdo->query("SELECT DISTINCT destination FROM routes ORDER BY destination ASC");
-    $destinations = $destinations_stmt->fetchAll(PDO::FETCH_COLUMN);
 } catch (PDOException $e) {
     $sources = [];
-    $destinations = [];
 }
 
 require_once __DIR__ . '/includes/header.php';
@@ -83,18 +79,17 @@ require_once __DIR__ . '/includes/header.php';
                     </button>
                 </div>
 
-                <!-- Destination dropdown -->
+                <!-- Destination dropdown (populated dynamically) -->
                 <div class="col-md-3">
                     <label for="destination" class="form-label text-secondary small fw-semibold">Going To</label>
                     <div class="input-group">
                         <span class="input-group-text bg-dark border-secondary border-end-0 text-secondary" style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-location-crosshairs"></i></span>
-                        <select name="destination" id="destination" class="form-select form-control-swift border-start-0" style="border-radius: 0 12px 12px 0;" required>
-                            <option value="">Select Destination...</option>
-                            <?php foreach ($destinations as $dest): ?>
-                                <option value="<?= htmlspecialchars($dest) ?>"><?= htmlspecialchars($dest) ?></option>
-                            <?php endforeach; ?>
+                        <select name="destination" id="destination" class="form-select form-control-swift border-start-0" style="border-radius: 0 12px 12px 0;" required disabled>
+                            <option value="">Select Origin first...</option>
                         </select>
                     </div>
+                    <div id="dest-loading" class="small text-muted mt-1" style="display:none;"><i class="fa-solid fa-spinner fa-spin me-1"></i>Loading routes...</div>
+                    <div id="dest-empty" class="small text-warning mt-1" style="display:none;"><i class="fa-solid fa-triangle-exclamation me-1"></i>No routes from this origin yet.</div>
                 </div>
 
                 <!-- Date Picker -->
@@ -128,12 +123,62 @@ require_once __DIR__ . '/includes/header.php';
 
 <script>
 $(document).ready(function() {
-    // City Swapper
-    $('#swapCities').click(function() {
+
+    // Dynamically load destinations when source changes
+    $('#source').on('change', function() {
+        var source = $(this).val();
+        var $dest = $('#destination');
+        var $loading = $('#dest-loading');
+        var $empty = $('#dest-empty');
+
+        // Reset
+        $dest.prop('disabled', true).html('<option value="">Select Destination...</option>');
+        $loading.hide();
+        $empty.hide();
+
+        if (!source) {
+            $dest.html('<option value="">Select Origin first...</option>');
+            return;
+        }
+
+        $loading.show();
+
+        $.getJSON('<?= BASE_URL ?>/ajax/get_destinations.php', { source: source }, function(data) {
+            $loading.hide();
+            $dest.html('<option value="">Select Destination...</option>');
+
+            if (data.length === 0) {
+                $empty.show();
+                return;
+            }
+
+            $.each(data, function(i, dest) {
+                $dest.append($('<option>', { value: dest, text: dest }));
+            });
+
+            $dest.prop('disabled', false);
+        }).fail(function() {
+            $loading.hide();
+            $dest.html('<option value="">Error loading routes</option>');
+        });
+    });
+
+    // City Swapper - swap source <-> destination and reload destinations
+    $('#swapCities').on('click', function() {
         var srcVal = $('#source').val();
         var destVal = $('#destination').val();
-        $('#source').val(destVal);
-        $('#destination').val(srcVal);
+
+        // Only swap if destination is valid
+        if (!destVal) return;
+
+        // Set source to old destination value
+        $('#source').val(destVal).trigger('change');
+
+        // After AJAX loads, set destination to old source value
+        // Use a small delay to wait for AJAX
+        setTimeout(function() {
+            $('#destination').val(srcVal);
+        }, 600);
     });
 });
 </script>

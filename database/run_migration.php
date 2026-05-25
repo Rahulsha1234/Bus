@@ -2,6 +2,10 @@
 /**
  * Run Schema Migrations
  */
+if (php_sapi_name() !== 'cli') {
+    die("Access Denied: This script can only be executed via the CLI (command line interface).");
+}
+
 require_once __DIR__ . '/../config/config.php';
 
 try {

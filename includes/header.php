@@ -151,7 +151,7 @@ $user = get_logged_user();
                         </script>
                     <?php else: ?>
                         <a href="<?= BASE_URL ?>/login.php" class="nav-link text-white me-2">Login</a>
-                        <a href="<?= BASE_URL ?>/register.php" class="btn-primary-gradient py-2">Staff Register</a>
+                        <a href="<?= BASE_URL ?>/register.php" class="btn-primary-gradient py-2">Register</a>
                     <?php endif; ?>
                 </div>
             </div>

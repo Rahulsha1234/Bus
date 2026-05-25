@@ -140,10 +140,13 @@ require_once __DIR__ . '/includes/header.php';
                                     </a>
                                     
                                     <?php if ($b['booking_status'] === 'active' && empty($b['cancel_req_status'])): ?>
-                                        <!-- Open Cancel Booking Modal/Link -->
-                                        <a href="<?= BASE_URL ?>/cancellations.php?booking_id=<?= $b['booking_id'] ?>" class="btn btn-danger-glass btn-sm" title="Request Cancellation">
-                                            <i class="fa-solid fa-ban"></i>
-                                        </a>
+                                         <form action="<?= BASE_URL ?>/cancellations.php" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to request ticket cancellation?');">
+                                             <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
+                                             <input type="hidden" name="booking_id" value="<?= $b['booking_id'] ?>">
+                                             <button type="submit" class="btn btn-danger-glass btn-sm" title="Request Cancellation">
+                                                 <i class="fa-solid fa-ban"></i>
+                                             </button>
+                                         </form>
                                     <?php endif; ?>
                                 </div>
                             </td>

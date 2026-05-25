@@ -157,6 +157,24 @@ try {
         ];
     }
 
+    // Filter out seats that are physically overlapped by a sleeper berth starting in the row above them
+    $overlapped_seats = [];
+    foreach ($seats_lookup as $sNum => $sInfo) {
+        $isSleeper = (strpos($sInfo['type'], 'Sleeper') !== false);
+        if ($isSleeper) {
+            $target_row = $sInfo['row'] + 1;
+            $target_col = $sInfo['col'];
+            foreach ($seats_lookup as $otherNum => $otherInfo) {
+                if ($otherInfo['row'] === $target_row && $otherInfo['col'] === $target_col && $otherNum !== $sNum) {
+                    $overlapped_seats[] = $otherNum;
+                }
+            }
+        }
+    }
+    foreach ($overlapped_seats as $oNum) {
+        unset($seats_lookup[$oNum]);
+    }
+
     // Apply adjacent Female Protection rules
     foreach ($seats_lookup as $seatNum => $sInfo) {
         if ($sInfo['status'] === 'female_booked') {
@@ -265,7 +283,7 @@ require_once __DIR__ . '/includes/header.php';
                             <span class="text-secondary small"><i class="fa-solid fa-steering-wheel"></i> DRIVER</span>
                         </div>
                         
-                        <div style="display: inline-grid; gap: 12px; grid-template-rows: repeat(<?= $rows_count ?>, 60px); grid-template-columns: repeat(<?= $cols_count ?>, 60px);">
+                        <div style="display: inline-grid; gap: 12px; grid-template-rows: repeat(<?= $rows_count ?>, 60px); grid-template-columns: repeat(<?= $cols_count ?>, 60px); position: relative; width: 100%;">
                             <?php 
                             for ($r = 0; $r < $rows_count; $r++) {
                                 for ($c = 0; $c < $cols_count; $c++) {
@@ -279,10 +297,15 @@ require_once __DIR__ . '/includes/header.php';
                                     }
                                     
                                     if ($seat) {
-                                        $sleeperClass = (strpos($seat['type'], 'Sleeper') !== false) ? ' sleeper-berth' : '';
-                                        echo '<div class="seat' . $sleeperClass . ' ' . $seat['status'] . '" data-seat="' . $seat['number'] . '" data-price="' . $seat['price'] . '">' . $seat['number'] . '</div>';
-                                    } else {
-                                        echo '<div style="width:60px; height:60px;"></div>'; // Spacer/walkway
+                                        $isSleeper = (strpos($seat['type'], 'Sleeper') !== false);
+                                        $sleeperClass = $isSleeper ? ' sleeper-berth' : '';
+                                        $rowSpan = $isSleeper ? 2 : 1;
+                                        
+                                        // Position explicitly so sleepers span 2 rows without overlapping adjacent elements
+                                        echo '<div class="seat' . $sleeperClass . ' ' . $seat['status'] . '" ' .
+                                             'style="grid-row: ' . ($r + 1) . ' / span ' . $rowSpan . '; grid-column: ' . ($c + 1) . ';" ' .
+                                             'data-seat="' . $seat['number'] . '" data-price="' . $seat['price'] . '">' . 
+                                             $seat['number'] . '</div>';
                                     }
                                 }
                             }
