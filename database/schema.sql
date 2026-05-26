@@ -211,6 +211,8 @@ CREATE TABLE bookings (
     boarding_point VARCHAR(255) NULL,
     dropping_point VARCHAR(255) NULL,
     status ENUM('active', 'cancelled') NOT NULL DEFAULT 'active',
+    discount_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    promo_code VARCHAR(50) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (trip_id) REFERENCES trips(id),
     FOREIGN KEY (customer_id) REFERENCES users(id) ON DELETE SET NULL
