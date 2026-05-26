@@ -995,5 +995,71 @@ body .modal-content,
     -webkit-text-fill-color: transparent !important;
 }
 
+/* Page structural fix to prevent white space below footer on short content pages */
+html, body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+.footer-swift {
+    margin-top: auto !important;
+}
+
+/* Theme compatibility styles for the redesigned Light/Dark footer */
+.footer-swift {
+    background: #ffffff !important;
+    color: #4b5563 !important;
+    border-top: 1px solid rgba(25, 135, 84, 0.08) !important;
+}
+
+.footer-swift h5 .text-dark,
+.footer-swift h6 {
+    color: #1f2937 !important;
+}
+
+.footer-swift p,
+.footer-swift .footer-link,
+.footer-swift .social-btn {
+    color: #6b7280 !important;
+}
+
+.footer-swift .social-btn {
+    background: rgba(0, 0, 0, 0.03) !important;
+    border: 1px solid rgba(0, 0, 0, 0.05) !important;
+}
+
+.footer-swift hr {
+    border-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Dark theme overrides for footer */
+[data-theme="dark"] .footer-swift {
+    background: #151515 !important;
+    color: #adb5bd !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 -15px 30px rgba(0, 0, 0, 0.15) !important;
+}
+
+[data-theme="dark"] .footer-swift h5 .text-dark,
+[data-theme="dark"] .footer-swift h6 {
+    color: #f8f9fa !important;
+}
+
+[data-theme="dark"] .footer-swift p,
+[data-theme="dark"] .footer-swift .footer-link,
+[data-theme="dark"] .footer-swift .social-btn {
+    color: #adb5bd !important;
+}
+
+[data-theme="dark"] .footer-swift .social-btn {
+    background: rgba(255, 255, 255, 0.04) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] .footer-swift hr {
+    border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+
 
 

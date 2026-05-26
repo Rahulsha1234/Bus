@@ -233,11 +233,18 @@ $user = get_logged_user();
 
     <script>
         $(document).ready(function () {
-            let lastScrollTop = 0;
+            const isIndexPage = <?= (basename($_SERVER['SCRIPT_NAME']) === 'index.php') ? 'true' : 'false' ?>;
             const $navbar = $('.navbar-swift');
             let ticking = false;
 
+            // If not on the homepage (index.php), force the header to have a solid background (scrolled mode)
+            if (!isIndexPage) {
+                $navbar.addClass('scrolled');
+            }
+
             $(window).on('scroll', function () {
+                if (!isIndexPage) return; // Keep it solid white always on other pages
+
                 if (!ticking) {
                     window.requestAnimationFrame(function () {
                         let st = $(window).scrollTop();
@@ -254,4 +261,6 @@ $user = get_logged_user();
         });
     </script>
 
-    <div class="container my-5" style="margin-top: 5rem !important;">
+    <?php if (basename($_SERVER['SCRIPT_NAME']) !== 'index.php'): ?>
+        <div class="container my-5" style="margin-top: 5rem !important;">
+    <?php endif; ?>

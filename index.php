@@ -10,14 +10,34 @@ $page_title = "Book Bus Tickets";
 try {
     $sources_stmt = $pdo->query("SELECT DISTINCT source FROM routes WHERE status = 'active' ORDER BY source ASC");
     $sources = $sources_stmt->fetchAll(PDO::FETCH_COLUMN);
+    
+    // Fetch active schedules (trips) with route details and bus details
+    $active_trips_stmt = $pdo->query("
+        SELECT 
+            t.id AS trip_id,
+            t.departure_time,
+            t.base_fare,
+            r.source,
+            r.destination,
+            r.duration,
+            b.bus_name,
+            b.bus_type
+        FROM trips t
+        JOIN routes r ON t.route_id = r.id
+        JOIN buses b ON t.bus_id = b.id
+        WHERE t.status = 'active' AND t.departure_time >= NOW()
+        ORDER BY t.departure_time ASC
+        LIMIT 10
+    ");
+    $active_trips = $active_trips_stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     $sources = [];
+    $active_trips = [];
 }
 
 require_once __DIR__ . '/includes/header.php';
 ?>
 
-</div> <!-- Close the header container to make the hero section true full-width -->
 
 <!-- Hero Banner Section with Video Background & Integrated Search Panel (Full Width) -->
 <div class="position-relative overflow-hidden hero-video-section shadow-lg"
@@ -134,12 +154,12 @@ require_once __DIR__ . '/includes/header.php';
             </form>
         </div>
     </div>
-
-</div> <!-- Close container before full-width trust section -->
+</div> <!-- Close container for search panel to allow full-width on subsequent sections -->
+ <!-- Close container before full-width trust section -->
 
 <!-- Trust Indicators Section - Full Width with Count-Up Animation -->
-<div id="trust-section" class="position-relative overflow-hidden py-5 reveal-on-scroll"
-    style="background: linear-gradient(135deg, #0c2016 0%, #0f3d1f 50%, #0c2016 100%);">
+<div id="trust-section" class="position-relative overflow-hidden py-5 my-5 reveal-on-scroll"
+    style="background: linear-gradient(135deg, #0c2016 0%, #0f3d1f 50%, #0c2016 100%); margin-top: 100px !important;">
     <!-- Animated background particles -->
     <div class="position-absolute top-0 start-0 w-100 h-100 pointer-events-none" style="opacity: 0.06;">
         <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
@@ -245,13 +265,25 @@ require_once __DIR__ . '/includes/header.php';
 
         .hover-card-premium {
             transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-            border: 1px solid var(--border-glass) !important;
-            background: var(--bg-card) !important;
+            border: 1px solid var(--border-color) !important;
+            background: var(--card-bg) !important;
+            color: var(--text-primary) !important;
+        }
+
+        .hover-card-premium h5, 
+        .hover-card-premium h4, 
+        .hover-card-premium .text-dark {
+            color: var(--text-primary) !important;
+        }
+
+        .hover-card-premium p, 
+        .hover-card-premium .text-secondary {
+            color: var(--text-secondary) !important;
         }
 
         .hover-card-premium:hover {
             transform: translateY(-8px) scale(1.02);
-            box-shadow: 0 20px 40px rgba(25, 135, 84, 0.15) !important;
+            box-shadow: var(--shadow-hover) !important;
             border-color: var(--accent-primary) !important;
         }
 
@@ -331,7 +363,7 @@ require_once __DIR__ . '/includes/header.php';
         }
     </style>
 
-</div> <!-- Close container for full-width doodles wrapper -->
+
 
 <!-- Popular Routes, Testimonials, and FAQs Container with Doodle Background -->
 <div class="position-relative overflow-hidden bg-doodles-wrapper" style="background: rgba(25, 135, 84, 0.02);">
@@ -376,68 +408,75 @@ require_once __DIR__ . '/includes/header.php';
                 <p class="text-secondary mx-auto" style="max-width: 600px;">Book tickets for our most frequent and
                     highly-rated routes at unbeatable prices.</p>
             </div>
-            <div class="row g-4">
-                <!-- Route 1 -->
-                <div class="col-md-4">
-                    <div
-                        class="p-4 rounded-4 hover-card-premium shadow-sm h-100 d-flex flex-column justify-content-between">
-                        <div>
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <span class="badge bg-success bg-opacity-25 text-success">Daily Service</span>
-                                <span class="fw-bold text-success text-monospace" style="font-size: 1.1rem;">₹499
-                                    onwards</span>
+            <!-- Dynamic Carousel of Active Schedules -->
+            <?php if (empty($active_trips)): ?>
+                <div class="text-center py-5">
+                    <p class="text-secondary">No active schedules found for upcoming dates.</p>
+                </div>
+            <?php else: ?>
+                <div id="popularRoutesCarousel" class="carousel slide" data-bs-ride="carousel">
+                    <!-- Carousel Indicators -->
+                    <div class="carousel-indicators mb-0" style="bottom: -40px;">
+                        <?php 
+                        $chunks = array_chunk($active_trips, 3);
+                        foreach ($chunks as $index => $chunk): 
+                        ?>
+                            <button type="button" data-bs-target="#popularRoutesCarousel" data-bs-slide-to="<?= $index ?>" class="<?= $index === 0 ? 'active' : '' ?>" aria-current="<?= $index === 0 ? 'true' : 'false' ?>" aria-label="Slide <?= $index + 1 ?>" style="background-color: var(--accent-primary); width: 12px; height: 12px; border-radius: 50%;"></button>
+                        <?php endforeach; ?>
+                    </div>
+
+                    <div class="carousel-inner px-2 py-3">
+                        <?php foreach ($chunks as $index => $chunk): ?>
+                            <div class="carousel-item <?= $index === 0 ? 'active' : '' ?>">
+                                <div class="row g-4">
+                                    <?php foreach ($chunk as $trip): 
+                                        // Pick badge randomly or based on criteria
+                                        $badges = ['Daily Service', 'High Demand', 'Premium Route', 'Eco Friendly'];
+                                        $badge = $badges[($trip['trip_id'] % count($badges))];
+                                        
+                                        // Format date and time
+                                        $dep_time = date('h:i A', strtotime($trip['departure_time']));
+                                        $dep_date = date('d M Y', strtotime($trip['departure_time']));
+                                    ?>
+                                        <div class="col-md-4">
+                                            <div class="p-4 rounded-4 hover-card-premium shadow-sm h-100 d-flex flex-column justify-content-between">
+                                                <div>
+                                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                                        <span class="badge bg-success bg-opacity-10 text-success px-3 py-1.5 rounded-pill" style="font-size: 0.75rem; font-weight: 600;"><?= $badge ?></span>
+                                                        <span class="fw-bold text-success text-monospace" style="font-size: 1.15rem;">₹<?= number_format($trip['base_fare'], 0) ?> <span class="text-secondary" style="font-size: 0.75rem; font-weight: normal;">onwards</span></span>
+                                                    </div>
+                                                    
+                                                    <h5 class="fw-bold mb-2 text-dark d-flex align-items-center gap-2" style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1.15rem;">
+                                                        <span><?= htmlspecialchars($trip['source']) ?></span>
+                                                        <i class="fa-solid fa-arrow-right-long text-success" style="font-size: 0.9rem;"></i>
+                                                        <span><?= htmlspecialchars($trip['destination']) ?></span>
+                                                    </h5>
+
+                                                    <div class="text-secondary small mb-3">
+                                                        <div class="d-flex align-items-center gap-1.5 mb-1.5">
+                                                            <i class="fa-regular fa-clock text-success"></i>
+                                                            <span>Approx. <?= htmlspecialchars($trip['duration'] ?: '6h') ?></span>
+                                                            <span class="mx-1 text-muted">•</span>
+                                                            <span><?= htmlspecialchars($trip['bus_type']) ?></span>
+                                                        </div>
+                                                        <div class="d-flex align-items-center gap-1.5">
+                                                            <i class="fa-regular fa-calendar text-success"></i>
+                                                            <span>Departs: <strong><?= $dep_date ?></strong> at <strong><?= $dep_time ?></strong></span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <a href="<?= BASE_URL ?>/search.php?source=<?= urlencode($trip['source']) ?>&destination=<?= urlencode($trip['destination']) ?>&date=<?= date('Y-m-d', strtotime($trip['departure_time'])) ?>"
+                                                    class="btn btn-outline-success btn-sm w-100 rounded-3 py-2 fw-bold text-uppercase mt-2 transition-all">Check Seats</a>
+                                            </div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
                             </div>
-                            <h5 class="fw-bold mb-1 text-dark" style="font-family: 'Plus Jakarta Sans', sans-serif;">
-                                Mumbai &harr; Pune</h5>
-                            <p class="text-secondary small mb-3"><i class="fa-solid fa-clock me-1 text-success"></i>
-                                Approx. 3h 30m | AC Multi-Axle</p>
-                        </div>
-                        <a href="#search-panel"
-                            class="btn btn-outline-success btn-sm w-100 rounded-3 py-2 fw-bold text-uppercase">Check
-                            Seats</a>
+                        <?php endforeach; ?>
                     </div>
                 </div>
-                <!-- Route 2 -->
-                <div class="col-md-4">
-                    <div
-                        class="p-4 rounded-4 hover-card-premium shadow-sm h-100 d-flex flex-column justify-content-between">
-                        <div>
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <span class="badge bg-success bg-opacity-25 text-success">High Demand</span>
-                                <span class="fw-bold text-success text-monospace" style="font-size: 1.1rem;">₹799
-                                    onwards</span>
-                            </div>
-                            <h5 class="fw-bold mb-1 text-dark" style="font-family: 'Plus Jakarta Sans', sans-serif;">
-                                Delhi &harr; Jaipur</h5>
-                            <p class="text-secondary small mb-3"><i class="fa-solid fa-clock me-1 text-success"></i>
-                                Approx. 5h 15m | Luxury Sleeper</p>
-                        </div>
-                        <a href="#search-panel"
-                            class="btn btn-outline-success btn-sm w-100 rounded-3 py-2 fw-bold text-uppercase">Check
-                            Seats</a>
-                    </div>
-                </div>
-                <!-- Route 3 -->
-                <div class="col-md-4">
-                    <div
-                        class="p-4 rounded-4 hover-card-premium shadow-sm h-100 d-flex flex-column justify-content-between">
-                        <div>
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <span class="badge bg-success bg-opacity-25 text-success">Premium Route</span>
-                                <span class="fw-bold text-success text-monospace" style="font-size: 1.1rem;">₹649
-                                    onwards</span>
-                            </div>
-                            <h5 class="fw-bold mb-1 text-dark" style="font-family: 'Plus Jakarta Sans', sans-serif;">
-                                Bangalore &harr; Chennai</h5>
-                            <p class="text-secondary small mb-3"><i class="fa-solid fa-clock me-1 text-success"></i>
-                                Approx. 6h 00m | Scania Multi-Axle</p>
-                        </div>
-                        <a href="#search-panel"
-                            class="btn btn-outline-success btn-sm w-100 rounded-3 py-2 fw-bold text-uppercase">Check
-                            Seats</a>
-                    </div>
-                </div>
-            </div>
+            <?php endif; ?>
         </div>
 
         <!-- Testimonials Section -->

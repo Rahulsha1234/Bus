@@ -1,7 +1,7 @@
     </div> <!-- End Container -->
 
-    <!-- Premium Light Footer Section with Rounded Top Corners -->
-    <footer class="footer-swift mt-auto" style="background: #ffffff; border-top: 1px solid rgba(25, 135, 84, 0.08); border-radius: 2.5rem 2.5rem 0 0; padding: 4.5rem 0 2.5rem 0; color: #4b5563; box-shadow: 0 -15px 30px rgba(0, 0, 0, 0.02);">
+    <!-- Premium Light/Dark Footer Section with Rounded Top Corners -->
+    <footer class="footer-swift mt-auto" style="border-radius: 2.5rem 2.5rem 0 0; padding: 4.5rem 0 2.5rem 0; box-shadow: 0 -15px 30px rgba(0, 0, 0, 0.02);">
         <div class="container">
             <div class="row g-5">
                 <!-- Branding and info -->
