@@ -61,7 +61,7 @@ require_once __DIR__ . '/includes/header.php';
 <div class="glass-card p-3 mb-4" style="border-radius: 12px;">
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
         <div class="d-flex align-items-center gap-3">
-            <span class="badge bg-indigo py-2 px-3 text-uppercase" style="background:#6366f1;"><?= htmlspecialchars($source) ?> <i class="fa-solid fa-arrow-right mx-1"></i> <?= htmlspecialchars($destination) ?></span>
+            <span class="badge bg-indigo py-2 px-3 text-uppercase" style="background:var(--accent-primary) !important;"><?= htmlspecialchars($source) ?> <i class="fa-solid fa-arrow-right mx-1"></i> <?= htmlspecialchars($destination) ?></span>
             <span class="text-secondary small"><i class="fa-regular fa-calendar me-2"></i><?= date('D, d M Y', strtotime($date)) ?></span>
         </div>
         <button class="btn btn-secondary-glass py-2 px-3 small" style="font-size: 0.85rem;" type="button" data-bs-toggle="collapse" data-bs-target="#modifySearchCollapse" aria-expanded="false" aria-controls="modifySearchCollapse">
@@ -150,13 +150,13 @@ require_once __DIR__ . '/includes/header.php';
                 $drops = json_decode($trip['drop_points'], true) ?? [];
             ?>
                 <!-- Individual Bus Card -->
-                <div class="glass-card p-4 mb-4" style="border-radius: 16px;">
+                <div class="bg-white text-dark p-4 mb-4 border rounded-4 shadow-sm" style="background: var(--card-bg) !important; border: 1px solid var(--border-color) !important;">
                     <div class="row align-items-center g-3">
                         
                         <!-- Bus Name & Type Info -->
                         <div class="col-md-3">
-                            <h5 class="fw-bold text-white mb-1"><?= htmlspecialchars($trip['bus_name']) ?></h5>
-                            <span class="badge bg-secondary text-uppercase small py-1 px-2" style="font-size: 0.75rem;"><?= htmlspecialchars($trip['bus_type']) ?></span>
+                            <h5 class="fw-bold text-dark mb-1" style="font-family: 'Plus Jakarta Sans', sans-serif; color: var(--text-primary) !important;"><?= htmlspecialchars($trip['bus_name']) ?></h5>
+                            <span class="badge bg-light text-success border border-success border-opacity-25 text-uppercase small py-1 px-2" style="font-size: 0.75rem; font-weight: 600; color: var(--accent-primary) !important;"><?= htmlspecialchars($trip['bus_type']) ?></span>
                             <div class="text-secondary small mt-2"><i class="fa-solid fa-hashtag me-2"></i><?= htmlspecialchars($trip['bus_number']) ?></div>
                         </div>
 
@@ -164,19 +164,19 @@ require_once __DIR__ . '/includes/header.php';
                         <div class="col-md-4">
                             <div class="d-flex align-items-center justify-content-between text-center">
                                 <div>
-                                    <div class="fw-bold text-white fs-5"><?= $dep_time->format('H:i') ?></div>
+                                    <div class="fw-bold text-dark fs-5" style="color: var(--text-primary) !important;"><?= $dep_time->format('H:i') ?></div>
                                     <div class="text-secondary small"><?= htmlspecialchars($source) ?></div>
                                 </div>
                                 <div class="w-50 px-3 position-relative">
                                     <div class="text-secondary small mb-1"><?= $duration_str ?></div>
-                                    <div style="height: 2px; background: var(--border-glass); opacity: 0.8; position: relative;">
-                                        <div style="width: 8px; height: 8px; border-radius:50%; background:#818cf8; position:absolute; top:-3px; left:0;"></div>
-                                        <div style="width: 8px; height: 8px; border-radius:50%; background:#db2777; position:absolute; top:-3px; right:0;"></div>
+                                    <div style="height: 2px; background: var(--border-color); opacity: 0.8; position: relative;">
+                                        <div style="width: 8px; height: 8px; border-radius:50%; background:var(--accent-primary); position:absolute; top:-3px; left:0;"></div>
+                                        <div style="width: 8px; height: 8px; border-radius:50%; background:var(--accent-secondary); position:absolute; top:-3px; right:0;"></div>
                                     </div>
                                     <div class="text-secondary small mt-1"><?= htmlspecialchars($trip['distance_km']) ?> km</div>
                                 </div>
                                 <div>
-                                    <div class="fw-bold text-white fs-5"><?= $arr_time->format('H:i') ?></div>
+                                    <div class="fw-bold text-dark fs-5" style="color: var(--text-primary) !important;"><?= $arr_time->format('H:i') ?></div>
                                     <div class="text-secondary small"><?= htmlspecialchars($destination) ?></div>
                                 </div>
                             </div>
@@ -185,11 +185,11 @@ require_once __DIR__ . '/includes/header.php';
                         <!-- Milestones / Pickup Drop toggles -->
                         <div class="col-md-2 text-center text-md-start">
                             <div class="dropdown">
-                                <button class="btn btn-secondary-glass py-1 px-2 small text-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" style="font-size: 0.8rem;">
+                                <button class="btn btn-light py-1 px-2 small text-secondary dropdown-toggle border" type="button" data-bs-toggle="dropdown" style="font-size: 0.8rem; background: var(--bg-secondary) !important;">
                                     Pickup / Drop points
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-dark glass-card p-3 border-0 mt-2" style="min-width: 250px;">
-                                    <h6 class="text-indigo small fw-bold mb-2">Pickups (<?= htmlspecialchars($source) ?>)</h6>
+                                    <h6 class="text-success small fw-bold mb-2" style="color: var(--accent-primary) !important;">Pickups (<?= htmlspecialchars($source) ?>)</h6>
                                     <?php foreach ($pickups as $p): 
                                         $formatted_time = !empty($p['time']) ? date('H:i', strtotime($p['time'])) : '00:00';
                                     ?>
@@ -199,7 +199,7 @@ require_once __DIR__ . '/includes/header.php';
                                         </li>
                                     <?php endforeach; ?>
                                     <li><hr class="dropdown-divider border-secondary my-2"></li>
-                                    <h6 class="text-pink small fw-bold mb-2">Drops (<?= htmlspecialchars($destination) ?>)</h6>
+                                    <h6 class="text-success small fw-bold mb-2" style="color: var(--accent-secondary) !important;">Drops (<?= htmlspecialchars($destination) ?>)</h6>
                                     <?php foreach ($drops as $d): 
                                         $formatted_time = !empty($d['time']) ? date('H:i', strtotime($d['time'])) : '00:00';
                                     ?>
@@ -216,7 +216,7 @@ require_once __DIR__ . '/includes/header.php';
                         <div class="col-md-3 text-center text-md-end">
                             <div class="mb-2">
                                 <span class="text-secondary small">Starting at </span>
-                                <span class="fs-4 fw-bold text-indigo" style="color:#818cf8;"><?= CURRENCY ?><?= number_format($trip['base_fare'], 2) ?></span>
+                                <span class="fs-4 fw-bold text-success" style="color: var(--accent-primary) !important;"><?= CURRENCY ?><?= number_format($trip['base_fare'], 2) ?></span>
                             </div>
                             
                             <!-- Seat badge indicator -->

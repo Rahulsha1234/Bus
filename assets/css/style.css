@@ -5,7 +5,7 @@
  * Designed with modern CSS variables, responsive seat layouts, and smooth theme switching.
  */
 
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
 :root {
     /* Map style variables to centralized variables */
@@ -14,23 +14,23 @@
     --text-muted: var(--text-secondary);
     --border-glass: var(--border-color);
     
-    --accent-gold-gradient: linear-gradient(135deg, #D5BE8F 0%, var(--accent-primary) 100%);
-    --bg-glass: rgba(255, 255, 255, 0.85);
+    --accent-gold-gradient: linear-gradient(135deg, #198754 0%, var(--accent-primary) 100%);
+    --bg-glass: rgba(255, 255, 255, 0.95);
     
     /* Seat colors - Refined Premium Palette */
-    --seat-available: #4E8752;
+    --seat-available: #198754;
     --seat-selected: var(--accent-primary);
-    --seat-booked: #B85C5C;
-    --seat-hold: #D98C45;
+    --seat-booked: #DC3545;
+    --seat-hold: #FFC107;
     --seat-disabled: #BDC3C7;
 
     /* Theme mapping compatibility */
     --accent-indigo: var(--accent-primary);
-    --accent-violet: #B8995B;
+    --accent-violet: #146C43;
     --accent-pink: var(--accent-secondary);
 
-    --shadow-main: 0 10px 30px -10px rgba(44, 44, 44, 0.06);
-    --shadow-hover: 0 15px 35px -5px rgba(200, 169, 107, 0.15);
+    --shadow-main: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
+    --shadow-hover: 0 15px 35px -5px rgba(15, 81, 50, 0.15);
     --input-bg: #FFFFFF;
     --text-white-fixed: #FFFFFF;
     --body-bg-gradient: radial-gradient(circle at 50% 0%, var(--bg-secondary) 0%, var(--bg-primary) 70%);
@@ -45,23 +45,23 @@
     --text-muted: var(--text-secondary);
     --border-glass: var(--border-color);
     
-    --accent-gold-gradient: linear-gradient(135deg, #E5C04A 0%, var(--accent-primary) 100%);
-    --bg-glass: rgba(23, 26, 33, 0.85);
+    --accent-gold-gradient: linear-gradient(135deg, #198754 0%, var(--accent-primary) 100%);
+    --bg-glass: rgba(30, 30, 30, 0.95);
     
     /* Seat colors */
-    --seat-available: #3B7A57;
+    --seat-available: #198754;
     --seat-selected: var(--accent-primary);
-    --seat-booked: #A64B4B;
-    --seat-hold: #C67A2E;
-    --seat-disabled: #3A4252;
+    --seat-booked: #DC3545;
+    --seat-hold: #FFC107;
+    --seat-disabled: #343A40;
 
     /* Theme mapping compatibility */
     --accent-indigo: var(--accent-primary);
-    --accent-violet: #E5C04A;
+    --accent-violet: #146C43;
     --accent-pink: var(--accent-secondary);
 
     --shadow-main: 0 10px 30px -10px rgba(0, 0, 0, 0.4);
-    --shadow-hover: 0 15px 35px -5px rgba(212, 175, 55, 0.25);
+    --shadow-hover: 0 15px 35px -5px rgba(25, 135, 84, 0.25);
     --input-bg: var(--card-bg);
     --text-white-fixed: #FFFFFF;
     --body-bg-gradient: radial-gradient(circle at 50% 0%, var(--bg-secondary) 0%, var(--bg-primary) 70%);
@@ -71,7 +71,7 @@
 }
 
 body {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Inter', sans-serif;
     background: var(--body-bg-gradient);
     color: var(--text-main);
     min-height: 100vh;
@@ -122,12 +122,23 @@ body {
 
 /* Navbar Premium Styling */
 .navbar-swift {
-    background: var(--bg-glass) !important;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--border-glass);
+    background: transparent !important;
+    border-bottom: 1px solid transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
     padding: 1rem 0;
-    transition: background 0.3s ease, border-color 0.3s ease;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.4s ease, border-color 0.4s ease, backdrop-filter 0.4s ease !important;
+    will-change: transform;
+}
+.navbar-swift.scrolled {
+    background: var(--bg-glass) !important;
+    border-bottom: 1px solid var(--border-glass) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    transform: translateY(0);
+}
+.navbar-swift.scroll-down {
+    transform: translateY(-100%);
 }
 .navbar-brand {
     font-weight: 800;
@@ -141,6 +152,34 @@ body {
 }
 .nav-link:hover, .nav-link.active {
     color: var(--text-main) !important;
+}
+
+/* Transparent navbar high-contrast style rules */
+.navbar-swift:not(.scrolled) .nav-link {
+    color: rgba(255, 255, 255, 0.85) !important;
+}
+.navbar-swift:not(.scrolled) .nav-link:hover,
+.navbar-swift:not(.scrolled) .nav-link.active {
+    color: #ffffff !important;
+}
+.navbar-swift:not(.scrolled) .navbar-brand i {
+    color: #ffffff !important;
+}
+.navbar-swift:not(.scrolled) .navbar-brand .text-gradient {
+    background: linear-gradient(135deg, #ffffff 0%, rgba(255, 255, 255, 0.8) 100%) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+}
+.navbar-swift:not(.scrolled) .btn-secondary-glass {
+    background: rgba(255, 255, 255, 0.15) !important;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+    color: #ffffff !important;
+}
+.navbar-swift:not(.scrolled) .btn-secondary-glass i {
+    color: #ffffff !important;
+}
+.navbar-swift:not(.scrolled) .navbar-toggler-icon {
+    filter: invert(1);
 }
 
 /* Dropdown Menu overrides */
@@ -164,12 +203,12 @@ body {
     font-weight: 600;
     padding: 0.75rem 1.75rem;
     border-radius: 12px;
-    box-shadow: 0 4px 15px rgba(200, 169, 107, 0.25);
+    box-shadow: 0 4px 15px rgba(15, 81, 50, 0.25);
     transition: all 0.3s ease;
 }
 .btn-primary-gradient:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(200, 169, 107, 0.4);
+    box-shadow: 0 8px 25px rgba(15, 81, 50, 0.4);
     opacity: 0.95;
     color: var(--text-white-fixed) !important;
 }
@@ -202,7 +241,7 @@ body {
 .form-control-swift:focus {
     background: var(--input-bg);
     border-color: var(--accent-primary);
-    box-shadow: 0 0 0 4px rgba(200, 169, 107, 0.15);
+    box-shadow: 0 0 0 4px rgba(15, 81, 50, 0.15);
     outline: none;
 }
 .form-control-swift::placeholder {
@@ -508,6 +547,9 @@ body .modal-content,
 .text-white {
     color: var(--text-main) !important;
 }
+.text-white-fixed {
+    color: var(--text-white-fixed) !important;
+}
 
 /* 
  * Premium Representational Seating Styles
@@ -602,7 +644,7 @@ body .modal-content,
     left: 15%;
     width: 70%;
     height: 10px;
-    background: rgba(200, 169, 107, 0.1);
+    background: rgba(15, 81, 50, 0.1);
     border: 1px solid currentColor;
     opacity: 0.55;
     border-radius: 3px;
@@ -638,10 +680,30 @@ body .modal-content,
     right: 12%;
     width: 32%;
     height: 10px;
-    background: rgba(200, 169, 107, 0.1);
+    background: rgba(15, 81, 50, 0.1);
     border: 1px solid currentColor;
     opacity: 0.55;
     border-radius: 3px;
 }
+
+/* Color overrides for branding classes */
+.text-indigo {
+    color: var(--accent-primary) !important;
+}
+.bg-indigo {
+    background-color: var(--accent-primary) !important;
+}
+.text-pink {
+    color: var(--accent-secondary) !important;
+}
+.bg-pink {
+    background-color: var(--accent-secondary) !important;
+}
+.text-gradient-purple {
+    background: linear-gradient(135deg, var(--text-main) 0%, var(--accent-primary) 100%) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+}
+
 
 

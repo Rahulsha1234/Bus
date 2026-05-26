@@ -45,6 +45,13 @@
         </div>
     </footer>
 
+    <!-- Dynamic Ticker Announcement -->
+    <?php if (!empty($GLOBALS['custom_notice'])): ?>
+        <div class="notice-marquee">
+            <span><i class="fa-solid fa-bullhorn text-warning me-2"></i><?= htmlspecialchars($GLOBALS['custom_notice']) ?></span>
+        </div>
+    <?php endif; ?>
+
     <!-- Bootstrap 5 Bundle JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>

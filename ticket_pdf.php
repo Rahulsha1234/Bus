@@ -77,25 +77,25 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>E-Ticket: <?= htmlspecialchars($booking['booking_reference']) ?></title>
-    <!-- Google Fonts Outfit & JetBrains Mono -->
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <!-- Google Fonts Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         :root {
-            --bg-cream: #FAF7F2;
+            --bg-cream: #F8F9FA;
             --surface-ivory: #FFFFFF;
-            --accent-gold: #C8A96B;
-            --text-dark: #1F1F1F;
-            --text-muted: #5C5C5C;
-            --border-warm: #E7E1D7;
+            --accent-gold: #0F5132;
+            --text-dark: #212529;
+            --text-muted: #6C757D;
+            --border-warm: #DEE2E6;
         }
         body {
             background-color: var(--bg-cream);
             color: var(--text-dark);
-            font-family: 'Outfit', sans-serif;
+            font-family: 'Inter', sans-serif;
             font-size: 0.95rem;
             padding: 40px 20px;
         }

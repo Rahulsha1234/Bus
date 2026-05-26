@@ -12,7 +12,7 @@ $user = get_logged_user();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= isset($page_title) ? $page_title . ' - ' : '' ?><?= SYSTEM_NAME ?></title>
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
@@ -31,18 +31,11 @@ $user = get_logged_user();
 </head>
 <body>
 
-    <!-- Dynamic Ticker Announcement -->
-    <?php if (!empty($GLOBALS['custom_notice'])): ?>
-        <div class="notice-marquee">
-            <span><i class="fa-solid fa-bullhorn text-warning me-2"></i><?= htmlspecialchars($GLOBALS['custom_notice']) ?></span>
-        </div>
-    <?php endif; ?>
-
     <!-- Navigation Bar -->
-    <nav class="navbar navbar-expand-lg navbar-dark navbar-swift sticky-top">
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-swift fixed-top">
         <div class="container">
             <a class="navbar-brand d-flex align-items-center" href="<?= BASE_URL ?>/index.php">
-                <i class="fa-solid fa-bus text-indigo me-2" style="font-size: 1.8rem; color: #818cf8;"></i>
+                <i class="fa-solid fa-bus text-indigo me-2" style="font-size: 1.8rem; color: var(--accent-primary);"></i>
                 <span class="text-gradient"><?= SYSTEM_NAME ?></span>
             </a>
             <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
@@ -158,4 +151,34 @@ $user = get_logged_user();
         </div>
     </nav>
 
-    <div class="container my-5">
+    <script>
+        $(document).ready(function () {
+            let lastScrollTop = 0;
+            const $navbar = $('.navbar-swift');
+            let ticking = false;
+
+            $(window).on('scroll', function () {
+                if (!ticking) {
+                    window.requestAnimationFrame(function () {
+                        let st = $(window).scrollTop();
+                        if (st <= 50) {
+                            $navbar.removeClass('scrolled scroll-down');
+                        } else {
+                            if (st > lastScrollTop) {
+                                // Scrolling down: hide background/navbar
+                                $navbar.addClass('scroll-down').removeClass('scrolled');
+                            } else {
+                                // Scrolling up: show background/navbar
+                                $navbar.removeClass('scroll-down').addClass('scrolled');
+                            }
+                        }
+                        lastScrollTop = st;
+                        ticking = false;
+                    });
+                    ticking = true;
+                }
+            });
+        });
+    </script>
+
+    <div class="container my-5" style="margin-top: 5rem !important;">
