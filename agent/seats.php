@@ -353,7 +353,7 @@ $(document).ready(function() {
         canvas.empty();
         canvas.css({
             'grid-template-rows': 'repeat(' + rows + ', 60px)',
-            'grid-template-columns': 'repeat(' + cols + ', 60px)'
+            'grid-template-columns': 'repeat(' + (cols + 1) + ', 60px)'
         });
 
         for (var r = 0; r < rows; r++) {
@@ -366,7 +366,8 @@ $(document).ready(function() {
 
                 if (seat) {
                     var isSelected = selectedSeats.includes(seat.number) ? ' selected-action' : '';
-                    var box = $('<div class="console-seat-box ' + seat.status + isSelected + '" data-seat="' + seat.number + '">' +
+                    var typeClass = ' type-' + seat.type.toLowerCase().replace(/ /g, '-');
+                    var box = $('<div class="console-seat-box ' + seat.status + isSelected + typeClass + '" data-seat="' + seat.number + '">' +
                         '<span>' + seat.number + '</span>' +
                         '</div>');
                     

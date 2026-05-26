@@ -509,3 +509,139 @@ body .modal-content,
     color: var(--text-main) !important;
 }
 
+/* 
+ * Premium Representational Seating Styles
+ * Visually distinguishes Seater, Semi-Sleeper, Sleeper, and Double Sleeper layout nodes.
+ */
+
+/* Force direct relative boundaries for seat containers and text z-index */
+.seat, .builder-seat, .console-seat-box, .pricing-seat-box {
+    position: relative !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-end !important; /* Align text cleanly to bottom half */
+    padding-bottom: 8px !important;
+    box-sizing: border-box !important;
+}
+
+/* Ensure text stays on top of visual cushions and pillows */
+.seat span, .seat i,
+.builder-seat span,
+.console-seat-box span,
+.pricing-seat-box span {
+    z-index: 5 !important;
+}
+
+/* 1. Normal Seater Seats */
+.type-normal {
+    border-radius: 8px 8px 14px 14px !important;
+    border-width: 1.5px !important;
+}
+.seat.type-normal::before,
+.builder-seat.type-normal::before,
+.console-seat-box.type-normal::before,
+.pricing-seat-box.type-normal::before {
+    content: '';
+    position: absolute;
+    top: 5px;
+    left: 12%;
+    width: 76%;
+    height: 30%;
+    border-bottom: 1.5px solid currentColor;
+    opacity: 0.35;
+    border-radius: 4px 4px 0 0;
+}
+
+/* 2. Semi Sleeper Seats (Luxury Headrest Cushion & Border) */
+.type-semi-sleeper {
+    border-radius: 10px 10px 16px 16px !important;
+    border-width: 2px !important;
+    box-shadow: inset 0 0 5px rgba(200, 169, 107, 0.2) !important;
+}
+.seat.type-semi-sleeper::before,
+.builder-seat.type-semi-sleeper::before,
+.console-seat-box.type-semi-sleeper::before,
+.pricing-seat-box.type-semi-sleeper::before {
+    content: '';
+    position: absolute;
+    top: 6px;
+    left: 15%;
+    width: 70%;
+    height: 28%;
+    border-bottom: 2px solid currentColor;
+    opacity: 0.5;
+    border-radius: 4px 4px 0 0;
+}
+.seat.type-semi-sleeper::after,
+.builder-seat.type-semi-sleeper::after,
+.console-seat-box.type-semi-sleeper::after,
+.pricing-seat-box.type-semi-sleeper::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: 25%;
+    width: 50%;
+    height: 5px;
+    background: currentColor;
+    opacity: 0.35;
+    border-radius: 3px;
+}
+
+/* 3. Sleeper Berths (Long Single Bed with pillow accent) */
+.type-sleeper, .type-lower-sleeper, .type-upper-sleeper {
+    border-radius: 10px !important;
+}
+.seat.type-sleeper::before, .seat.type-lower-sleeper::before, .seat.type-upper-sleeper::before,
+.builder-seat.type-sleeper::before, .builder-seat.type-lower-sleeper::before, .builder-seat.type-upper-sleeper::before,
+.console-seat-box.type-sleeper::before, .console-seat-box.type-lower-sleeper::before, .console-seat-box.type-upper-sleeper::before,
+.pricing-seat-box.type-sleeper::before, .pricing-seat-box.type-lower-sleeper::before, .pricing-seat-box.type-upper-sleeper::before {
+    content: '';
+    position: absolute;
+    top: 6px;
+    left: 15%;
+    width: 70%;
+    height: 10px;
+    background: rgba(200, 169, 107, 0.1);
+    border: 1px solid currentColor;
+    opacity: 0.55;
+    border-radius: 3px;
+}
+
+/* 4. Double Sleeper Berths (Wider Double Bed with two pillows side-by-side) */
+.type-double-sleeper-lower, .type-double-sleeper-upper, .type-double-sleeper {
+    border-radius: 12px !important;
+    border-width: 2px !important;
+}
+.seat.type-double-sleeper-lower::before, .seat.type-double-sleeper-upper::before, .seat.type-double-sleeper::before,
+.builder-seat.type-double-sleeper-lower::before, .builder-seat.type-double-sleeper-upper::before, .builder-seat.type-double-sleeper::before,
+.console-seat-box.type-double-sleeper-lower::before, .console-seat-box.type-double-sleeper-upper::before, .console-seat-box.type-double-sleeper::before,
+.pricing-seat-box.type-double-sleeper-lower::before, .pricing-seat-box.type-double-sleeper-upper::before, .pricing-seat-box.type-double-sleeper::before {
+    content: '';
+    position: absolute;
+    top: 6px;
+    left: 12%;
+    width: 32%;
+    height: 10px;
+    background: rgba(200, 169, 107, 0.1);
+    border: 1px solid currentColor;
+    opacity: 0.55;
+    border-radius: 3px;
+}
+.seat.type-double-sleeper-lower::after, .seat.type-double-sleeper-upper::after, .seat.type-double-sleeper::after,
+.builder-seat.type-double-sleeper-lower::after, .builder-seat.type-double-sleeper-upper::after, .builder-seat.type-double-sleeper::after,
+.console-seat-box.type-double-sleeper-lower::after, .console-seat-box.type-double-sleeper-upper::after, .console-seat-box.type-double-sleeper::after,
+.pricing-seat-box.type-double-sleeper-lower::after, .pricing-seat-box.type-double-sleeper-upper::after, .pricing-seat-box.type-double-sleeper::after {
+    content: '';
+    position: absolute;
+    top: 6px;
+    right: 12%;
+    width: 32%;
+    height: 10px;
+    background: rgba(200, 169, 107, 0.1);
+    border: 1px solid currentColor;
+    opacity: 0.55;
+    border-radius: 3px;
+}
+
+

@@ -12,6 +12,25 @@ This file serves as a context bridge summarizing all the key modifications, data
 
 ## 2. Key Changes & Fixes Completed
 
+### 🧹 Database & Setup De-automation & Password Fixes
+1. **Removed Automatic Setup Script (`database/setup.php` & `setup.lock`)**
+   - **Action:** Deleted the web-accessible setup script completely to prevent unauthorized database resets and wipes.
+2. **Simplified Database Connection (`includes/db.php`)**
+   - **Fix:** Cleaned up the PDO connection handler. It no longer attempts to bypass connection or redirect to `setup.php`. It now fails safely and outputs a standard database connection error message.
+3. **Database Seeding Migration (`database/schema.sql`)**
+   - **Fix:** Moved all initial seed data (default users, agent profiles, buses, routes, dynamic trips, and seat matrices) directly into the SQL script. Importing `schema.sql` now fully initializes the application.
+   - **Dynamic Tomorrow Trips:** Tomorrow's voyages are dynamically created using MySQL `DATE_ADD` and `CURDATE()` functions so they never expire.
+4. **Resolved Password and Port Conflicts**
+   - **Fix:** Pre-seeded exact Bcrypt hashes for default passwords (`admin123`, `agent123`) in `schema.sql`, resolving password credential mismatch issues. Removed hardcoded connection port conflicts from the codebase.
+
+### 🪪 Fleet & Vehicle Validation
+1. **License Plate Validation (`agent/buses.php`)**
+   - **Feature:** Implemented dual-layer (backend and frontend) validation for bus License Plate Numbers to ensure only valid Indian vehicle registration numbers are allowed.
+   - **Regex Validation:** Evaluates input against `/^[A-Z]{2}[ -]?[0-9]{1,2}[ -]?[A-Z]{0,3}[ -]?[0-9]{4}$/` which accepts all standard Indian formats (e.g., `KA-01-F-1234`, `KA01F1234`, `MH-12-AB-9999`, `DL-3C-AB-5678`).
+   - **HTML5 Pattern:** Embedded `pattern` and `title` attributes in input fields to capture invalid plate formats in the browser prior to form submission.
+
+
+
 ### 🛠️ UI & Styling Enhancements
 1. **Light Theme Seating Grid Visibility (`agent/configure_layout.php`)**
    - **Issue:** The seating grid canvas had a hardcoded dark background (`rgba(0,0,0,0.15)`) and faint cell borders, which obscured cells in light mode.

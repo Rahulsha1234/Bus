@@ -12,17 +12,7 @@ try {
         PDO::ATTR_EMULATE_PREPARES => false
     ]);
 } catch (PDOException $e) {
-    // If database doesn't exist, try connecting without DB to show a helpful message
-    try {
-        $temp_pdo = new PDO("mysql:host=" . DB_HOST, DB_USER, DB_PASS);
-        die("<div style='font-family:sans-serif; text-align:center; padding: 50px;'>
-            <h2>Database connection successful, but 'bus_booking' database does not exist.</h2>
-            <p>Please run the setup script to initialize the application:</p>
-            <a href='" . BASE_URL . "/database/setup.php' style='display:inline-block; padding: 10px 20px; background:#0d6efd; color:#fff; text-decoration:none; border-radius:5px;'>Run Database Setup</a>
-        </div>");
-    } catch (Exception $ex) {
-        die("Database connection failed. Please ensure MySQL is running: " . $e->getMessage());
-    }
+    die("Database connection failed. Please check your credentials in config/config.php and ensure MySQL is running: " . $e->getMessage());
 }
 
 // Fetch general system settings
@@ -47,7 +37,7 @@ $GLOBALS['custom_notice'] = $custom_notice;
 $current_script = basename($_SERVER['SCRIPT_NAME']);
 $is_admin = isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin';
 
-if ($maintenance_mode === '1' && !$is_admin && $current_script !== 'maintenance.php' && $current_script !== 'login.php' && $current_script !== 'setup.php') {
+if ($maintenance_mode === '1' && !$is_admin && $current_script !== 'maintenance.php' && $current_script !== 'login.php') {
     header("Location: " . BASE_URL . "/maintenance.php");
     exit();
 }

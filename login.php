@@ -191,6 +191,7 @@ function setRole(role) {
         btnSubmit.textContent = 'Sign In as Staff/Agent';
         registerContainer.style.display = 'none';
     }
+}
 </script>
 
 <?php

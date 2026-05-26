@@ -301,8 +301,9 @@ require_once __DIR__ . '/includes/header.php';
                                         $sleeperClass = $isSleeper ? ' sleeper-berth' : '';
                                         $rowSpan = $isSleeper ? 2 : 1;
                                         
+                                        $typeClass = ' type-' . strtolower(str_replace(' ', '-', $seat['type']));
                                         // Position explicitly so sleepers span 2 rows without overlapping adjacent elements
-                                        echo '<div class="seat' . $sleeperClass . ' ' . $seat['status'] . '" ' .
+                                        echo '<div class="seat' . $sleeperClass . ' ' . $typeClass . ' ' . $seat['status'] . '" ' .
                                              'style="grid-row: ' . ($r + 1) . ' / span ' . $rowSpan . '; grid-column: ' . ($c + 1) . ';" ' .
                                              'data-seat="' . $seat['number'] . '" data-price="' . $seat['price'] . '">' . 
                                              $seat['number'] . '</div>';

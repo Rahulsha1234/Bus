@@ -282,7 +282,8 @@ $(document).ready(function() {
 
                 if (seat) {
                     var isSelected = selectedSeats.includes(seat.number) ? ' selected' : '';
-                    var box = $('<div class="pricing-seat-box' + isSelected + '" data-seat="' + seat.number + '">' +
+                    var typeClass = ' type-' + seat.type.toLowerCase().replace(/ /g, '-');
+                    var box = $('<div class="pricing-seat-box' + isSelected + typeClass + '" data-seat="' + seat.number + '">' +
                         '<span class="seat-num">' + seat.number + '</span>' +
                         '<span class="seat-price">₹' + seat.current_price.toFixed(0) + '</span>' +
                         '</div>');

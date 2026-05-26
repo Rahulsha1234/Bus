@@ -499,7 +499,8 @@ $(document).ready(function() {
                 
                 if (seat) {
                     var activeClass = seat.active === 1 ? '' : ' disabled-seat';
-                    var seatElement = $('<div class="builder-seat' + activeClass + '" draggable="true">' +
+                    var typeClass = ' type-' + seat.type.toLowerCase().replace(/ /g, '-');
+                    var seatElement = $('<div class="builder-seat' + activeClass + typeClass + '" draggable="true">' +
                         '<span>' + seat.number + '</span>' +
                         '<span class="seat-type-badge">' + seat.type + '</span>' +
                         '</div>');
@@ -629,13 +630,138 @@ $(document).ready(function() {
         };
     }
 
-    // Grid resize update
-    $('#btnUpdateGrid').click(function() {
-        rows = parseInt($('#grid_rows').val());
-        cols = parseInt($('#grid_cols').val());
-        // Clean seats outside the range
+    // Grid resize update on input change at runtime instantly
+    function updateGridDimensions() {
+        var rVal = parseInt($('#grid_rows').val());
+        var cVal = parseInt($('#grid_cols').val());
+        if (isNaN(rVal) || rVal < 1) rVal = 1;
+        if (isNaN(cVal) || cVal < 3) cVal = 3;
+        rows = rVal;
+        cols = cVal;
+        // Clean seats outside the new range
         seats = seats.filter(s => s.row < rows && s.col < cols);
         renderGrid();
+    }
+
+    // Trigger update immediately when user types or clicks arrows
+    $('#grid_rows, #grid_cols').on('input change', updateGridDimensions);
+    
+    // Keep button click fallback
+    $('#btnUpdateGrid').click(updateGridDimensions);
+
+    // Apply pre-configured layout presets dynamically based on class selection
+    function applyLayoutPreset(type) {
+        seats = []; // Clear existing seats
+        
+        if (type === 'Seater') {
+            $('#grid_rows').val(10);
+            $('#grid_cols').val(5);
+            rows = 10;
+            cols = 5;
+            
+            for (var r = 0; r < rows; r++) {
+                var letter = String.fromCharCode(65 + r); // A, B, C...
+                // Col 0, 1
+                seats.push({ number: letter + '1', row: r, col: 0, type: 'Normal', active: 1, price: 500.00 });
+                seats.push({ number: letter + '2', row: r, col: 1, type: 'Normal', active: 1, price: 500.00 });
+                // Col 2 is walkway
+                // Col 3, 4
+                seats.push({ number: letter + '3', row: r, col: 3, type: 'Normal', active: 1, price: 500.00 });
+                seats.push({ number: letter + '4', row: r, col: 4, type: 'Normal', active: 1, price: 500.00 });
+            }
+            // Last row J has all 5 seats
+            seats = seats.filter(s => !(s.row === 9)); // clear row 9 J
+            var letterJ = 'J';
+            seats.push({ number: letterJ + '1', row: 9, col: 0, type: 'Normal', active: 1, price: 500.00 });
+            seats.push({ number: letterJ + '2', row: 9, col: 1, type: 'Normal', active: 1, price: 500.00 });
+            seats.push({ number: letterJ + '3', row: 9, col: 2, type: 'Normal', active: 1, price: 500.00 });
+            seats.push({ number: letterJ + '4', row: 9, col: 3, type: 'Normal', active: 1, price: 500.00 });
+            seats.push({ number: letterJ + '5', row: 9, col: 4, type: 'Normal', active: 1, price: 500.00 });
+            
+        } else if (type === 'Sleeper') {
+            $('#grid_rows').val(8);
+            $('#grid_cols').val(4);
+            rows = 8;
+            cols = 4;
+            
+            for (var r = 0; r < rows; r++) {
+                var seatNumL1 = 'L' + (r + 1);
+                var seatNumL2 = 'L' + (r + 9);
+                var seatNumU1 = 'U' + (r + 1);
+                
+                seats.push({ number: seatNumL1, row: r, col: 0, type: 'Lower Sleeper', active: 1, price: 700.00 });
+                seats.push({ number: seatNumL2, row: r, col: 1, type: 'Lower Sleeper', active: 1, price: 700.00 });
+                // Col 2 is walkway
+                seats.push({ number: seatNumU1, row: r, col: 3, type: 'Upper Sleeper', active: 1, price: 800.00 });
+            }
+            
+        } else if (type === 'Semi Sleeper') {
+            $('#grid_rows').val(10);
+            $('#grid_cols').val(4);
+            rows = 10;
+            cols = 4;
+            
+            for (var r = 0; r < rows; r++) {
+                var letter = String.fromCharCode(65 + r);
+                seats.push({ number: letter + '1', row: r, col: 0, type: 'Semi Sleeper', active: 1, price: 600.00 });
+                seats.push({ number: letter + '2', row: r, col: 1, type: 'Semi Sleeper', active: 1, price: 600.00 });
+                // Col 2 is walkway
+                seats.push({ number: letter + '3', row: r, col: 3, type: 'Semi Sleeper', active: 1, price: 600.00 });
+            }
+            
+        } else if (type === 'Double Sleeper') {
+            $('#grid_rows').val(8);
+            $('#grid_cols').val(5);
+            rows = 8;
+            cols = 5;
+            
+            for (var r = 0; r < rows; r++) {
+                var seatNumDL1 = 'DL' + (r + 1);
+                var seatNumDL2 = 'DL' + (r + 9);
+                var seatNumDU1 = 'DU' + (r + 1);
+                var seatNumDU2 = 'DU' + (r + 9);
+                
+                seats.push({ number: seatNumDL1, row: r, col: 0, type: 'Double Sleeper Lower', active: 1, price: 1000.00 });
+                seats.push({ number: seatNumDL2, row: r, col: 1, type: 'Double Sleeper Lower', active: 1, price: 1000.00 });
+                // Col 2 is walkway
+                seats.push({ number: seatNumDU1, row: r, col: 3, type: 'Double Sleeper Upper', active: 1, price: 1200.00 });
+                seats.push({ number: seatNumDU2, row: r, col: 4, type: 'Double Sleeper Upper', active: 1, price: 1200.00 });
+            }
+            
+        } else if (type === 'Mixed') {
+            $('#grid_rows').val(10);
+            $('#grid_cols').val(5);
+            rows = 10;
+            cols = 5;
+            
+            // Rows 0 to 4: Seater
+            for (var r = 0; r < 5; r++) {
+                var letter = String.fromCharCode(65 + r);
+                seats.push({ number: letter + '1', row: r, col: 0, type: 'Normal', active: 1, price: 500.00 });
+                seats.push({ number: letter + '2', row: r, col: 1, type: 'Normal', active: 1, price: 500.00 });
+                // Col 2 is walkway
+                seats.push({ number: letter + '3', row: r, col: 3, type: 'Normal', active: 1, price: 500.00 });
+                seats.push({ number: letter + '4', row: r, col: 4, type: 'Normal', active: 1, price: 500.00 });
+            }
+            // Rows 5 to 9: Sleeper
+            for (var r = 5; r < 10; r++) {
+                var seatNumL1 = 'L' + (r - 4);
+                var seatNumL2 = 'L' + (r + 1);
+                var seatNumU1 = 'U' + (r - 4);
+                
+                seats.push({ number: seatNumL1, row: r, col: 0, type: 'Lower Sleeper', active: 1, price: 800.00 });
+                seats.push({ number: seatNumL2, row: r, col: 1, type: 'Lower Sleeper', active: 1, price: 800.00 });
+                // Col 2 is walkway
+                seats.push({ number: seatNumU1, row: r, col: 3, type: 'Upper Sleeper', active: 1, price: 900.00 });
+            }
+        }
+        
+        renderGrid();
+    }
+
+    // Trigger preset layout when changing Class Classification dropdown
+    $('#layout_type').change(function() {
+        applyLayoutPreset($(this).val());
     });
 
     // Submit Layout Form
@@ -654,7 +780,12 @@ $(document).ready(function() {
         $('#tpl_seats_data').val(JSON.stringify(seats));
     });
 
-    renderGrid();
+    // Load dynamic defaults on new setups
+    if (seats.length === 0) {
+        applyLayoutPreset($('#layout_type').val());
+    } else {
+        renderGrid();
+    }
 });
 </script>
 
