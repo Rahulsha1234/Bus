@@ -351,8 +351,10 @@ require_once __DIR__ . '/includes/header.php';
                     <label class="form-label text-secondary small fw-semibold">Select Boarding Station</label>
                     <select name="boarding_point" id="boarding_point" class="form-select form-control-swift" required>
                         <option value="">Choose Boarding...</option>
-                        <?php foreach ($boardings as $bs): ?>
-                            <option value="<?= htmlspecialchars($bs['name']) ?>"><?= htmlspecialchars($bs['name']) ?> (<?= htmlspecialchars($bs['time']) ?>)</option>
+                        <?php foreach ($boardings as $bs): 
+                            $formatted_time = !empty($bs['time']) ? date('H:i', strtotime($bs['time'])) : '00:00';
+                        ?>
+                            <option value="<?= htmlspecialchars($bs['name']) ?>"><?= htmlspecialchars($bs['name']) ?> (<?= htmlspecialchars($formatted_time) ?>)</option>
                         <?php endforeach; ?>
                     </select>
                 </div>
@@ -362,8 +364,10 @@ require_once __DIR__ . '/includes/header.php';
                     <label class="form-label text-secondary small fw-semibold">Select Dropping Station</label>
                     <select name="dropping_point" id="dropping_point" class="form-select form-control-swift" required>
                         <option value="">Choose Dropping...</option>
-                        <?php foreach ($droppings as $ds): ?>
-                            <option value="<?= htmlspecialchars($ds['name']) ?>"><?= htmlspecialchars($ds['name']) ?> (<?= htmlspecialchars($ds['time']) ?>)</option>
+                        <?php foreach ($droppings as $ds): 
+                            $formatted_time = !empty($ds['time']) ? date('H:i', strtotime($ds['time'])) : '00:00';
+                        ?>
+                            <option value="<?= htmlspecialchars($ds['name']) ?>"><?= htmlspecialchars($ds['name']) ?> (<?= htmlspecialchars($formatted_time) ?>)</option>
                         <?php endforeach; ?>
                     </select>
                 </div>

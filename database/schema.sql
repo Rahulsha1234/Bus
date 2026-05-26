@@ -116,6 +116,7 @@ CREATE TABLE routes (
     source VARCHAR(100) NOT NULL,
     destination VARCHAR(100) NOT NULL,
     distance_km INT NOT NULL,
+    duration VARCHAR(50) NOT NULL DEFAULT '6 hours',
     pickup_points TEXT NOT NULL, -- JSON formatted array
     drop_points TEXT NOT NULL,   -- JSON formatted array
     status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
@@ -297,15 +298,20 @@ INSERT INTO system_settings (setting_key, setting_value) VALUES
 -- 22. Seeds Users
 -- admin / admin123
 -- agent1 / agent123
--- customer1 / agent123 (or customer123, we'll use agent123's hash for simplicity: agent123)
+-- customer1 / customer123
+-- aslitravels / agent123
+-- agent2 / agent123
 INSERT INTO users (id, username, email, password, role, status) VALUES 
-(1, 'admin', 'admin@bus.com', '$2y$10$Y1dnxAWhyILOCfE3HK0U9.MW6lg7qoKn42ezGnR1YFdMVkhQXtlmC', 'admin', 'approved'),
-(2, 'agent1', 'agent1@bus.com', '$2y$10$zenH3D1GEkxvtNqRDvX0YuRjG/jtnAMgIRtiBq9RC8h5xKM8PTAW6', 'agent', 'approved'),
-(3, 'customer1', 'customer1@bus.com', '$2y$10$zenH3D1GEkxvtNqRDvX0YuRjG/jtnAMgIRtiBq9RC8h5xKM8PTAW6', 'customer', 'approved');
+(1, 'admin', 'admin@bus.com', '$2y$10$rtg3zjvffXi2v2oFcDOGauj1l630STGZoYlHmUr80EX4kBYfZCqra', 'admin', 'approved'),
+(2, 'agent1', 'agent1@bus.com', '$2y$10$Z16gC5x3COUDIzuFsBz0yOz9l.R6Y1t/.XWlMKbv/6PFhma0Wn7hS', 'agent', 'approved'),
+(3, 'customer1', 'customer1@bus.com', '$2y$10$bcXxKmdVIDeOa7ucXFoHSeC0n8.fThcBH5232b7Hdk1neL2BL2Ic6', 'customer', 'approved'),
+(4, 'aslitravels', 'aslitravels@bus.com', '$2y$10$Z16gC5x3COUDIzuFsBz0yOz9l.R6Y1t/.XWlMKbv/6PFhma0Wn7hS', 'agent', 'approved'),
+(5, 'agent2', 'agent2@bus.com', '$2y$10$Z16gC5x3COUDIzuFsBz0yOz9l.R6Y1t/.XWlMKbv/6PFhma0Wn7hS', 'agent', 'pending');
 
 -- Seed Agent Profiles
 INSERT INTO agent_profiles (id, user_id, agency_name, phone, commission_rate) VALUES 
-(1, 2, 'Golden Travels', '9876543210', 2.00);
+(1, 2, 'Golden Travels', '9876543210', 2.00),
+(2, 4, 'Asli Travels', '9876543212', 2.00);
 
 -- Seed Buses
 INSERT INTO buses (id, agent_id, bus_name, bus_number, bus_type, total_seats, seat_layout_type, status) VALUES 
@@ -345,3 +351,6 @@ INSERT INTO trip_seats (trip_id, seat_number, status) VALUES
 (2, '26', 'available'), (2, '27', 'available'), (2, '28', 'available'), (2, '29', 'available'), (2, '30', 'available'),
 (2, '31', 'available'), (2, '32', 'available'), (2, '33', 'available'), (2, '34', 'available'), (2, '35', 'available'),
 (2, '36', 'available'), (2, '37', 'available'), (2, '38', 'available'), (2, '39', 'available'), (2, '40', 'available');
+
+SET FOREIGN_KEY_CHECKS = 1;
+

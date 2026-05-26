@@ -190,18 +190,22 @@ require_once __DIR__ . '/includes/header.php';
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-dark glass-card p-3 border-0 mt-2" style="min-width: 250px;">
                                     <h6 class="text-indigo small fw-bold mb-2">Pickups (<?= htmlspecialchars($source) ?>)</h6>
-                                    <?php foreach ($pickups as $p): ?>
+                                    <?php foreach ($pickups as $p): 
+                                        $formatted_time = !empty($p['time']) ? date('H:i', strtotime($p['time'])) : '00:00';
+                                    ?>
                                         <li class="small text-secondary mb-1 d-flex justify-content-between">
                                             <span><?= htmlspecialchars($p['name']) ?></span>
-                                            <span class="text-white"><?= htmlspecialchars($p['time']) ?></span>
+                                            <span class="text-white"><?= htmlspecialchars($formatted_time) ?></span>
                                         </li>
                                     <?php endforeach; ?>
                                     <li><hr class="dropdown-divider border-secondary my-2"></li>
                                     <h6 class="text-pink small fw-bold mb-2">Drops (<?= htmlspecialchars($destination) ?>)</h6>
-                                    <?php foreach ($drops as $d): ?>
+                                    <?php foreach ($drops as $d): 
+                                        $formatted_time = !empty($d['time']) ? date('H:i', strtotime($d['time'])) : '00:00';
+                                    ?>
                                         <li class="small text-secondary mb-1 d-flex justify-content-between">
                                             <span><?= htmlspecialchars($d['name']) ?></span>
-                                            <span class="text-white"><?= htmlspecialchars($d['time']) ?></span>
+                                            <span class="text-white"><?= htmlspecialchars($formatted_time) ?></span>
                                         </li>
                                     <?php endforeach; ?>
                                 </ul>

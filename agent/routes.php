@@ -3,6 +3,12 @@
  * Route Scheduler CRUD (Full CRUD Support)
  */
 require_once __DIR__ . '/header.php';
+?>
+<!-- Flatpickr CSS & Dark Theme for 24-hour time selector -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<?php
 
 $agent_id = $_SESSION['user_id'];
 $error = '';
@@ -240,15 +246,19 @@ try {
                             </td>
                             <td>
                                 <ul class="list-unstyled mb-0 small text-secondary">
-                                    <?php foreach ($pickups as $p): ?>
-                                        <li><i class="fa-solid fa-circle text-indigo me-1" style="font-size: 0.4rem; color: #818cf8;"></i><?= htmlspecialchars($p['name']) ?> (<?= htmlspecialchars($p['time']) ?>)</li>
+                                    <?php foreach ($pickups as $p): 
+                                        $formatted_time = !empty($p['time']) ? date('H:i', strtotime($p['time'])) : '00:00';
+                                    ?>
+                                        <li><i class="fa-solid fa-circle text-indigo me-1" style="font-size: 0.4rem; color: #818cf8;"></i><?= htmlspecialchars($p['name']) ?> (<?= htmlspecialchars($formatted_time) ?>)</li>
                                     <?php endforeach; ?>
                                 </ul>
                             </td>
                             <td>
                                 <ul class="list-unstyled mb-0 small text-secondary">
-                                    <?php foreach ($drops as $d): ?>
-                                        <li><i class="fa-solid fa-circle text-pink me-1" style="font-size: 0.4rem; color: #ec4899;"></i><?= htmlspecialchars($d['name']) ?> (<?= htmlspecialchars($d['time']) ?>)</li>
+                                    <?php foreach ($drops as $d): 
+                                        $formatted_time = !empty($d['time']) ? date('H:i', strtotime($d['time'])) : '00:00';
+                                    ?>
+                                        <li><i class="fa-solid fa-circle text-pink me-1" style="font-size: 0.4rem; color: #ec4899;"></i><?= htmlspecialchars($d['name']) ?> (<?= htmlspecialchars($formatted_time) ?>)</li>
                                     <?php endforeach; ?>
                                 </ul>
                             </td>
@@ -320,7 +330,7 @@ try {
                                         <input type="text" name="pickup_name[]" class="form-control form-control-swift py-1" placeholder="Station name" required>
                                     </div>
                                     <div class="col-4">
-                                        <input type="time" name="pickup_time[]" class="form-control form-control-swift py-1" required>
+                                        <input type="text" name="pickup_time[]" class="form-control form-control-swift py-1 time-picker-24h" placeholder="HH:MM" pattern="^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$" title="Please enter time in 24-hour HH:MM format (e.g., 20:30)" required>
                                     </div>
                                 </div>
                             </div>
@@ -338,7 +348,7 @@ try {
                                         <input type="text" name="drop_name[]" class="form-control form-control-swift py-1" placeholder="Station name" required>
                                     </div>
                                     <div class="col-4">
-                                        <input type="time" name="drop_time[]" class="form-control form-control-swift py-1" required>
+                                        <input type="text" name="drop_time[]" class="form-control form-control-swift py-1 time-picker-24h" placeholder="HH:MM" pattern="^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$" title="Please enter time in 24-hour HH:MM format (e.g., 20:30)" required>
                                     </div>
                                 </div>
                             </div>
@@ -452,6 +462,21 @@ try {
 
 <script>
 $(document).ready(function() {
+    // Helper to initialize flatpickr for 24-hour time picking
+    function initTimePicker(element) {
+        flatpickr(element, {
+            enableTime: true,
+            noCalendar: true,
+            dateFormat: "H:i",
+            time_24hr: true,
+            disableMobile: true,
+            allowInput: true
+        });
+    }
+
+    // Initialize on page load for static inputs
+    initTimePicker('.time-picker-24h');
+
     // Fill delete values
     $('.delete-route-btn').click(function() {
         $('#delete_route_id').val($(this).data('id'));
@@ -472,64 +497,74 @@ $(document).ready(function() {
         var pickupsContainer = $('#editPickupRowsContainer');
         pickupsContainer.empty();
         pickups.forEach(function(p) {
-            var row = '<div class="row g-2 mb-2 alignment-row">' +
-                      '<div class="col-8"><input type="text" name="pickup_name[]" class="form-control form-control-swift py-1" value="' + p.name + '" required></div>' +
-                      '<div class="col-3"><input type="time" name="pickup_time[]" class="form-control form-control-swift py-1" value="' + p.time + '" required></div>' +
-                      '<div class="col-1 d-flex align-items-center"><button type="button" class="btn btn-link text-danger p-0 delete-row-btn"><i class="fa-solid fa-trash-can"></i></button></div>' +
-                      '</div>';
-            pickupsContainer.append(row);
+            // format time in 24h before assigning
+            var formattedVal = p.time ? p.time : '00:00';
+            var $row = $('<div class="row g-2 mb-2 alignment-row">' +
+                       '<div class="col-8"><input type="text" name="pickup_name[]" class="form-control form-control-swift py-1" value="' + p.name + '" required></div>' +
+                       '<div class="col-3"><input type="text" name="pickup_time[]" class="form-control form-control-swift py-1 time-picker-24h" value="' + formattedVal + '" pattern="^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$" title="Please enter time in 24-hour HH:MM format (e.g., 20:30)" required></div>' +
+                       '<div class="col-1 d-flex align-items-center"><button type="button" class="btn btn-link text-danger p-0 delete-row-btn"><i class="fa-solid fa-trash-can"></i></button></div>' +
+                       '</div>');
+            pickupsContainer.append($row);
+            initTimePicker($row.find('.time-picker-24h'));
         });
 
         var dropsContainer = $('#editDropRowsContainer');
         dropsContainer.empty();
         drops.forEach(function(d) {
-            var row = '<div class="row g-2 mb-2 alignment-row">' +
-                      '<div class="col-8"><input type="text" name="drop_name[]" class="form-control form-control-swift py-1" value="' + d.name + '" required></div>' +
-                      '<div class="col-3"><input type="time" name="drop_time[]" class="form-control form-control-swift py-1" value="' + d.time + '" required></div>' +
-                      '<div class="col-1 d-flex align-items-center"><button type="button" class="btn btn-link text-danger p-0 delete-row-btn"><i class="fa-solid fa-trash-can"></i></button></div>' +
-                      '</div>';
-            dropsContainer.append(row);
+            // format time in 24h before assigning
+            var formattedVal = d.time ? d.time : '00:00';
+            var $row = $('<div class="row g-2 mb-2 alignment-row">' +
+                       '<div class="col-8"><input type="text" name="drop_name[]" class="form-control form-control-swift py-1" value="' + d.name + '" required></div>' +
+                       '<div class="col-3"><input type="text" name="drop_time[]" class="form-control form-control-swift py-1 time-picker-24h" value="' + formattedVal + '" pattern="^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$" title="Please enter time in 24-hour HH:MM format (e.g., 20:30)" required></div>' +
+                       '<div class="col-1 d-flex align-items-center"><button type="button" class="btn btn-link text-danger p-0 delete-row-btn"><i class="fa-solid fa-trash-can"></i></button></div>' +
+                       '</div>');
+            dropsContainer.append($row);
+            initTimePicker($row.find('.time-picker-24h'));
         });
     });
 
     // Dynamic row addition for Pickups (ADD)
     $('#addPickupRowBtn').click(function() {
-        var row = '<div class="row g-2 mb-2 alignment-row">' +
+        var $row = $('<div class="row g-2 mb-2 alignment-row">' +
                   '<div class="col-8"><input type="text" name="pickup_name[]" class="form-control form-control-swift py-1" placeholder="Station name" required></div>' +
-                  '<div class="col-3"><input type="time" name="pickup_time[]" class="form-control form-control-swift py-1" required></div>' +
+                  '<div class="col-3"><input type="text" name="pickup_time[]" class="form-control form-control-swift py-1 time-picker-24h" placeholder="HH:MM" pattern="^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$" title="Please enter time in 24-hour HH:MM format (e.g., 20:30)" required></div>' +
                   '<div class="col-1 d-flex align-items-center"><button type="button" class="btn btn-link text-danger p-0 delete-row-btn"><i class="fa-solid fa-trash-can"></i></button></div>' +
-                  '</div>';
-        $('#pickupRowsContainer').append(row);
+                  '</div>');
+        $('#pickupRowsContainer').append($row);
+        initTimePicker($row.find('.time-picker-24h'));
     });
 
     // Dynamic row addition for Drops (ADD)
     $('#addDropRowBtn').click(function() {
-        var row = '<div class="row g-2 mb-2 alignment-row">' +
+        var $row = $('<div class="row g-2 mb-2 alignment-row">' +
                   '<div class="col-8"><input type="text" name="drop_name[]" class="form-control form-control-swift py-1" placeholder="Station name" required></div>' +
-                  '<div class="col-3"><input type="time" name="drop_time[]" class="form-control form-control-swift py-1" required></div>' +
+                  '<div class="col-3"><input type="text" name="drop_time[]" class="form-control form-control-swift py-1 time-picker-24h" placeholder="HH:MM" pattern="^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$" title="Please enter time in 24-hour HH:MM format (e.g., 20:30)" required></div>' +
                   '<div class="col-1 d-flex align-items-center"><button type="button" class="btn btn-link text-danger p-0 delete-row-btn"><i class="fa-solid fa-trash-can"></i></button></div>' +
-                  '</div>';
-        $('#dropRowsContainer').append(row);
+                  '</div>');
+        $('#dropRowsContainer').append($row);
+        initTimePicker($row.find('.time-picker-24h'));
     });
 
     // Dynamic row addition for Pickups (EDIT)
     $('#editAddPickupRowBtn').click(function() {
-        var row = '<div class="row g-2 mb-2 alignment-row">' +
+        var $row = $('<div class="row g-2 mb-2 alignment-row">' +
                   '<div class="col-8"><input type="text" name="pickup_name[]" class="form-control form-control-swift py-1" placeholder="Station name" required></div>' +
-                  '<div class="col-3"><input type="time" name="pickup_time[]" class="form-control form-control-swift py-1" required></div>' +
+                  '<div class="col-3"><input type="text" name="pickup_time[]" class="form-control form-control-swift py-1 time-picker-24h" placeholder="HH:MM" pattern="^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$" title="Please enter time in 24-hour HH:MM format (e.g., 20:30)" required></div>' +
                   '<div class="col-1 d-flex align-items-center"><button type="button" class="btn btn-link text-danger p-0 delete-row-btn"><i class="fa-solid fa-trash-can"></i></button></div>' +
-                  '</div>';
-        $('#editPickupRowsContainer').append(row);
+                  '</div>');
+        $('#editPickupRowsContainer').append($row);
+        initTimePicker($row.find('.time-picker-24h'));
     });
 
     // Dynamic row addition for Drops (EDIT)
     $('#editAddDropRowBtn').click(function() {
-        var row = '<div class="row g-2 mb-2 alignment-row">' +
+        var $row = $('<div class="row g-2 mb-2 alignment-row">' +
                   '<div class="col-8"><input type="text" name="drop_name[]" class="form-control form-control-swift py-1" placeholder="Station name" required></div>' +
-                  '<div class="col-3"><input type="time" name="drop_time[]" class="form-control form-control-swift py-1" required></div>' +
+                  '<div class="col-3"><input type="text" name="drop_time[]" class="form-control form-control-swift py-1 time-picker-24h" placeholder="HH:MM" pattern="^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$" title="Please enter time in 24-hour HH:MM format (e.g., 20:30)" required></div>' +
                   '<div class="col-1 d-flex align-items-center"><button type="button" class="btn btn-link text-danger p-0 delete-row-btn"><i class="fa-solid fa-trash-can"></i></button></div>' +
-                  '</div>';
-        $('#editDropRowsContainer').append(row);
+                  '</div>');
+        $('#editDropRowsContainer').append($row);
+        initTimePicker($row.find('.time-picker-24h'));
     });
 
     // Handle dynamically added row removal

@@ -3,6 +3,12 @@
  * Trip Scheduler CRUD & Management
  */
 require_once __DIR__ . '/header.php';
+?>
+<!-- Flatpickr CSS & Dark Theme for 24-hour time selector -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<?php
 
 $agent_id = $_SESSION['user_id'];
 $error = '';
@@ -25,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $arr_time = $_POST['arrival_time'] ?? '';
             $fare = floatval($_POST['base_fare'] ?? 0.00);
 
-            if ($bus_id === 0 || $route_id === 0 || empty($dep_time) || empty($arr_time) || $fare === 0.00) {
+            if ($bus_id === 0 || $route_id === 0 || empty($dep_time) || empty($arr_time)) {
                 $error = "Please fill in all scheduling fields.";
             } elseif (strtotime($dep_time) >= strtotime($arr_time)) {
                 $error = "Departure date/time must be earlier than Arrival date/time.";
@@ -105,7 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $fare = floatval($_POST['base_fare'] ?? 0.00);
             $status = $_POST['status'] ?? 'active';
 
-            if ($trip_id === 0 || $bus_id === 0 || $route_id === 0 || empty($dep_time) || empty($arr_time) || $fare === 0.00) {
+            if ($trip_id === 0 || $bus_id === 0 || $route_id === 0 || empty($dep_time) || empty($arr_time)) {
                 $error = "Please fill in all scheduling fields.";
             } elseif (strtotime($dep_time) >= strtotime($arr_time)) {
                 $error = "Departure date/time must be earlier than Arrival date/time.";
@@ -226,7 +232,6 @@ try {
                         <th>Route details</th>
                         <th>Departure Timing</th>
                         <th>Arrival Timing</th>
-                        <th>Base Ticket Price</th>
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>
@@ -241,7 +246,6 @@ try {
                             <td><span class="fw-semibold text-white"><?= htmlspecialchars($trip['source']) ?> <i class="fa-solid fa-arrow-right mx-1 text-indigo"></i> <?= htmlspecialchars($trip['destination']) ?></span></td>
                             <td class="text-white"><?= date('d M Y, H:i', strtotime($trip['departure_time'])) ?></td>
                             <td class="text-secondary small"><?= date('d M Y, H:i', strtotime($trip['arrival_time'])) ?></td>
-                            <td><span class="fw-bold text-indigo fs-6">₹<?= number_format($trip['base_fare'], 2) ?></span></td>
                             <td class="text-end">
                                 <div class="d-flex gap-2 justify-content-end">
                                     <a href="trip_pricing.php?trip_id=<?= $trip['trip_id'] ?>" class="btn btn-secondary-glass py-1 px-2 small" title="Configure Seat Prices"><i class="fa-solid fa-tags text-indigo"></i></a>
@@ -301,18 +305,15 @@ try {
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label text-secondary small fw-semibold">Departure Date & Time</label>
-                            <input type="datetime-local" name="departure_time" class="form-control form-control-swift" required>
+                            <input type="text" name="departure_time" class="form-control form-control-swift datetime-picker-24h" placeholder="YYYY-MM-DD HH:MM" pattern="^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01]) (0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$" title="Please enter date and time in YYYY-MM-DD HH:MM format (e.g. 2026-05-26 15:30)" required>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label text-secondary small fw-semibold">Arrival Date & Time</label>
-                            <input type="datetime-local" name="arrival_time" class="form-control form-control-swift" required>
+                            <input type="text" name="arrival_time" class="form-control form-control-swift datetime-picker-24h" placeholder="YYYY-MM-DD HH:MM" pattern="^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01]) (0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$" title="Please enter date and time in YYYY-MM-DD HH:MM format (e.g. 2026-05-26 15:30)" required>
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold">Base Ticket Price (₹)</label>
-                        <input type="number" name="base_fare" class="form-control form-control-swift" placeholder="e.g. 750.00" min="50" step="10" required>
-                    </div>
+                    <input type="hidden" name="base_fare" value="0.00">
                 </div>
                 <div class="modal-footer border-secondary border-opacity-20 p-4">
                     <button type="button" class="btn btn-secondary-glass" data-bs-dismiss="modal">Cancel</button>
@@ -358,18 +359,15 @@ try {
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label text-secondary small fw-semibold">Departure Date & Time</label>
-                            <input type="datetime-local" name="departure_time" id="edit_departure_time" class="form-control form-control-swift" required>
+                            <input type="text" name="departure_time" id="edit_departure_time" class="form-control form-control-swift datetime-picker-24h" placeholder="YYYY-MM-DD HH:MM" pattern="^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01]) (0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$" title="Please enter date and time in YYYY-MM-DD HH:MM format (e.g. 2026-05-26 15:30)" required>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label text-secondary small fw-semibold">Arrival Date & Time</label>
-                            <input type="datetime-local" name="arrival_time" id="edit_arrival_time" class="form-control form-control-swift" required>
+                            <input type="text" name="arrival_time" id="edit_arrival_time" class="form-control form-control-swift datetime-picker-24h" placeholder="YYYY-MM-DD HH:MM" pattern="^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01]) (0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$" title="Please enter date and time in YYYY-MM-DD HH:MM format (e.g. 2026-05-26 15:30)" required>
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold">Base Ticket Price (₹)</label>
-                        <input type="number" name="base_fare" id="edit_base_fare" class="form-control form-control-swift" min="50" step="10" required>
-                    </div>
+                    <input type="hidden" name="base_fare" id="edit_base_fare">
 
                     <div class="mb-3">
                         <label class="form-label text-secondary small fw-semibold">Trip Status</label>
@@ -413,6 +411,15 @@ try {
 
 <script>
 $(document).ready(function() {
+    // Initialize flatpickr for datetime input in 24h mode allowing keyboard typing
+    flatpickr('.datetime-picker-24h', {
+        enableTime: true,
+        dateFormat: "Y-m-d H:i",
+        time_24hr: true,
+        disableMobile: true,
+        allowInput: true
+    });
+
     $('.delete-trip-btn').click(function() {
         $('#delete_trip_id').val($(this).data('id'));
     });
@@ -421,8 +428,16 @@ $(document).ready(function() {
         $('#edit_trip_id').val($(this).data('id'));
         $('#edit_bus_id').val($(this).data('bus'));
         $('#edit_route_id').val($(this).data('route'));
-        $('#edit_departure_time').val($(this).data('dep'));
-        $('#edit_arrival_time').val($(this).data('arr'));
+        
+        var depVal = $(this).data('dep');
+        var arrVal = $(this).data('arr');
+        // Replace T with space to match YYYY-MM-DD HH:MM format
+        depVal = depVal ? depVal.replace('T', ' ') : '';
+        arrVal = arrVal ? arrVal.replace('T', ' ') : '';
+        
+        $('#edit_departure_time')[0]._flatpickr.setDate(depVal);
+        $('#edit_arrival_time')[0]._flatpickr.setDate(arrVal);
+        
         $('#edit_base_fare').val($(this).data('fare'));
         $('#edit_status').val($(this).data('status'));
     });

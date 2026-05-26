@@ -64,6 +64,13 @@ try {
             'password' => password_hash('customer123', PASSWORD_BCRYPT),
             'role' => 'customer',
             'status' => 'approved'
+        ],
+        [
+            'username' => 'aslitravels',
+            'email' => 'aslitravels@bus.com',
+            'password' => password_hash('agent123', PASSWORD_BCRYPT),
+            'role' => 'agent',
+            'status' => 'approved'
         ]
     ];
 
@@ -95,6 +102,12 @@ try {
             'user_id' => $userIds['agent2'],
             'agency_name' => 'Silver Express',
             'phone' => '9876543211',
+            'commission_rate' => 2.00
+        ],
+        [
+            'user_id' => $userIds['aslitravels'],
+            'agency_name' => 'Asli Travels',
+            'phone' => '9876543212',
             'commission_rate' => 2.00
         ]
     ];

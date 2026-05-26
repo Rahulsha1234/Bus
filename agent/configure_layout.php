@@ -190,9 +190,21 @@ $layout_stmt = $pdo->prepare("SELECT * FROM bus_layouts WHERE bus_id = ? LIMIT 1
 $layout_stmt->execute([$bus_id]);
 $layout = $layout_stmt->fetch();
 
-$rows_count = $layout ? intval($layout['rows_count']) : 10;
-$cols_count = $layout ? intval($layout['cols_count']) : 5;
-$layout_type = $layout ? $layout['layout_type'] : 'Mixed';
+if ($layout) {
+    $rows_count = intval($layout['rows_count']);
+    $cols_count = intval($layout['cols_count']);
+    $layout_type = $layout['layout_type'];
+} else {
+    if (strpos($bus['bus_type'], 'Sleeper') !== false) {
+        $rows_count = 8;
+        $cols_count = 4;
+        $layout_type = 'Sleeper';
+    } else {
+        $rows_count = 10;
+        $cols_count = 5;
+        $layout_type = 'Seater';
+    }
+}
 
 // Fetch existing seats
 $seats_stmt = $pdo->prepare("SELECT * FROM bus_seats WHERE bus_id = ?");

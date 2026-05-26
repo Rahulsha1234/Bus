@@ -15,6 +15,24 @@ try {
     die("Database connection failed. Please check your credentials in config/config.php and ensure MySQL is running: " . $e->getMessage());
 }
 
+// Verify that the logged-in user exists in the database to prevent stale sessions after database reset
+if (isset($_SESSION['user_id'])) {
+    try {
+        $auth_check = $pdo->prepare("SELECT 1 FROM users WHERE id = ? LIMIT 1");
+        $auth_check->execute([$_SESSION['user_id']]);
+        if (!$auth_check->fetchColumn()) {
+            session_unset();
+            session_destroy();
+            session_start();
+            $_SESSION['login_error'] = "Your session is invalid (database reset). Please log in again.";
+            header("Location: " . BASE_URL . "/login.php");
+            exit();
+        }
+    } catch (PDOException $e) {
+        // Table 'users' might not exist yet during setup
+    }
+}
+
 // Fetch general system settings
 $settings = [];
 try {

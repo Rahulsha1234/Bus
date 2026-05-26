@@ -124,3 +124,6 @@ ALTER TABLE trip_seats MODIFY COLUMN status ENUM('available', 'selected', 'booke
 ALTER TABLE trip_seats ADD COLUMN IF NOT EXISTS locked_at TIMESTAMP NULL;
 ALTER TABLE trip_seats ADD COLUMN IF NOT EXISTS locked_by_session VARCHAR(255) NULL;
 ALTER TABLE trip_seats ADD COLUMN IF NOT EXISTS gender_restriction ENUM('none', 'female_only', 'female_protected') DEFAULT 'none';
+
+-- 13. Add duration column to routes
+ALTER TABLE routes ADD COLUMN IF NOT EXISTS duration VARCHAR(50) NOT NULL DEFAULT '6 hours';

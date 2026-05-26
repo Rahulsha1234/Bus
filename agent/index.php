@@ -108,7 +108,7 @@ require_once __DIR__ . '/../includes/header.php';
                     <label for="login_input" class="form-label text-secondary small fw-semibold">Username or Email</label>
                     <div class="input-group">
                         <span class="input-group-text bg-dark border-secondary border-end-0 text-secondary" style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-user-tie"></i></span>
-                        <input type="text" name="login_input" id="login_input" class="form-control form-control-swift border-start-0" placeholder="Agent Username or Email" style="border-radius: 0 12px 12px 0;" required>
+                        <input type="text" name="login_input" id="login_input" class="form-control form-control-swift border-start-0" placeholder="Agent Username or Email" style="border-radius: 0 12px 12px 0;" autocomplete="new-username" required>
                     </div>
                 </div>
 
@@ -116,7 +116,7 @@ require_once __DIR__ . '/../includes/header.php';
                     <label for="password" class="form-label text-secondary small fw-semibold">Password</label>
                     <div class="input-group">
                         <span class="input-group-text bg-dark border-secondary border-end-0 text-secondary" style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-key"></i></span>
-                        <input type="password" name="password" id="password" class="form-control form-control-swift border-start-0" placeholder="Enter password" style="border-radius: 0 12px 12px 0;" required>
+                        <input type="password" name="password" id="password" class="form-control form-control-swift border-start-0" placeholder="Enter password" style="border-radius: 0 12px 12px 0;" autocomplete="new-password" required>
                     </div>
                 </div>
 
