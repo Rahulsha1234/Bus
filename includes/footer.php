@@ -16,7 +16,7 @@
                     <h6 class="text-white mb-3">Quick Navigation</h6>
                     <ul class="list-unstyled">
                         <li><a href="<?= BASE_URL ?>/index.php" class="footer-link small">Search Buses</a></li>
-                        <li><a href="<?= BASE_URL ?>/login.php" class="footer-link small">Staff Login</a></li>
+                        <li><a href="<?= BASE_URL ?>/login.php" class="footer-link small">Login</a></li>
                         <li><a href="<?= BASE_URL ?>/register.php" class="footer-link small">Agent Registration</a></li>
                     </ul>
                 </div>

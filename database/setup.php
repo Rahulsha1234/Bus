@@ -45,31 +45,17 @@ try {
             'status' => 'approved'
         ],
         [
-            'username' => 'agent1',
-            'email' => 'agent1@bus.com',
-            'password' => password_hash('agent123', PASSWORD_BCRYPT),
-            'role' => 'agent',
-            'status' => 'approved'
-        ],
-        [
-            'username' => 'agent2',
-            'email' => 'agent2@bus.com',
-            'password' => password_hash('agent123', PASSWORD_BCRYPT),
-            'role' => 'agent',
-            'status' => 'pending'
-        ],
-        [
-            'username' => 'customer1',
-            'email' => 'customer1@bus.com',
-            'password' => password_hash('customer123', PASSWORD_BCRYPT),
-            'role' => 'customer',
-            'status' => 'approved'
-        ],
-        [
             'username' => 'aslitravels',
             'email' => 'aslitravels@bus.com',
-            'password' => password_hash('agent123', PASSWORD_BCRYPT),
+            'password' => password_hash('123456789', PASSWORD_BCRYPT),
             'role' => 'agent',
+            'status' => 'approved'
+        ],
+        [
+            'username' => 'jyoti',
+            'email' => 'jyoti@bus.com',
+            'password' => password_hash('123456789', PASSWORD_BCRYPT),
+            'role' => 'customer',
             'status' => 'approved'
         ]
     ];
@@ -93,18 +79,6 @@ try {
     echo "Seeding agent profiles...<br>";
     $profiles = [
         [
-            'user_id' => $userIds['agent1'],
-            'agency_name' => 'Golden Travels',
-            'phone' => '9876543210',
-            'commission_rate' => 2.00
-        ],
-        [
-            'user_id' => $userIds['agent2'],
-            'agency_name' => 'Silver Express',
-            'phone' => '9876543211',
-            'commission_rate' => 2.00
-        ],
-        [
             'user_id' => $userIds['aslitravels'],
             'agency_name' => 'Asli Travels',
             'phone' => '9876543212',
@@ -127,7 +101,7 @@ try {
     echo "Seeding buses...<br>";
     $buses = [
         [
-            'agent_id' => $userIds['agent1'],
+            'agent_id' => $userIds['aslitravels'],
             'bus_name' => 'Golden Deluxe AC Sleeper',
             'bus_number' => 'KA-01-F-1234',
             'bus_type' => 'AC Sleeper',
@@ -135,7 +109,7 @@ try {
             'seat_layout_type' => '2x1_sleeper'
         ],
         [
-            'agent_id' => $userIds['agent1'],
+            'agent_id' => $userIds['aslitravels'],
             'bus_name' => 'Golden Express AC Seater',
             'bus_number' => 'KA-01-F-5678',
             'bus_type' => 'AC Seater',
@@ -182,7 +156,7 @@ try {
 
     $routes = [
         [
-            'agent_id' => $userIds['agent1'],
+            'agent_id' => $userIds['aslitravels'],
             'source' => 'Bangalore',
             'destination' => 'Mumbai',
             'distance_km' => 1000,
@@ -190,7 +164,7 @@ try {
             'drop_points' => json_encode($drops1)
         ],
         [
-            'agent_id' => $userIds['agent1'],
+            'agent_id' => $userIds['aslitravels'],
             'source' => 'Bangalore',
             'destination' => 'Chennai',
             'distance_km' => 350,
@@ -309,9 +283,9 @@ try {
     $bookingStmt->execute([
         ':ref' => $ref1,
         ':trip_id' => $tripIds[2], // Trip 3
-        ':customer_id' => $userIds['customer1'],
-        ':name' => 'John Doe',
-        ':email' => 'customer1@bus.com',
+        ':customer_id' => $userIds['jyoti'],
+        ':name' => 'Jyoti',
+        ':email' => 'jyoti@bus.com',
         ':phone' => '9876543219',
         ':amount' => $amount1,
         ':commission' => $comm1,
@@ -382,7 +356,7 @@ try {
         VALUES (:agent_id, :start, :end, :sales, :commission, 'pending', NULL, NULL)
     ");
     $settlementStmt->execute([
-        ':agent_id' => $userIds['agent1'],
+        ':agent_id' => $userIds['aslitravels'],
         ':start' => date('Y-m-d', strtotime('-14 days')),
         ':end' => date('Y-m-d', strtotime('-7 days')),
         ':sales' => 5000.00,
@@ -400,9 +374,8 @@ try {
     file_put_contents($lock_file, date('Y-m-d H:i:s'));
     echo "Use the following credentials to log in:<br>";
     echo "<b>Admin:</b> admin / admin123<br>";
-    echo "<b>Agent 1 (Approved):</b> agent1 / agent123<br>";
-    echo "<b>Agent 2 (Pending):</b> agent2 / agent123<br>";
-    echo "<b>Customer:</b> customer1 / customer123<br>";
+    echo "<b>Agent:</b> aslitravels / 123456789<br>";
+    echo "<b>Customer:</b> jyoti / 123456789<br>";
 
 } catch (PDOException $e) {
     echo "Connection failed: " . $e->getMessage() . "<br>";

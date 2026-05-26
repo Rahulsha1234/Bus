@@ -97,8 +97,8 @@ require_once __DIR__ . '/includes/header.php';
         <div class="glass-card p-5 mt-3">
             <div class="text-center mb-4">
                 <i class="fa-solid fa-bus text-indigo animate-pulse" id="login-icon" style="font-size: 3rem; color: #818cf8; filter: drop-shadow(0 0 15px rgba(129,140,248,0.4));"></i>
-                <h2 class="fw-bold mt-3 text-white" id="login-title">Staff & Member Login</h2>
-                <p class="text-secondary small" id="login-desc">Access the ticket booking engine, agent portal, or admin desk</p>
+                <h2 class="fw-bold mt-3 text-white" id="login-title">Sign In</h2>
+                <p class="text-secondary small" id="login-desc">Access your account, agent portal, or admin desk</p>
             </div>
 
             <?php if (!empty($error)): ?>

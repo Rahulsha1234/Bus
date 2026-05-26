@@ -297,21 +297,16 @@ INSERT INTO system_settings (setting_key, setting_value) VALUES
 
 -- 22. Seeds Users
 -- admin / admin123
--- agent1 / agent123
--- customer1 / customer123
--- aslitravels / agent123
--- agent2 / agent123
+-- aslitravels / 123456789
+-- jyoti / 123456789
 INSERT INTO users (id, username, email, password, role, status) VALUES 
-(1, 'admin', 'admin@bus.com', '$2y$10$rtg3zjvffXi2v2oFcDOGauj1l630STGZoYlHmUr80EX4kBYfZCqra', 'admin', 'approved'),
-(2, 'agent1', 'agent1@bus.com', '$2y$10$Z16gC5x3COUDIzuFsBz0yOz9l.R6Y1t/.XWlMKbv/6PFhma0Wn7hS', 'agent', 'approved'),
-(3, 'customer1', 'customer1@bus.com', '$2y$10$bcXxKmdVIDeOa7ucXFoHSeC0n8.fThcBH5232b7Hdk1neL2BL2Ic6', 'customer', 'approved'),
-(4, 'aslitravels', 'aslitravels@bus.com', '$2y$10$Z16gC5x3COUDIzuFsBz0yOz9l.R6Y1t/.XWlMKbv/6PFhma0Wn7hS', 'agent', 'approved'),
-(5, 'agent2', 'agent2@bus.com', '$2y$10$Z16gC5x3COUDIzuFsBz0yOz9l.R6Y1t/.XWlMKbv/6PFhma0Wn7hS', 'agent', 'pending');
+(1, 'admin', 'admin@bus.com', '$2y$10$9ffPGVrwX/9u2DmKBsN/UOxjRIRboQiSNTgEbKj13KFlhYw6OpOty', 'admin', 'approved'),
+(2, 'aslitravels', 'aslitravels@bus.com', '$2y$10$d0UV/sfvSO3hCvpLqiJy/.D2I.gjs1n1G8YogKDjEsXATasuNIpWm', 'agent', 'approved'),
+(3, 'jyoti', 'jyoti@bus.com', '$2y$10$d0UV/sfvSO3hCvpLqiJy/.D2I.gjs1n1G8YogKDjEsXATasuNIpWm', 'customer', 'approved');
 
 -- Seed Agent Profiles
 INSERT INTO agent_profiles (id, user_id, agency_name, phone, commission_rate) VALUES 
-(1, 2, 'Golden Travels', '9876543210', 2.00),
-(2, 4, 'Asli Travels', '9876543212', 2.00);
+(1, 2, 'Asli Travels', '9876543212', 2.00);
 
 -- Seed Buses
 INSERT INTO buses (id, agent_id, bus_name, bus_number, bus_type, total_seats, seat_layout_type, status) VALUES 
