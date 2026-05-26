@@ -1,5 +1,4 @@
--- SwiftBus Database Migration Script
-USE bus_booking;
+-- USE bus_booking;
 
 -- 1. Operator Contacts Table
 CREATE TABLE IF NOT EXISTS operator_contacts (

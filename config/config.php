@@ -16,11 +16,22 @@ if (!defined('BASE_URL')) {
     define('BASE_URL', $protocol . '://' . $host . $base_dir);
 }
 
-// Database Credentials
-define('DB_HOST', '127.0.0.1;port=3307');
-define('DB_USER', 'root');
-define('DB_PASS', '');
-define('DB_NAME', 'bus_booking');
+// Database Credentials (Dynamic configuration for Local WAMP and Live Server)
+$is_local = in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1']) 
+    || ($_SERVER['HTTP_HOST'] ?? '') === 'localhost' 
+    || strpos($_SERVER['HTTP_HOST'] ?? '', '127.0.0.1') !== false;
+
+if ($is_local) {
+    define('DB_HOST', '127.0.0.1;port=3307');
+    define('DB_USER', 'root');
+    define('DB_PASS', '');
+    define('DB_NAME', 'bus_booking');
+} else {
+    define('DB_HOST', 'sql105.byethost10.com');
+    define('DB_USER', 'b10_40049115');
+    define('DB_PASS', 'Khubaib@04');
+    define('DB_NAME', 'b10_40049115_bus'); // Using your new database
+}
 
 // System Settings
 define('SYSTEM_NAME', 'SwiftBus');

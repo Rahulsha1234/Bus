@@ -1,5 +1,5 @@
-CREATE DATABASE IF NOT EXISTS bus_booking;
-USE bus_booking;
+-- CREATE DATABASE IF NOT EXISTS bus_booking;
+-- USE bus_booking;
 
 -- Drop dependent tables in reverse order to respect foreign key constraints
 DROP TABLE IF EXISTS system_notifications;
