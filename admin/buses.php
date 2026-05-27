@@ -43,10 +43,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($chk->fetchColumn()) {
                     $error = "Bus Number already registered.";
                 } else {
-                    $stmt = $pdo->prepare("INSERT INTO buses (admin_id, bus_name, bus_number, bus_type, total_seats, seat_layout_type, discount_type, percentage, fixed) VALUES (?, ?, ?, ?, ?, ?, 'none', 0.00, 0.00)");
-                    $stmt->execute([$admin_id, $name, $number, $type, $total_seats, $layout]);
-                    $success = "Bus added successfully!";
-                    log_activity($pdo, $admin_id, 'BUS_ADD', "Added bus $name ($number)");
+                    try {
+                        // agent_id = admin_id (legacy column kept for compatibility)
+                        $stmt = $pdo->prepare("INSERT INTO buses (agent_id, admin_id, bus_name, bus_number, bus_type, total_seats, seat_layout_type, discount_type, percentage, fixed) VALUES (?, ?, ?, ?, ?, ?, ?, 'none', 0.00, 0.00)");
+                        $stmt->execute([$admin_id, $admin_id, $name, $number, $type, $total_seats, $layout]);
+                        $success = "Bus added successfully!";
+                        log_activity($pdo, $admin_id, 'BUS_ADD', "Added bus $name ($number)");
+                    } catch (PDOException $e) {
+                        $error = "Failed to add bus: " . $e->getMessage();
+                    }
                 }
             }
         }
@@ -133,7 +138,7 @@ try {
         FROM buses b 
         LEFT JOIN operator_contacts op ON b.id = op.bus_id
         WHERE b.admin_id = ? AND b.status = 'active'
-        ORDER BY b.created_at DESC
+        ORDER BY b.id DESC
     ");
     $stmt->execute([$admin_id]);
     $buses = $stmt->fetchAll();
