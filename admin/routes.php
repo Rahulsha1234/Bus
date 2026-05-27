@@ -25,8 +25,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // ADD ROUTE
         if ($action === 'add') {
-            $source = trim($_POST['source'] ?? '');
-            $destination = trim($_POST['destination'] ?? '');
+            $source = strtoupper(trim($_POST['source'] ?? ''));
+            $destination = strtoupper(trim($_POST['destination'] ?? ''));
             $distance = intval($_POST['distance_km'] ?? 0);
             $duration = trim($_POST['duration'] ?? '6 hours');
 
@@ -100,8 +100,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // UPDATE ROUTE
         elseif ($action === 'edit') {
             $route_id = intval($_POST['route_id'] ?? 0);
-            $source = trim($_POST['source'] ?? '');
-            $destination = trim($_POST['destination'] ?? '');
+            $source = strtoupper(trim($_POST['source'] ?? ''));
+            $destination = strtoupper(trim($_POST['destination'] ?? ''));
             $distance = intval($_POST['distance_km'] ?? 0);
             $duration = trim($_POST['duration'] ?? '6 hours');
             $status = $_POST['status'] ?? 'active';
@@ -244,8 +244,8 @@ try {
                         $drops = json_decode($route['drop_points'], true) ?? [];
                         ?>
                         <tr>
-                            <td><span class="fw-semibold text-white fs-6"><?= htmlspecialchars($route['source']) ?></span></td>
-                            <td><span class="fw-semibold text-white fs-6"><?= htmlspecialchars($route['destination']) ?></span>
+                            <td><span class="fw-semibold text-white fs-6"><?= strtoupper(htmlspecialchars($route['source'])) ?></span></td>
+                            <td><span class="fw-semibold text-white fs-6"><?= strtoupper(htmlspecialchars($route['destination'])) ?></span>
                             </td>
                             <td>
                                 <div class="text-white small"><?= htmlspecialchars($route['distance_km']) ?> km</div>
@@ -253,23 +253,17 @@ try {
                             </td>
                             <td>
                                 <ul class="list-unstyled mb-0 small text-secondary">
-                                    <?php foreach ($pickups as $p):
-                                        $formatted_time = !empty($p['time']) ? date('H:i', strtotime($p['time'])) : '00:00';
-                                        ?>
+                                    <?php foreach ($pickups as $p): ?>
                                         <li><i class="fa-solid fa-circle text-indigo me-1"
-                                                style="font-size: 0.4rem; color: #818cf8;"></i><?= htmlspecialchars($p['name']) ?>
-                                            (<?= htmlspecialchars($formatted_time) ?>)</li>
+                                                style="font-size: 0.4rem; color: #818cf8;"></i><?= preg_replace('/\s*\(\d{2}:\d{2}\)/', '', htmlspecialchars(strtoupper($p['name']))) ?></li>
                                     <?php endforeach; ?>
                                 </ul>
                             </td>
                             <td>
                                 <ul class="list-unstyled mb-0 small text-secondary">
-                                    <?php foreach ($drops as $d):
-                                        $formatted_time = !empty($d['time']) ? date('H:i', strtotime($d['time'])) : '00:00';
-                                        ?>
+                                    <?php foreach ($drops as $d): ?>
                                         <li><i class="fa-solid fa-circle text-pink me-1"
-                                                style="font-size: 0.4rem; color: #ec4899;"></i><?= htmlspecialchars($d['name']) ?>
-                                            (<?= htmlspecialchars($formatted_time) ?>)</li>
+                                                style="font-size: 0.4rem; color: #ec4899;"></i><?= preg_replace('/\s*\(\d{2}:\d{2}\)/', '', htmlspecialchars(strtoupper($d['name']))) ?></li>
                                     <?php endforeach; ?>
                                 </ul>
                             </td>

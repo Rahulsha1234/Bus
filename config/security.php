@@ -81,10 +81,49 @@ if (!function_exists('log_activity')) {
     }
 }
 
+// Auto create overrides and blocks tables if they don't exist
+if (!function_exists('ensure_refactor_tables_exist')) {
+    function ensure_refactor_tables_exist($pdo) {
+        static $run = false;
+        if ($run) return;
+        try {
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS seat_price_overrides (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    trip_id INT NOT NULL,
+                    seat_number VARCHAR(20) NOT NULL,
+                    custom_price DECIMAL(10,2) NOT NULL,
+                    updated_by INT NOT NULL,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE CASCADE,
+                    FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE CASCADE,
+                    UNIQUE KEY unique_trip_seat_override (trip_id, seat_number)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+            ");
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS seat_blocks (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    trip_id INT NOT NULL,
+                    seat_number VARCHAR(20) NOT NULL,
+                    blocked_by INT NOT NULL,
+                    blocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE CASCADE,
+                    FOREIGN KEY (blocked_by) REFERENCES users(id) ON DELETE CASCADE,
+                    UNIQUE KEY unique_trip_seat_block (trip_id, seat_number)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+            ");
+            $run = true;
+        } catch (Exception $e) {
+            // fail silently
+        }
+    }
+}
+
 // Get dynamic resolved seat price using override hierarchy
 if (!function_exists('get_actual_seat_price')) {
     function get_actual_seat_price($pdo, $trip_id, $seat_number, $trip_base_fare) {
         try {
+            ensure_refactor_tables_exist($pdo);
             // 1. Check seat_price_overrides
             $stmt = $pdo->prepare("SELECT custom_price FROM seat_price_overrides WHERE trip_id = ? AND seat_number = ? LIMIT 1");
             $stmt->execute([$trip_id, $seat_number]);
@@ -113,6 +152,7 @@ if (!function_exists('get_actual_seat_price')) {
 if (!function_exists('is_seat_blocked')) {
     function is_seat_blocked($pdo, $trip_id, $seat_number) {
         try {
+            ensure_refactor_tables_exist($pdo);
             // 1. Check seat_blocks
             $stmt = $pdo->prepare("SELECT 1 FROM seat_blocks WHERE trip_id = ? AND seat_number = ? LIMIT 1");
             $stmt->execute([$trip_id, $seat_number]);

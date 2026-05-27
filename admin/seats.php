@@ -10,6 +10,7 @@ $success = '';
 
 // Fetch Agent's scheduled active trips
 try {
+    ensure_refactor_tables_exist($pdo);
     $stmt = $pdo->prepare("
         SELECT 
             t.id AS trip_id,

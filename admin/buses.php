@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // ADD BUS
         if ($action === 'add') {
             $name = trim($_POST['bus_name'] ?? '');
-            $number = strtoupper(trim($_POST['bus_number'] ?? ''));
+            $number = preg_replace('/[^A-Z0-9]/', '', strtoupper(trim($_POST['bus_number'] ?? '')));
             $type = $_POST['bus_type'] ?? '';
             $total_seats = intval($_POST['total_seats'] ?? 30);
             
@@ -34,8 +34,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if (empty($name) || empty($number) || empty($type)) {
                 $error = "Please fill in all fields.";
-            } elseif (!preg_match('/^[A-Z]{2}[ -]?[0-9]{1,2}[ -]?[A-Z]{0,3}[ -]?[0-9]{4}$/', $number)) {
-                $error = "Invalid License Plate Number. Please enter a valid Indian bus number (e.g., KA-01-F-1234 or MH12AB1234).";
+            } elseif (!preg_match('/^[A-Z0-9]{6,15}$/', $number)) {
+                $error = "Invalid License Plate Number. Alphanumeric characters only, no spaces or special characters (e.g., DL01CA1234).";
             } else {
                 // Check if bus number already registered
                 $chk = $pdo->prepare("SELECT id FROM buses WHERE bus_number = ? AND status = 'active' LIMIT 1");
@@ -60,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         elseif ($action === 'edit') {
             $bus_id = intval($_POST['bus_id'] ?? 0);
             $name = trim($_POST['bus_name'] ?? '');
-            $number = strtoupper(trim($_POST['bus_number'] ?? ''));
+            $number = preg_replace('/[^A-Z0-9]/', '', strtoupper(trim($_POST['bus_number'] ?? '')));
             $type = $_POST['bus_type'] ?? '';
             
             $layout = (strpos($type, 'Sleeper') !== false) ? '2x1_sleeper' : '2x2_seater';
@@ -68,8 +68,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if (empty($name) || empty($number) || empty($type) || $bus_id === 0) {
                 $error = "Please fill in all fields.";
-            } elseif (!preg_match('/^[A-Z]{2}[ -]?[0-9]{1,2}[ -]?[A-Z]{0,3}[ -]?[0-9]{4}$/', $number)) {
-                $error = "Invalid License Plate Number. Please enter a valid Indian bus number (e.g., KA-01-F-1234 or MH12AB1234).";
+            } elseif (!preg_match('/^[A-Z0-9]{6,15}$/', $number)) {
+                $error = "Invalid License Plate Number. Alphanumeric characters only, no spaces or special characters (e.g., DL01CA1234).";
             } else {
                 // Verify ownership & bus number availability
                 $chk = $pdo->prepare("SELECT id FROM buses WHERE bus_number = ? AND id != ? AND status = 'active' LIMIT 1");
@@ -231,7 +231,7 @@ try {
 
                     <div class="mb-3">
                         <label class="form-label text-secondary small fw-semibold">License Plate Number</label>
-                        <input type="text" name="bus_number" class="form-control form-control-swift" placeholder="e.g. KA-01-F-1234" pattern="^[A-Za-z]{2}[ -]?[0-9]{1,2}[ -]?[A-Za-z]{0,3}[ -]?[0-9]{4}$" title="Please enter a valid Indian vehicle number format (e.g. KA-01-F-1234 or MH12AB1234)" required>
+                        <input type="text" name="bus_number" class="form-control form-control-swift" placeholder="e.g. KA01F1234" pattern="^[A-Za-z0-9]{6,15}$" title="Alphanumeric characters only, no spaces or special characters (e.g. KA01F1234)" required>
                     </div>
 
                     <div class="mb-3">
@@ -276,7 +276,7 @@ try {
 
                     <div class="mb-3">
                         <label class="form-label text-secondary small fw-semibold">License Plate Number</label>
-                        <input type="text" name="bus_number" id="edit_bus_number" class="form-control form-control-swift" pattern="^[A-Za-z]{2}[ -]?[0-9]{1,2}[ -]?[A-Za-z]{0,3}[ -]?[0-9]{4}$" title="Please enter a valid Indian vehicle number format (e.g. KA-01-F-1234 or MH12AB1234)" required>
+                        <input type="text" name="bus_number" id="edit_bus_number" class="form-control form-control-swift" pattern="^[A-Za-z0-9]{6,15}$" title="Alphanumeric characters only, no spaces or special characters (e.g. KA01F1234)" required>
                     </div>
 
                     <div class="mb-3">

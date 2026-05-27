@@ -129,7 +129,7 @@ $user = get_logged_user();
                     </a>
                     <a href="<?= BASE_URL ?>/admin/seats.php"
                         class="sidebar-link <?= ($cur_nav === 'seats.php') ? 'active' : '' ?>">
-                        <i class="fa-solid fa-chair"></i>Hold/Release Seats
+                        <i class="fa-solid fa-chair"></i>Modify Seats
                     </a>
                     <a href="<?= BASE_URL ?>/admin/bookings.php"
                         class="sidebar-link <?= ($cur_nav === 'bookings.php') ? 'active' : '' ?>">
@@ -175,7 +175,7 @@ $user = get_logged_user();
                             <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/admin/buses.php">Buses</a></li>
                             <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/admin/routes.php">Routes</a></li>
                             <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/admin/trips.php">Trips</a></li>
-                            <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/admin/seats.php">Seats</a></li>
+                            <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/admin/seats.php">Modify Seats</a></li>
                             <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/admin/bookings.php">Bookings</a>
                             </li>
                             <li><a class="dropdown-item py-2"
