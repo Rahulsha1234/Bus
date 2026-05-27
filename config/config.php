@@ -12,7 +12,14 @@ ini_set('log_errors', 1);
 if (!defined('BASE_URL')) {
     $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
     $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-    $base_dir = '/bus'; // Set matching folder inside www
+    
+    // Auto detect if running in a subdirectory or direct htdocs root
+    $script_dir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME']));
+    $base_dir = ($script_dir === '/' || $script_dir === '\\') ? '' : rtrim($script_dir, '/');
+    
+    // If inside portal folders, strip them from base url detection
+    $base_dir = preg_replace('/\/(admin|super_admin|agent|ajax|includes|config)$/', '', $base_dir);
+    
     define('BASE_URL', $protocol . '://' . $host . $base_dir);
 }
 

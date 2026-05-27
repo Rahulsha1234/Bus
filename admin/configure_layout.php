@@ -6,12 +6,12 @@ require_once __DIR__ . '/header.php';
 
 $bus_id = intval($_GET['bus_id'] ?? 0);
 if ($bus_id === 0) {
-    header("Location: " . BASE_URL . "/agent/buses.php");
+    header("Location: " . BASE_URL . "/admin/buses.php");
     exit();
 }
 
 // Verify bus ownership
-$stmt = $pdo->prepare("SELECT * FROM buses WHERE id = ? AND agent_id = ? AND status = 'active' LIMIT 1");
+$stmt = $pdo->prepare("SELECT * FROM buses WHERE id = ? AND admin_id = ? AND status = 'active' LIMIT 1");
 $stmt->execute([$bus_id, $_SESSION['user_id']]);
 $bus = $stmt->fetch();
 
@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             } else {
                 try {
                     $stmt = $pdo->prepare("
-                        INSERT INTO layout_templates (agent_id, template_name, rows_count, cols_count, layout_type, seats_data)
+                        INSERT INTO layout_templates (admin_id, template_name, rows_count, cols_count, layout_type, seats_data)
                         VALUES (?, ?, ?, ?, ?, ?)
                     ");
                     $stmt->execute([$_SESSION['user_id'], $template_name, $rows, $cols, $layout_type, $seats_data]);
@@ -60,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $template_id = intval($_POST['template_id'] ?? 0);
             
             try {
-                $stmt = $pdo->prepare("SELECT * FROM layout_templates WHERE id = ? AND agent_id = ? LIMIT 1");
+                $stmt = $pdo->prepare("SELECT * FROM layout_templates WHERE id = ? AND admin_id = ? LIMIT 1");
                 $stmt->execute([$template_id, $_SESSION['user_id']]);
                 $template = $stmt->fetch();
 
@@ -119,7 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         elseif ($action === 'delete_template') {
             $template_id = intval($_POST['template_id'] ?? 0);
             try {
-                $stmt = $pdo->prepare("DELETE FROM layout_templates WHERE id = ? AND agent_id = ?");
+                $stmt = $pdo->prepare("DELETE FROM layout_templates WHERE id = ? AND admin_id = ?");
                 $stmt->execute([$template_id, $_SESSION['user_id']]);
                 $success = "Template deleted successfully!";
                 log_activity($pdo, $_SESSION['user_id'], 'LAYOUT_TEMPLATE_DELETE', "Deleted template ID $template_id");
@@ -225,7 +225,7 @@ foreach ($db_seats as $s) {
 }
 
 // Fetch Agent's Saved Templates
-$templates_stmt = $pdo->prepare("SELECT * FROM layout_templates WHERE agent_id = ? ORDER BY created_at DESC");
+$templates_stmt = $pdo->prepare("SELECT * FROM layout_templates WHERE admin_id = ? ORDER BY created_at DESC");
 $templates_stmt->execute([$_SESSION['user_id']]);
 $templates = $templates_stmt->fetchAll();
 ?>

@@ -157,11 +157,11 @@ require_once __DIR__ . '/includes/header.php';
 </div> <!-- Close container for search panel to allow full-width on subsequent sections -->
  <!-- Close container before full-width trust section -->
 
-<!-- Trust Indicators Section - Full Width with Count-Up Animation -->
+<!-- Bento Style Premium Feature Showcase Section -->
 <div id="trust-section" class="position-relative overflow-hidden py-5 my-5 reveal-on-scroll"
-    style="background: linear-gradient(135deg, #0c2016 0%, #0f3d1f 50%, #0c2016 100%); margin-top: 100px !important;">
-    <!-- Animated background particles -->
-    <div class="position-absolute top-0 start-0 w-100 h-100 pointer-events-none" style="opacity: 0.06;">
+    style="background: linear-gradient(135deg, #091a12 0%, #0d2e18 50%, #091a12 100%); margin-top: 100px !important;">
+    <!-- Animated background grid -->
+    <div class="position-absolute top-0 start-0 w-100 h-100 pointer-events-none" style="opacity: 0.05;">
         <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
             <defs>
                 <pattern id="trustDots" width="40" height="40" patternUnits="userSpaceOnUse">
@@ -171,84 +171,71 @@ require_once __DIR__ . '/includes/header.php';
             <rect width="100%" height="100%" fill="url(#trustDots)" />
         </svg>
     </div>
-    <!-- Floating glow orbs -->
-    <div class="position-absolute rounded-circle"
-        style="width: 300px; height: 300px; background: radial-gradient(circle, rgba(25,135,84,0.15) 0%, transparent 70%); top: -100px; left: -50px; animation: floatOrb 8s ease-in-out infinite;">
-    </div>
-    <div class="position-absolute rounded-circle"
-        style="width: 250px; height: 250px; background: radial-gradient(circle, rgba(25,135,84,0.1) 0%, transparent 70%); bottom: -80px; right: -30px; animation: floatOrb 10s ease-in-out infinite reverse;">
-    </div>
-
+    
     <div class="container position-relative z-1">
-        <h2 class="fw-bold mb-2 text-center text-white"
-            style="font-family: 'Plus Jakarta Sans', sans-serif; letter-spacing: -0.5px; color: #ffffff !important;">Why
-            Travelers Trust SwiftBus</h2>
-        <p class="text-center mb-5" style="color: rgba(255,255,255,0.55); font-size: 0.95rem;">Numbers that speak for
-            themselves</p>
-        <div class="row g-4 justify-content-center">
-            <div class="col-6 col-lg-3">
-                <div class="text-center p-4 rounded-4 trust-stat-card"
-                    style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(8px);">
-                    <div class="mb-3 mx-auto d-flex align-items-center justify-content-center rounded-circle"
-                        style="width: 64px; height: 64px; background: rgba(25,135,84,0.2); border: 1px solid rgba(25,135,84,0.3); animation: float 4s ease-in-out infinite;">
-                        <i class="fa-solid fa-ticket fs-4" style="color: #2ecc71;"></i>
+        <div class="text-center mb-5">
+            <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill uppercase tracking-wider mb-2" style="font-size: 0.8rem; font-weight: 700; border: 1px solid rgba(46, 204, 113, 0.2);">SMART VOYAGES</span>
+            <h2 class="fw-bold display-5 text-white" style="font-family: 'Plus Jakarta Sans', sans-serif; letter-spacing: -1px; color: #ffffff !important;">Revolutionizing Road Travel</h2>
+            <p class="text-secondary mx-auto" style="max-width: 600px; color: rgba(255,255,255,0.6) !important;">Experience high-end amenities, robust security infrastructure, and absolute booking flexibility.</p>
+        </div>
+
+        <div class="row g-4">
+            <!-- 1. Real-time Seating Layout Map -->
+            <div class="col-lg-4">
+                <div class="p-5 rounded-4 h-100 d-flex flex-column justify-content-between trust-stat-card border"
+                    style="background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.07) !important; backdrop-filter: blur(10px);">
+                    <div>
+                        <div class="mb-4 d-inline-flex align-items-center justify-content-center rounded-3" style="width: 50px; height: 50px; background: rgba(46, 204, 113, 0.1); border: 1px solid rgba(46, 204, 113, 0.25);">
+                            <i class="fa-solid fa-chair fs-4 text-success"></i>
+                        </div>
+                        <h4 class="fw-bold text-white mb-2" style="font-family: 'Plus Jakarta Sans', sans-serif; color: #ffffff !important;">Visual Interactive Seating</h4>
+                        <p class="text-secondary small mb-0" style="color: rgba(255,255,255,0.55) !important; line-height: 1.6;">Our state-of-the-art layout builder provides live grid updates. Select berths, upper/lower sleeper decks, and window alignments in a premium visual interface.</p>
                     </div>
-                    <h3 class="fw-bold mb-1 counter-value" data-target="10000" data-suffix="+"
-                        style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 2.2rem; color: #ffffff !important;">
-                        0</h3>
-                    <p class="mb-0 small fw-bold text-uppercase"
-                        style="font-size: 0.7rem; letter-spacing: 2px; color: rgba(255,255,255,0.5);">Bookings Completed
-                    </p>
+                    <div class="mt-4 pt-3 border-top border-secondary border-opacity-10 d-flex justify-content-between align-items-center">
+                        <span class="text-success small fw-bold font-monospace text-uppercase" style="letter-spacing: 1px;">Live Seating Engine</span>
+                        <i class="fa-solid fa-arrow-trend-up text-success"></i>
+                    </div>
                 </div>
             </div>
-            <div class="col-6 col-lg-3">
-                <div class="text-center p-4 rounded-4 trust-stat-card"
-                    style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(8px);">
-                    <div class="mb-3 mx-auto d-flex align-items-center justify-content-center rounded-circle"
-                        style="width: 64px; height: 64px; background: rgba(25,135,84,0.2); border: 1px solid rgba(25,135,84,0.3); animation: float 5s ease-in-out infinite 0.5s;">
-                        <i class="fa-solid fa-route fs-4" style="color: #2ecc71;"></i>
+
+            <!-- 2. Integrated Payment & Security -->
+            <div class="col-lg-4">
+                <div class="p-5 rounded-4 h-100 d-flex flex-column justify-content-between trust-stat-card border"
+                    style="background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.07) !important; backdrop-filter: blur(10px);">
+                    <div>
+                        <div class="mb-4 d-inline-flex align-items-center justify-content-center rounded-3" style="width: 50px; height: 50px; background: rgba(46, 204, 113, 0.1); border: 1px solid rgba(46, 204, 113, 0.25);">
+                            <i class="fa-solid fa-shield-halved fs-4 text-success"></i>
+                        </div>
+                        <h4 class="fw-bold text-white mb-2" style="font-family: 'Plus Jakarta Sans', sans-serif; color: #ffffff !important;">Encrypted Safety Standards</h4>
+                        <p class="text-secondary small mb-0" style="color: rgba(255,255,255,0.55) !important; line-height: 1.6;">Every booking is processed through secure payment gateways with dynamic hash verification. Advanced session controls safeguard active partner logs.</p>
                     </div>
-                    <h3 class="fw-bold mb-1 counter-value" data-target="500" data-suffix="+"
-                        style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 2.2rem; color: #ffffff !important;">
-                        0</h3>
-                    <p class="mb-0 small fw-bold text-uppercase"
-                        style="font-size: 0.7rem; letter-spacing: 2px; color: rgba(255,255,255,0.5);">Active Routes</p>
+                    <div class="mt-4 pt-3 border-top border-secondary border-opacity-10 d-flex justify-content-between align-items-center">
+                        <span class="text-success small fw-bold font-monospace text-uppercase" style="letter-spacing: 1px;">SSL Secure Desk</span>
+                        <i class="fa-solid fa-lock text-success"></i>
+                    </div>
                 </div>
             </div>
-            <div class="col-6 col-lg-3">
-                <div class="text-center p-4 rounded-4 trust-stat-card"
-                    style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(8px);">
-                    <div class="mb-3 mx-auto d-flex align-items-center justify-content-center rounded-circle"
-                        style="width: 64px; height: 64px; background: rgba(25,135,84,0.2); border: 1px solid rgba(25,135,84,0.3); animation: float 4.5s ease-in-out infinite 1s;">
-                        <i class="fa-solid fa-face-smile fs-4" style="color: #2ecc71;"></i>
+
+            <!-- 3. Smart Refunds & Cancellations -->
+            <div class="col-lg-4">
+                <div class="p-5 rounded-4 h-100 d-flex flex-column justify-content-between trust-stat-card border"
+                    style="background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.07) !important; backdrop-filter: blur(10px);">
+                    <div>
+                        <div class="mb-4 d-inline-flex align-items-center justify-content-center rounded-3" style="width: 50px; height: 50px; background: rgba(46, 204, 113, 0.1); border: 1px solid rgba(46, 204, 113, 0.25);">
+                            <i class="fa-solid fa-clock-rotate-left fs-4 text-success"></i>
+                        </div>
+                        <h4 class="fw-bold text-white mb-2" style="font-family: 'Plus Jakarta Sans', sans-serif; color: #ffffff !important;">Instant Cancel & Auto-Refund</h4>
+                        <p class="text-secondary small mb-0" style="color: rgba(255,255,255,0.55) !important; line-height: 1.6;">Change of plans? Cancel tickets with a single click. Our automated settlement system routes refunds instantly based on clean cancellation structures.</p>
                     </div>
-                    <h3 class="fw-bold mb-1 counter-value" data-target="99" data-suffix="%"
-                        style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 2.2rem; color: #ffffff !important;">
-                        0</h3>
-                    <p class="mb-0 small fw-bold text-uppercase"
-                        style="font-size: 0.7rem; letter-spacing: 2px; color: rgba(255,255,255,0.5);">Satisfaction</p>
-                </div>
-            </div>
-            <div class="col-6 col-lg-3">
-                <div class="text-center p-4 rounded-4 trust-stat-card"
-                    style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(8px);">
-                    <div class="mb-3 mx-auto d-flex align-items-center justify-content-center rounded-circle"
-                        style="width: 64px; height: 64px; background: rgba(25,135,84,0.2); border: 1px solid rgba(25,135,84,0.3); animation: float 5.5s ease-in-out infinite 1.5s;">
-                        <i class="fa-solid fa-headset fs-4" style="color: #2ecc71;"></i>
+                    <div class="mt-4 pt-3 border-top border-secondary border-opacity-10 d-flex justify-content-between align-items-center">
+                        <span class="text-success small fw-bold font-monospace text-uppercase" style="letter-spacing: 1px;">Flex Cancellation</span>
+                        <i class="fa-solid fa-rotate-left text-success"></i>
                     </div>
-                    <h3 class="fw-bold mb-1"
-                        style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 2.2rem; color: #ffffff !important;">
-                        24/7</h3>
-                    <p class="mb-0 small fw-bold text-uppercase"
-                        style="font-size: 0.7rem; letter-spacing: 2px; color: rgba(255,255,255,0.5);">Customer Support
-                    </p>
                 </div>
             </div>
         </div>
     </div>
 </div>
-
-<div class="container"> <!-- Reopen container for remaining sections -->
 
     <!-- Scroll reveal style and Keyframes -->
     <style>
@@ -593,20 +580,17 @@ require_once __DIR__ . '/includes/header.php';
             </div>
         </div>
     </div>
-</div>
+</div> <!-- Close inner background doodles wrapper -->
 
-<div class="container"> <!-- Reopen container for Fleet Gallery -->
-
-    <!-- Fleet Gallery Section -->
-    <div class="py-5 my-5 reveal-on-scroll">
+<!-- Fleet Gallery Section -->
+<div class="py-5 my-5 reveal-on-scroll">
+    <div class="container">
         <div class="text-center mb-5">
             <span
                 class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill uppercase tracking-wider mb-2"
                 style="font-size: 0.8rem; font-weight: 700;">Our Premium Fleet</span>
-            <h2 class="fw-bold display-6" style="font-family: 'Plus Jakarta Sans', sans-serif;">Travel In Redefined
-                Comfort</h2>
-            <p class="text-secondary mx-auto" style="max-width: 600px;">Explore the state-of-the-art features of our
-                premium, safe, and highly maintained bus fleet.</p>
+            <h2 class="fw-bold display-6" style="font-family: 'Plus Jakarta Sans', sans-serif;">Travel In Redefined Comfort</h2>
+            <p class="text-secondary mx-auto" style="max-width: 600px;">Explore the state-of-the-art features of our premium, safe, and highly maintained bus fleet.</p>
         </div>
         <div class="row g-4">
             <!-- Card 1 -->
@@ -682,8 +666,7 @@ require_once __DIR__ . '/includes/header.php';
             </div>
         </div>
     </div>
-
-</div> <!-- Close container for full-width Map section -->
+</div>
 
 <!-- Interactive Route Map Section (Full Width) -->
 <div class="position-relative overflow-hidden py-5 reveal-on-scroll"

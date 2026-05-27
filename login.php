@@ -13,7 +13,9 @@ $page_title = "Login";
 // Redirect if already logged in
 if (is_logged_in()) {
     $user = get_logged_user();
-    if ($user['role'] === 'admin') {
+    if ($user['role'] === 'super_admin') {
+        header("Location: " . BASE_URL . "/super_admin/dashboard.php");
+    } elseif ($user['role'] === 'admin') {
         header("Location: " . BASE_URL . "/admin/dashboard.php");
     } elseif ($user['role'] === 'agent') {
         header("Location: " . BASE_URL . "/agent/dashboard.php");
@@ -69,7 +71,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     log_activity($pdo, $user_row['id'], 'LOGIN_SUCCESS', "User logged in successfully as {$user_row['role']}.");
 
                     // Redirect based on role
-                    if ($user_row['role'] === 'admin') {
+                    if ($user_row['role'] === 'super_admin') {
+                        header("Location: " . BASE_URL . "/super_admin/dashboard.php");
+                    } elseif ($user_row['role'] === 'admin') {
                         header("Location: " . BASE_URL . "/admin/dashboard.php");
                     } elseif ($user_row['role'] === 'agent') {
                         header("Location: " . BASE_URL . "/agent/dashboard.php");

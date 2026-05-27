@@ -9,7 +9,9 @@ $page_title = "Admin Login";
 // Redirect if already logged in
 if (is_logged_in()) {
     $user = get_logged_user();
-    if ($user['role'] === 'admin') {
+    if ($user['role'] === 'super_admin') {
+        header("Location: " . BASE_URL . "/super_admin/dashboard.php");
+    } elseif ($user['role'] === 'admin') {
         header("Location: " . BASE_URL . "/admin/dashboard.php");
     } elseif ($user['role'] === 'agent') {
         header("Location: " . BASE_URL . "/agent/dashboard.php");
@@ -49,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ($user_row && password_verify($password, $user_row['password'])) {
                 // Restrict roles
-                if ($user_row['role'] !== 'admin') {
+                if ($user_row['role'] !== 'super_admin') {
                     $error = "Access denied. Admin portal is restricted to system administrators.";
                 } else {
                     // Create Session
@@ -63,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     log_activity($pdo, $user_row['id'], 'LOGIN_SUCCESS', 'Admin logged in via Admin portal.');
 
                     // Redirect
-                    header("Location: " . BASE_URL . "/admin/dashboard.php");
+                    header("Location: " . BASE_URL . "/super_admin/dashboard.php");
                     exit();
                 }
             } else {

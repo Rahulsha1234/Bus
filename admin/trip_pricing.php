@@ -6,7 +6,7 @@ require_once __DIR__ . '/header.php';
 
 $trip_id = intval($_GET['trip_id'] ?? 0);
 if ($trip_id === 0) {
-    header("Location: " . BASE_URL . "/agent/trips.php");
+    header("Location: " . BASE_URL . "/admin/trips.php");
     exit();
 }
 
@@ -16,7 +16,7 @@ $stmt = $pdo->prepare("
     FROM trips t
     JOIN buses b ON t.bus_id = b.id
     JOIN routes r ON t.route_id = r.id
-    WHERE t.id = ? AND b.agent_id = ? AND t.status = 'active'
+    WHERE t.id = ? AND b.admin_id = ? AND t.status = 'active'
     LIMIT 1
 ");
 $stmt->execute([$trip_id, $_SESSION['user_id']]);

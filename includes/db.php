@@ -53,7 +53,7 @@ $GLOBALS['custom_notice'] = $custom_notice;
 
 // Maintenance mode interception
 $current_script = basename($_SERVER['SCRIPT_NAME']);
-$is_admin = isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin';
+$is_admin = isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'super_admin';
 
 if ($maintenance_mode === '1' && !$is_admin && $current_script !== 'maintenance.php' && $current_script !== 'login.php') {
     header("Location: " . BASE_URL . "/maintenance.php");

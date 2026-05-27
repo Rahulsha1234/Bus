@@ -1,30 +1,20 @@
 <?php
 /**
- * Agent Portal Header
+ * Super Admin Panel Header
  */
 require_once __DIR__ . '/../includes/auth_middleware.php';
 
-// Force role protection
-require_role('agent');
+// Role protection
+require_role('super_admin');
 
 $user = get_logged_user();
-
-// Fetch agent's profile details to find their parent operator admin_id
-try {
-    $agent_stmt = $pdo->prepare("SELECT * FROM agent_profiles WHERE user_id = ? LIMIT 1");
-    $agent_stmt->execute([$user['id']]);
-    $agent_profile = $agent_stmt->fetch();
-    $parent_admin_id = $agent_profile ? intval($agent_profile['admin_id']) : 0;
-} catch (Exception $e) {
-    $parent_admin_id = 0;
-}
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= isset($page_title) ? $page_title . ' - ' : '' ?>Agent Portal</title>
+    <title><?= isset($page_title) ? $page_title . ' - ' : '' ?>Super Admin Portal</title>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Bootstrap 5 -->
@@ -44,47 +34,30 @@ try {
     <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
     
     <style>
-        .sidebar-agent {
-            min-height: 100dvh;
+        .sidebar-admin {
+            min-height: 100vh;
             border-right: 1px solid var(--border-glass);
-            background: rgba(15, 23, 42, 0.7);
-            backdrop-filter: blur(10px);
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
             padding: 2rem 1.5rem;
         }
         .sidebar-link {
             display: flex;
             align-items: center;
             gap: 12px;
-            color: rgba(255,255,255,0.55);
+            color: var(--text-muted);
             text-decoration: none;
-            padding: 0.75rem 1rem;
+            padding: 0.8rem 1rem;
             border-radius: 10px;
             font-weight: 500;
-            font-size: 0.9rem;
             transition: all 0.2s ease;
-            margin-bottom: 0.25rem;
-            border-left: 3px solid transparent;
+            margin-bottom: 0.5rem;
         }
-        .sidebar-link i {
-            width: 18px;
-            text-align: center;
-            font-size: 0.95rem;
-        }
-        .sidebar-link:hover {
-            color: rgba(255,255,255,0.9);
-            background: rgba(255, 255, 255, 0.06);
-            border-left-color: rgba(129,140,248,0.5);
+        .sidebar-link:hover, .sidebar-link.active {
+            color: white;
+            background: rgba(99, 102, 241, 0.1);
+            border-left: 3px solid var(--accent-violet);
             padding-left: calc(1rem - 3px);
-        }
-        .sidebar-link.active {
-            color: #ffffff;
-            background: rgba(129, 140, 248, 0.15);
-            border-left: 3px solid #818cf8;
-            padding-left: calc(1rem - 3px);
-            font-weight: 600;
-        }
-        .sidebar-link.active i {
-            color: #818cf8;
         }
     </style>
 </head>
@@ -93,27 +66,36 @@ try {
 <div class="container-fluid">
     <div class="row">
         <!-- Sidebar Navigation -->
-        <div class="col-md-3 col-lg-2 px-0 d-none d-md-block sidebar-agent">
+        <div class="col-md-3 col-lg-2 px-0 d-none d-md-block sidebar-admin">
             <div class="mb-5 px-3">
                 <a href="<?= BASE_URL ?>/index.php" class="text-decoration-none d-flex align-items-center gap-2">
                     <i class="fa-solid fa-bus text-indigo" style="font-size: 1.5rem; color:#818cf8;"></i>
                     <span class="text-gradient fw-bold fs-5"><?= SYSTEM_NAME ?></span>
                 </a>
-                <span class="text-secondary" style="font-size: 0.75rem; letter-spacing: 0.5px;">AGENT PARTNER</span>
+                <span class="text-secondary small font-monospace" style="font-size: 0.7rem; letter-spacing: 0.5px;">ADMIN PANEL</span>
             </div>
 
             <nav>
-                <?php
+                <?php 
                 $cur = basename($_SERVER['SCRIPT_NAME']);
                 ?>
-                <a href="<?= BASE_URL ?>/agent/dashboard.php" class="sidebar-link <?= ($cur === 'dashboard.php') ? 'active' : '' ?>">
-                    <i class="fa-solid fa-chart-pie"></i>Dashboard
+                <a href="<?= BASE_URL ?>/super_admin/dashboard.php" class="sidebar-link <?= ($cur === 'dashboard.php') ? 'active' : '' ?>">
+                    <i class="fa-solid fa-chart-line"></i>Admin Home
                 </a>
-                <a href="<?= BASE_URL ?>/agent/search.php" class="sidebar-link <?= ($cur === 'search.php' || $cur === 'book.php' || $cur === 'checkout.php') ? 'active' : '' ?>">
-                    <i class="fa-solid fa-magnifying-glass"></i>Search & Book
+                <a href="<?= BASE_URL ?>/super_admin/agents.php" class="sidebar-link <?= ($cur === 'agents.php') ? 'active' : '' ?>">
+                    <i class="fa-solid fa-users-gear"></i>Manage Agents
                 </a>
-                <a href="<?= BASE_URL ?>/agent/bookings.php" class="sidebar-link <?= ($cur === 'bookings.php') ? 'active' : '' ?>">
-                    <i class="fa-solid fa-receipt"></i>My Bookings
+                <a href="<?= BASE_URL ?>/super_admin/bookings.php" class="sidebar-link <?= ($cur === 'bookings.php') ? 'active' : '' ?>">
+                    <i class="fa-solid fa-ticket"></i>All Bookings
+                </a>
+                <a href="<?= BASE_URL ?>/super_admin/settlements.php" class="sidebar-link <?= ($cur === 'settlements.php') ? 'active' : '' ?>">
+                    <i class="fa-solid fa-wallet"></i>Settlements
+                </a>
+                <a href="<?= BASE_URL ?>/super_admin/owner_control.php" class="sidebar-link <?= ($cur === 'owner_control.php') ? 'active' : '' ?>">
+                    <i class="fa-solid fa-shield-halved"></i>Owner Controls
+                </a>
+                <a href="<?= BASE_URL ?>/super_admin/audit_logs.php" class="sidebar-link <?= ($cur === 'audit_logs.php') ? 'active' : '' ?>">
+                    <i class="fa-solid fa-clock-rotate-left"></i>Activity Logs
                 </a>
                 
                 <hr class="border-secondary my-4">
@@ -136,9 +118,12 @@ try {
                         <i class="fa-solid fa-bars"></i>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark glass-card p-2 border-0 mt-2">
-                        <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/agent/dashboard.php">Dashboard</a></li>
-                        <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/agent/search.php">Search & Book</a></li>
-                        <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/agent/bookings.php">My Bookings</a></li>
+                        <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/super_admin/dashboard.php">Admin Home</a></li>
+                        <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/super_admin/agents.php">Agents</a></li>
+                        <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/super_admin/bookings.php">Bookings</a></li>
+                        <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/super_admin/settlements.php">Settlements</a></li>
+                        <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/super_admin/owner_control.php">Owner Controls</a></li>
+                        <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/super_admin/audit_logs.php">Activity Logs</a></li>
                         <li><hr class="dropdown-divider border-secondary"></li>
                         <li><a class="dropdown-item text-danger py-2" href="<?= BASE_URL ?>/logout.php">Logout</a></li>
                     </ul>
@@ -147,10 +132,10 @@ try {
             
             <div class="d-flex justify-content-between align-items-center mb-5 flex-wrap gap-3">
                 <div>
-                    <h2 class="fw-bold text-white mb-0"><?= isset($page_title) ? htmlspecialchars($page_title) : 'Agent Portal' ?></h2>
-                    <span class="text-secondary small">Agency Workspace</span>
+                    <h2 class="fw-bold text-white mb-0"><?= isset($page_title) ? htmlspecialchars($page_title) : 'Super Admin Portal' ?></h2>
+                    <span class="text-secondary small">System Control Workspace</span>
                 </div>
                 <div class="d-flex align-items-center gap-3">
-                    <span class="small text-secondary"><i class="fa-solid fa-briefcase text-indigo me-2"></i><?= htmlspecialchars($agent_profile['agency_name'] ?? $user['username']) ?></span>
+                    <span class="small text-secondary"><i class="fa-solid fa-circle-user text-indigo me-2"></i>Super Admin / Owner</span>
                 </div>
             </div>

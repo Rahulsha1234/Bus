@@ -143,10 +143,18 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
             }
         }
 
-        // 3. Fetch base fare to recalculate total
-        $trip_stmt = $pdo->prepare("SELECT base_fare FROM trips WHERE id = ? LIMIT 1");
+        // 3. Fetch base fare and discount details of the bus/trip
+        $trip_stmt = $pdo->prepare("
+            SELECT t.base_fare, t.admin_id AS trip_admin_id, b.discount_type, b.percentage, b.fixed
+            FROM trips t
+            JOIN buses b ON t.bus_id = b.id
+            WHERE t.id = ? 
+            LIMIT 1
+        ");
         $trip_stmt->execute([$trip_id]);
-        $base_fare = floatval($trip_stmt->fetchColumn());
+        $trip_info = $trip_stmt->fetch();
+        $base_fare = floatval($trip_info['base_fare']);
+        $trip_admin_id = intval($trip_info['trip_admin_id']);
         
         // Recalculate dynamic fare. Upper berths get +100 premium
         $total_amount = 0;
@@ -160,28 +168,62 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
             $total_amount += $fare;
         }
 
-        // Fetch and re-validate promo code discount server-side
-        $applied_promo = trim($_POST['applied_promo'] ?? '');
+        // Determine user details and source
+        $current_user_id = $_SESSION['user_id'] ?? null;
+        $current_role = $_SESSION['user_role'] ?? 'customer';
+        
+        $booking_source = 'customer';
+        $agent_id = null;
+        $admin_id = $trip_admin_id; // Always belongs to trip's admin operator
         $calculated_discount = 0.00;
-        if (!empty($applied_promo)) {
-            $code = strtoupper($applied_promo);
-            if ($code === 'SAVE10') {
-                $calculated_discount = $total_amount * 0.10;
-            } elseif ($code === 'FLAT100') {
-                $calculated_discount = 100.00;
-            } elseif ($code === 'SUPER50') {
-                $calculated_discount = $total_amount * 0.50;
-            } elseif ($code === 'FREE') {
-                $calculated_discount = $total_amount;
+        
+        if ($current_role === 'agent') {
+            $booking_source = 'agent';
+            $agent_id = $current_user_id;
+            
+            // Calculate agent partner discount based on bus config
+            $discount_val = 0;
+            if ($trip_info['discount_type'] === 'percentage') {
+                $discount_val = floatval($trip_info['percentage']);
+            } elseif ($trip_info['discount_type'] === 'fixed') {
+                $discount_val = floatval($trip_info['fixed']);
             }
             
-            if ($calculated_discount > $total_amount) {
-                $calculated_discount = $total_amount;
+            foreach ($seats as $seat) {
+                $seat_fare = $seat_fares[$seat];
+                $applied_discount = 0;
+                if ($trip_info['discount_type'] === 'percentage') {
+                    $applied_discount = ($seat_fare * $discount_val) / 100;
+                } elseif ($trip_info['discount_type'] === 'fixed') {
+                    $applied_discount = $discount_val;
+                }
+                $calculated_discount += $applied_discount;
             }
-            $calculated_discount = round($calculated_discount, 2);
+        } elseif ($current_role === 'admin' || $current_role === 'super_admin') {
+            $booking_source = 'admin';
+        } else {
+            // Customer booking: Fetch and re-validate promo code discount server-side
+            $applied_promo = trim($_POST['applied_promo'] ?? '');
+            if (!empty($applied_promo)) {
+                $code = strtoupper($applied_promo);
+                if ($code === 'SAVE10') {
+                    $calculated_discount = $total_amount * 0.10;
+                } elseif ($code === 'FLAT100') {
+                    $calculated_discount = 100.00;
+                } elseif ($code === 'SUPER50') {
+                    $calculated_discount = $total_amount * 0.50;
+                } elseif ($code === 'FREE') {
+                    $calculated_discount = $total_amount;
+                }
+                
+                if ($calculated_discount > $total_amount) {
+                    $calculated_discount = $total_amount;
+                }
+            }
         }
         
-        $final_total = $total_amount - $calculated_discount;
+        $calculated_discount = round($calculated_discount, 2);
+        $final_total = max(0.00, $total_amount - $calculated_discount);
 
         // 4. Commission Calculations
         $commission_rate = 2.00; // 2%
@@ -190,21 +232,24 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
 
         // 5. Create Booking Entry
         $booking_ref = 'SB' . strtoupper(substr(uniqid(), 7)) . rand(10, 99);
-        $customer_id = $_SESSION['user_id'] ?? null;
+        $customer_id = ($booking_source === 'customer') ? $current_user_id : null;
 
         $booking_stmt = $pdo->prepare("
             INSERT INTO bookings (
-                booking_reference, trip_id, customer_id, customer_name, customer_email, customer_phone, 
+                booking_reference, trip_id, customer_id, admin_id, agent_id, customer_name, customer_email, customer_phone, 
                 total_amount, admin_commission, agent_net_earning, payment_status, payment_gateway, transaction_id,
-                boarding_point, dropping_point, status, discount_amount, promo_code
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'paid', 'Razorpay', ?, ?, ?, 'active', ?, ?)
+                boarding_point, dropping_point, status, discount_amount, promo_code, booking_source, original_fare, discount_applied, final_fare
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'paid', 'Razorpay', ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?)
         ");
         
         $mock_tx_id = 'pay_mock_' . bin2hex(random_bytes(8));
+        $applied_promo_code = ($booking_source === 'customer' && !empty($applied_promo)) ? $applied_promo : null;
+        
         $booking_stmt->execute([
-            $booking_ref, $trip_id, $customer_id, $cust_name, $cust_email, $cust_phone,
+            $booking_ref, $trip_id, $customer_id, $admin_id, $agent_id, $cust_name, $cust_email, $cust_phone,
             $final_total, $admin_commission, $agent_net_earning, $mock_tx_id,
-            $boarding_point, $dropping_point, $calculated_discount, !empty($applied_promo) ? $applied_promo : null
+            $boarding_point, $dropping_point, $calculated_discount, $applied_promo_code, $booking_source,
+            $total_amount, $calculated_discount, $final_total
         ]);
         $booking_id = $pdo->lastInsertId();
 
@@ -230,35 +275,17 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
             $update_seat_stmt->execute([$trip_id, $seat]);
         }
 
-        // Fetch agent of the bus to notify
-        $agent_stmt = $pdo->prepare("
-            SELECT b.agent_id 
-            FROM trips t 
-            JOIN buses b ON t.bus_id = b.id 
-            WHERE t.id = ? 
-            LIMIT 1
-        ");
-        $agent_stmt->execute([$trip_id]);
-        $agent_id = $agent_stmt->fetchColumn();
-
-        // Notify Agent
-        if ($agent_id) {
-            $notif_stmt = $pdo->prepare("
+        // Notify Operator Admin
+        if ($admin_id) {
+            $notif_admin = $pdo->prepare("
                 INSERT INTO system_notifications (user_id, user_role, message) 
-                VALUES (?, 'agent', ?)
+                VALUES (?, 'admin', ?)
             ");
-            $notif_stmt->execute([$agent_id, "New Booking $booking_ref has been created."]);
+            $notif_admin->execute([$admin_id, "New Booking $booking_ref has been created."]);
         }
 
-        // Notify Admin
-        $notif_admin = $pdo->prepare("
-            INSERT INTO system_notifications (user_id, user_role, message) 
-            VALUES (NULL, 'admin', ?)
-        ");
-        $notif_admin->execute(["New Booking $booking_ref has been created."]);
-
         // Log Activity
-        log_activity($pdo, $customer_id, 'BOOKING_SUCCESS', "Successful booking $booking_ref for trip $trip_id. Total: ₹$total_amount. Seats: $seats_str.");
+        log_activity($pdo, $current_user_id, 'BOOKING_SUCCESS', "Successful booking $booking_ref for trip $trip_id. Total: ₹$final_total. Source: $booking_source. Seats: $seats_str.");
 
         $pdo->commit();
         echo json_encode(['success' => true, 'booking_ref' => $booking_ref]);

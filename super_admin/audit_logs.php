@@ -3,7 +3,7 @@
  * Admin Panel: Activity & Audit Log Viewer
  */
 require_once __DIR__ . '/../includes/auth_middleware.php';
-require_role('admin');
+require_role('super_admin');
 
 $page_title = "Activity & Audit Logs";
 
@@ -112,7 +112,7 @@ require_once __DIR__ . '/header.php';
         </div>
         <div class="col-md-6 d-flex align-items-end gap-2">
             <button type="submit" class="btn btn-primary-gradient px-4 py-2"><i class="fa-solid fa-magnifying-glass me-2"></i>Search Logs</button>
-            <a href="<?= BASE_URL ?>/admin/audit_logs.php" class="btn btn-secondary-glass px-4 py-2">Reset</a>
+            <a href="<?= BASE_URL ?>/super_admin/audit_logs.php" class="btn btn-secondary-glass px-4 py-2">Reset</a>
         </div>
     </form>
 </div>

@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 log_activity($pdo, $_SESSION['user_id'], 'OWNER_EMERGENCY_UPDATE', "Maintenance: $m_mode, Agent Suspend: $a_suspend, Notice: $notice");
                 
                 // Trigger page refresh to apply settings cleanly
-                echo "<script>setTimeout(function(){ window.location.href = '" . BASE_URL . "/admin/owner_control.php'; }, 1000);</script>";
+                echo "<script>setTimeout(function(){ window.location.href = '" . BASE_URL . "/super_admin/owner_control.php'; }, 1000);</script>";
 
             } catch (Exception $e) {
                 if ($pdo->inTransaction()) {

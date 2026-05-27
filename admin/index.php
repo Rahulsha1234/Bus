@@ -1,14 +1,10 @@
 <?php
 /**
- * Agent Partner Portal Login Page
+ * Travel Agent & Super Admin Login Page
  */
-header("Cache-Control: no-cache, no-store, must-revalidate");
-header("Pragma: no-cache");
-header("Expires: 0");
-
 require_once __DIR__ . '/../includes/auth_middleware.php';
 
-$page_title = "Agent Partner Login";
+$page_title = "Agent & Staff Login";
 
 // Redirect if already logged in
 if (is_logged_in()) {
@@ -54,13 +50,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $user_row = $stmt->fetch();
 
             if ($user_row && password_verify($password, $user_row['password'])) {
-                // Restrict to agents only
-                if ($user_row['role'] !== 'agent') {
-                    $error = "Access denied. This login portal is restricted to Agent Partners only.";
-                } elseif ($user_row['status'] === 'pending') {
-                    $error = "Your account is pending Super Admin approval. Please contact support.";
-                } elseif ($user_row['status'] === 'suspended') {
-                    $error = "Your account is currently suspended by the Super Admin.";
+                // Restrict roles
+                if (!in_array($user_row['role'], ['admin', 'super_admin'])) {
+                    $error = "Access denied. Only bus operators and super administrators can log in here.";
                 } else {
                     // Create Session
                     session_regenerate_id(true);
@@ -70,15 +62,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['user_email'] = $user_row['email'];
                     $_SESSION['LAST_ACTIVITY'] = time();
 
-                    log_activity($pdo, $user_row['id'], 'LOGIN_SUCCESS', "Agent logged in via Agent Partner portal.");
+                    log_activity($pdo, $user_row['id'], 'LOGIN_SUCCESS', 'Operator logged in via Operator portal.');
 
                     // Redirect
-                    header("Location: " . BASE_URL . "/agent/dashboard.php");
+                    if ($user_row['role'] === 'super_admin') {
+                        header("Location: " . BASE_URL . "/super_admin/dashboard.php");
+                    } else {
+                        header("Location: " . BASE_URL . "/admin/dashboard.php");
+                    }
                     exit();
                 }
             } else {
                 $error = "Invalid username/email or password.";
-                log_activity($pdo, null, 'LOGIN_FAILED', "Failed Agent login attempt for: $login_input");
+                log_activity($pdo, null, 'LOGIN_FAILED', "Failed Operator login attempt for: $login_input");
             }
         }
     }
@@ -91,9 +87,9 @@ require_once __DIR__ . '/../includes/header.php';
     <div class="col-md-5">
         <div class="glass-card p-5 mt-3">
             <div class="text-center mb-4">
-                <i class="fa-solid fa-handshake text-indigo" style="font-size: 3rem; color: #818cf8; filter: drop-shadow(0 0 15px rgba(129,140,248,0.4));"></i>
-                <h2 class="fw-bold mt-3 text-white">Agent Partner Login</h2>
-                <p class="text-secondary small">Access ticket bookings & commission earnings workspace</p>
+                <i class="fa-solid fa-briefcase text-indigo" style="font-size: 3rem; color: #818cf8; filter: drop-shadow(0 0 15px rgba(129,140,248,0.4));"></i>
+                <h2 class="fw-bold mt-3 text-white">Operator Portal Login</h2>
+                <p class="text-secondary small">Access bus operator desk & schedule management</p>
             </div>
 
             <?php if (!empty($error)): ?>
@@ -107,10 +103,10 @@ require_once __DIR__ . '/../includes/header.php';
                 <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
 
                 <div class="mb-4">
-                    <label for="login_input" class="form-label text-secondary small fw-semibold">Agent Username or Email</label>
+                    <label for="login_input" class="form-label text-secondary small fw-semibold">Username or Email</label>
                     <div class="input-group">
                         <span class="input-group-text bg-dark border-secondary border-end-0 text-secondary" style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-user-tie"></i></span>
-                        <input type="text" name="login_input" id="login_input" class="form-control form-control-swift border-start-0" placeholder="Username or Email" style="border-radius: 0 12px 12px 0;" autocomplete="new-username" required>
+                        <input type="text" name="login_input" id="login_input" class="form-control form-control-swift border-start-0" placeholder="Operator Username or Email" style="border-radius: 0 12px 12px 0;" autocomplete="new-username" required>
                     </div>
                 </div>
 
@@ -123,14 +119,9 @@ require_once __DIR__ . '/../includes/header.php';
                 </div>
 
                 <div class="d-grid mb-3">
-                    <button type="submit" class="btn btn-primary-gradient py-3">Sign In as Agent Partner</button>
+                    <button type="submit" class="btn btn-primary-gradient py-3">Sign In as Operator</button>
                 </div>
             </form>
-            
-            <div class="text-center mt-4">
-                <span class="text-secondary small">Want to partner with us? </span>
-                <a href="<?= BASE_URL ?>/register.php" class="text-decoration-none small text-indigo" style="color: #818cf8; font-weight: 500;">Register as Agent</a>
-            </div>
         </div>
     </div>
 </div>

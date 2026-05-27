@@ -10,7 +10,7 @@ require_once __DIR__ . '/header.php';
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <?php
 
-$agent_id = $_SESSION['user_id'];
+$admin_id = $_SESSION['user_id'];
 $error = '';
 $success = '';
 
@@ -40,8 +40,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $pdo->beginTransaction();
 
                     // 1. Fetch bus details
-                    $bus_stmt = $pdo->prepare("SELECT total_seats, seat_layout_type FROM buses WHERE id = ? AND agent_id = ? LIMIT 1");
-                    $bus_stmt->execute([$bus_id, $agent_id]);
+                    $bus_stmt = $pdo->prepare("SELECT total_seats, seat_layout_type FROM buses WHERE id = ? AND admin_id = ? LIMIT 1");
+                    $bus_stmt->execute([$bus_id, $admin_id]);
                     $bus = $bus_stmt->fetch();
 
                     if (!$bus) {
@@ -50,10 +50,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     } else {
                         // 2. Schedule Trip
                         $stmt = $pdo->prepare("
-                            INSERT INTO trips (bus_id, route_id, departure_time, arrival_time, base_fare, status) 
-                            VALUES (?, ?, ?, ?, ?, 'active')
+                            INSERT INTO trips (bus_id, route_id, admin_id, departure_time, arrival_time, base_fare, status) 
+                            VALUES (?, ?, ?, ?, ?, ?, 'active')
                         ");
-                        $stmt->execute([$bus_id, $route_id, $dep_time, $arr_time, $fare]);
+                        $stmt->execute([$bus_id, $route_id, $admin_id, $dep_time, $arr_time, $fare]);
                         $trip_id = $pdo->lastInsertId();
 
                         // 3. Initialize all seat records
@@ -89,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         $pdo->commit();
                         $success = "Trip scheduled successfully and seats initialized!";
-                        log_activity($pdo, $agent_id, 'TRIP_ADD', "Scheduled Trip ID: $trip_id (Bus ID $bus_id, Route ID $route_id)");
+                        log_activity($pdo, $admin_id, 'TRIP_ADD', "Scheduled Trip ID: $trip_id (Bus ID $bus_id, Route ID $route_id)");
                     }
 
                 } catch (Exception $e) {
@@ -117,8 +117,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = "Departure date/time must be earlier than Arrival date/time.";
             } else {
                 // Verify trip ownership
-                $chk = $pdo->prepare("SELECT t.id FROM trips t JOIN buses b ON t.bus_id = b.id WHERE t.id = ? AND b.agent_id = ? LIMIT 1");
-                $chk->execute([$trip_id, $agent_id]);
+                $chk = $pdo->prepare("SELECT t.id FROM trips t JOIN buses b ON t.bus_id = b.id WHERE t.id = ? AND b.admin_id = ? LIMIT 1");
+                $chk->execute([$trip_id, $admin_id]);
 
                 if ($chk->fetchColumn()) {
                     $stmt = $pdo->prepare("
@@ -128,7 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ");
                     $stmt->execute([$bus_id, $route_id, $dep_time, $arr_time, $fare, $status, $trip_id]);
                     $success = "Trip details updated successfully!";
-                    log_activity($pdo, $agent_id, 'TRIP_EDIT', "Updated Trip ID: $trip_id");
+                    log_activity($pdo, $admin_id, 'TRIP_EDIT', "Updated Trip ID: $trip_id");
                 } else {
                     $error = "Unauthorized trip update request.";
                 }
@@ -140,8 +140,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $trip_id = intval($_POST['trip_id'] ?? 0);
             
             // Verify trip ownership
-            $chk = $pdo->prepare("SELECT t.id FROM trips t JOIN buses b ON t.bus_id = b.id WHERE t.id = ? AND b.agent_id = ? LIMIT 1");
-            $chk->execute([$trip_id, $agent_id]);
+            $chk = $pdo->prepare("SELECT t.id FROM trips t JOIN buses b ON t.bus_id = b.id WHERE t.id = ? AND b.admin_id = ? LIMIT 1");
+            $chk->execute([$trip_id, $admin_id]);
             
             if ($chk->fetchColumn()) {
                 // Soft delete trip
@@ -149,7 +149,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $del->execute([$trip_id]);
                 
                 $success = "Trip cancelled and removed successfully!";
-                log_activity($pdo, $agent_id, 'TRIP_DELETE', "Soft deleted Trip ID: $trip_id");
+                log_activity($pdo, $admin_id, 'TRIP_DELETE', "Soft deleted Trip ID: $trip_id");
             } else {
                 $error = "Failed to cancel trip. Unauthorized deletion request.";
             }
@@ -176,19 +176,19 @@ try {
         FROM trips t
         JOIN buses b ON t.bus_id = b.id
         JOIN routes r ON t.route_id = r.id
-        WHERE b.agent_id = ? AND t.status = 'active'
+        WHERE b.admin_id = ? AND t.status = 'active'
         ORDER BY t.departure_time DESC
     ");
-    $stmt->execute([$agent_id]);
+    $stmt->execute([$admin_id]);
     $trips = $stmt->fetchAll();
 
     // Fetch active buses and routes lists
-    $buses_stmt = $pdo->prepare("SELECT id, bus_name, bus_number, bus_type FROM buses WHERE agent_id = ? AND status = 'active'");
-    $buses_stmt->execute([$agent_id]);
+    $buses_stmt = $pdo->prepare("SELECT id, bus_name, bus_number, bus_type FROM buses WHERE admin_id = ? AND status = 'active'");
+    $buses_stmt->execute([$admin_id]);
     $agent_buses = $buses_stmt->fetchAll();
 
-    $routes_stmt = $pdo->prepare("SELECT id, source, destination, distance_km FROM routes WHERE agent_id = ? AND status = 'active'");
-    $routes_stmt->execute([$agent_id]);
+    $routes_stmt = $pdo->prepare("SELECT id, source, destination, distance_km FROM routes WHERE admin_id = ? AND status = 'active'");
+    $routes_stmt->execute([$admin_id]);
     $agent_routes = $routes_stmt->fetchAll();
 
 } catch (PDOException $e) {

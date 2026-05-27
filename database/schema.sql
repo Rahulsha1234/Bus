@@ -30,9 +30,11 @@ CREATE TABLE users (
     username VARCHAR(50) NOT NULL UNIQUE,
     email VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
-    role ENUM('customer', 'agent', 'admin') NOT NULL DEFAULT 'customer',
+    role ENUM('customer', 'agent', 'admin', 'super_admin') NOT NULL DEFAULT 'customer',
     status ENUM('pending', 'approved', 'suspended') NOT NULL DEFAULT 'approved',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    admin_id INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (admin_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 2. Agent Profiles Table
@@ -42,34 +44,39 @@ CREATE TABLE agent_profiles (
     agency_name VARCHAR(100) NOT NULL,
     phone VARCHAR(20) NOT NULL,
     commission_rate DECIMAL(5,2) DEFAULT 2.00,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    admin_id INT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (admin_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 2.5. Layout Templates Table
 CREATE TABLE layout_templates (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    agent_id INT NOT NULL,
+    admin_id INT NOT NULL,
     template_name VARCHAR(100) NOT NULL,
     rows_count INT NOT NULL DEFAULT 8,
     cols_count INT NOT NULL DEFAULT 5,
     layout_type VARCHAR(50) NOT NULL DEFAULT 'Seater',
     seats_data LONGTEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (agent_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (admin_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 3. Buses Table
 CREATE TABLE buses (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    agent_id INT NOT NULL,
+    admin_id INT NOT NULL,
     bus_name VARCHAR(100) NOT NULL,
     bus_number VARCHAR(50) NOT NULL,
     bus_type ENUM('AC Sleeper', 'Non-AC Sleeper', 'AC Seater', 'Non-AC Seater') NOT NULL,
     total_seats INT NOT NULL,
     seat_layout_type VARCHAR(20) DEFAULT '2x2',
     status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
+    discount_type ENUM('none', 'percentage', 'fixed') NOT NULL DEFAULT 'none',
+    percentage DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+    fixed DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (agent_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (admin_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 4. Operator Contacts Table
@@ -112,7 +119,7 @@ CREATE TABLE bus_seats (
 -- 7. Routes Table
 CREATE TABLE routes (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    agent_id INT NOT NULL,
+    admin_id INT NOT NULL,
     source VARCHAR(100) NOT NULL,
     destination VARCHAR(100) NOT NULL,
     distance_km INT NOT NULL,
@@ -120,7 +127,7 @@ CREATE TABLE routes (
     pickup_points TEXT NOT NULL, -- JSON formatted array
     drop_points TEXT NOT NULL,   -- JSON formatted array
     status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
-    FOREIGN KEY (agent_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (admin_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 8. Boarding Points Table
@@ -146,13 +153,15 @@ CREATE TABLE trips (
     id INT AUTO_INCREMENT PRIMARY KEY,
     bus_id INT NOT NULL,
     route_id INT NOT NULL,
+    admin_id INT NOT NULL,
     departure_time DATETIME NOT NULL,
     arrival_time DATETIME NOT NULL,
     base_fare DECIMAL(10,2) NOT NULL,
     seat_prices TEXT NULL, -- JSON details if any seats have premium rates
     status ENUM('active', 'cancelled') NOT NULL DEFAULT 'active',
     FOREIGN KEY (bus_id) REFERENCES buses(id) ON DELETE CASCADE,
-    FOREIGN KEY (route_id) REFERENCES routes(id) ON DELETE CASCADE
+    FOREIGN KEY (route_id) REFERENCES routes(id) ON DELETE CASCADE,
+    FOREIGN KEY (admin_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 11. Trip Seats Table
@@ -199,6 +208,8 @@ CREATE TABLE bookings (
     booking_reference VARCHAR(50) NOT NULL UNIQUE,
     trip_id INT NOT NULL,
     customer_id INT NULL,
+    admin_id INT NULL,
+    agent_id INT NULL,
     customer_name VARCHAR(100) NOT NULL,
     customer_email VARCHAR(100) NOT NULL,
     customer_phone VARCHAR(20) NOT NULL,
@@ -213,9 +224,15 @@ CREATE TABLE bookings (
     status ENUM('active', 'cancelled') NOT NULL DEFAULT 'active',
     discount_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     promo_code VARCHAR(50) NULL,
+    booking_source ENUM('customer', 'agent', 'admin') NOT NULL DEFAULT 'customer',
+    original_fare DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    discount_applied DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    final_fare DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (trip_id) REFERENCES trips(id),
-    FOREIGN KEY (customer_id) REFERENCES users(id) ON DELETE SET NULL
+    FOREIGN KEY (customer_id) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (admin_id) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (agent_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 15. Booking Seats Table
@@ -298,25 +315,27 @@ INSERT INTO system_settings (setting_key, setting_value) VALUES
 ('suspend_agent_panel', '0');
 
 -- 22. Seeds Users
--- admin / admin123
--- aslitravels / 123456789
--- jyoti / 123456789
-INSERT INTO users (id, username, email, password, role, status) VALUES 
-(1, 'admin', 'admin@bus.com', '$2y$10$9ffPGVrwX/9u2DmKBsN/UOxjRIRboQiSNTgEbKj13KFlhYw6OpOty', 'admin', 'approved'),
-(2, 'aslitravels', 'aslitravels@bus.com', '$2y$10$d0UV/sfvSO3hCvpLqiJy/.D2I.gjs1n1G8YogKDjEsXATasuNIpWm', 'agent', 'approved'),
-(3, 'jyoti', 'jyoti@bus.com', '$2y$10$d0UV/sfvSO3hCvpLqiJy/.D2I.gjs1n1G8YogKDjEsXATasuNIpWm', 'customer', 'approved');
+-- admin / admin123 (Super Admin)
+-- aslitravels / 123456789 (Bus Operator Admin)
+-- jyoti / 123456789 (Customer)
+-- asliagent / 123456789 (Agent under aslitravels)
+INSERT INTO users (id, username, email, password, role, status, admin_id) VALUES 
+(1, 'admin', 'admin@bus.com', '$2y$10$9ffPGVrwX/9u2DmKBsN/UOxjRIRboQiSNTgEbKj13KFlhYw6OpOty', 'super_admin', 'approved', NULL),
+(2, 'aslitravels', 'aslitravels@bus.com', '$2y$10$d0UV/sfvSO3hCvpLqiJy/.D2I.gjs1n1G8YogKDjEsXATasuNIpWm', 'admin', 'approved', NULL),
+(3, 'jyoti', 'jyoti@bus.com', '$2y$10$d0UV/sfvSO3hCvpLqiJy/.D2I.gjs1n1G8YogKDjEsXATasuNIpWm', 'customer', 'approved', NULL),
+(4, 'asliagent', 'asliagent@bus.com', '$2y$10$d0UV/sfvSO3hCvpLqiJy/.D2I.gjs1n1G8YogKDjEsXATasuNIpWm', 'agent', 'approved', 2);
 
 -- Seed Agent Profiles
-INSERT INTO agent_profiles (id, user_id, agency_name, phone, commission_rate) VALUES 
-(1, 2, 'Asli Travels', '9876543212', 2.00);
+INSERT INTO agent_profiles (id, user_id, agency_name, phone, commission_rate, admin_id) VALUES 
+(1, 4, 'Asli Agent Agency', '9876543210', 5.00, 2);
 
 -- Seed Buses
-INSERT INTO buses (id, agent_id, bus_name, bus_number, bus_type, total_seats, seat_layout_type, status) VALUES 
-(1, 2, 'Golden Deluxe AC Sleeper', 'KA-01-F-1234', 'AC Sleeper', 30, '2x1_sleeper', 'active'),
-(2, 2, 'Golden Express AC Seater', 'KA-01-F-5678', 'AC Seater', 40, '2x2_seater', 'active');
+INSERT INTO buses (id, admin_id, bus_name, bus_number, bus_type, total_seats, seat_layout_type, status, discount_type, percentage, fixed) VALUES 
+(1, 2, 'Golden Deluxe AC Sleeper', 'KA-01-F-1234', 'AC Sleeper', 30, '2x1_sleeper', 'active', 'percentage', 10.00, 0.00),
+(2, 2, 'Golden Express AC Seater', 'KA-01-F-5678', 'AC Seater', 40, '2x2_seater', 'active', 'fixed', 0.00, 100.00);
 
 -- Seed Routes
-INSERT INTO routes (id, agent_id, source, destination, distance_km, pickup_points, drop_points, status) VALUES 
+INSERT INTO routes (id, admin_id, source, destination, distance_km, pickup_points, drop_points, status) VALUES 
 (1, 2, 'Bangalore', 'Mumbai', 1000, 
  '[{"name":"Majestic Bus Stand","time":"20:00"},{"name":"Yeshwanthpur Tollgate","time":"20:30"}]', 
  '[{"name":"Pune Bypass","time":"07:00"},{"name":"Mumbai Sion Circle","time":"08:30"}]', 'active'),
@@ -325,9 +344,9 @@ INSERT INTO routes (id, agent_id, source, destination, distance_km, pickup_point
  '[{"name":"Poonamallee Bypass","time":"04:30"},{"name":"Koyambedu Bus Terminus","time":"05:00"}]', 'active');
 
 -- Seed Trips (Dynamically scheduled for tomorrow)
-INSERT INTO trips (id, bus_id, route_id, departure_time, arrival_time, base_fare, status) VALUES 
-(1, 1, 1, DATE_ADD(CONCAT(CURDATE(), ' 20:00:00'), INTERVAL 1 DAY), DATE_ADD(CONCAT(CURDATE(), ' 08:30:00'), INTERVAL 2 DAY), 1200.00, 'active'),
-(2, 2, 2, DATE_ADD(CONCAT(CURDATE(), ' 22:00:00'), INTERVAL 1 DAY), DATE_ADD(CONCAT(CURDATE(), ' 05:00:00'), INTERVAL 2 DAY), 600.00, 'active');
+INSERT INTO trips (id, bus_id, route_id, admin_id, departure_time, arrival_time, base_fare, status) VALUES 
+(1, 1, 1, 2, DATE_ADD(CONCAT(CURDATE(), ' 20:00:00'), INTERVAL 1 DAY), DATE_ADD(CONCAT(CURDATE(), ' 08:30:00'), INTERVAL 2 DAY), 1200.00, 'active'),
+(2, 2, 2, 2, DATE_ADD(CONCAT(CURDATE(), ' 22:00:00'), INTERVAL 1 DAY), DATE_ADD(CONCAT(CURDATE(), ' 05:00:00'), INTERVAL 2 DAY), 600.00, 'active');
 
 -- Seed Seats for Trip 1 (Sleeper - L1 to L15, U1 to U15)
 INSERT INTO trip_seats (trip_id, seat_number, status) VALUES 
@@ -350,4 +369,3 @@ INSERT INTO trip_seats (trip_id, seat_number, status) VALUES
 (2, '36', 'available'), (2, '37', 'available'), (2, '38', 'available'), (2, '39', 'available'), (2, '40', 'available');
 
 SET FOREIGN_KEY_CHECKS = 1;
-

@@ -169,15 +169,20 @@ $user = get_logged_user();
 
                                 <!-- Actions -->
                                 <div class="px-2 py-2">
-                                    <?php if ($user['role'] === 'admin'): ?>
-                                        <a class="profile-dropdown-item" href="<?= BASE_URL ?>/admin/dashboard.php">
+                                    <?php if ($user['role'] === 'super_admin'): ?>
+                                        <a class="profile-dropdown-item" href="<?= BASE_URL ?>/super_admin/dashboard.php">
                                             <span class="profile-item-icon"><i class="fa-solid fa-gauge-high"></i></span>
                                             <span>Admin Panel</span>
+                                        </a>
+                                    <?php elseif ($user['role'] === 'admin'): ?>
+                                        <a class="profile-dropdown-item" href="<?= BASE_URL ?>/admin/dashboard.php">
+                                            <span class="profile-item-icon"><i class="fa-solid fa-briefcase"></i></span>
+                                            <span>Operator Panel</span>
                                         </a>
                                     <?php elseif ($user['role'] === 'agent'): ?>
                                         <a class="profile-dropdown-item" href="<?= BASE_URL ?>/agent/dashboard.php">
                                             <span class="profile-item-icon"><i class="fa-solid fa-briefcase"></i></span>
-                                            <span>Agent Panel</span>
+                                            <span>Agent Portal</span>
                                         </a>
                                     <?php endif; ?>
 
@@ -262,5 +267,5 @@ $user = get_logged_user();
     </script>
 
     <?php if (basename($_SERVER['SCRIPT_NAME']) !== 'index.php'): ?>
-        <div class="container my-5" style="margin-top: 5rem !important;">
+        <div class="container-fluid px-md-5 my-5" style="margin-top: 5rem !important;">
     <?php endif; ?>

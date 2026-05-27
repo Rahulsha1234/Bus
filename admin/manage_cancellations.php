@@ -3,10 +3,10 @@
  * Agent Panel: Cancellation Requests & Refund Approvals Manager
  */
 require_once __DIR__ . '/../includes/auth_middleware.php';
-require_role('agent');
+require_role('admin');
 
 $page_title = "Manage Cancellations";
-$agent_id = $_SESSION['user_id'];
+$admin_id = $_SESSION['user_id'];
 $success_msg = '';
 $error_msg = '';
 
@@ -24,10 +24,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             JOIN bookings b ON cr.booking_id = b.id
             JOIN trips t ON b.trip_id = t.id
             JOIN buses bu ON t.bus_id = bu.id
-            WHERE cr.id = ? AND bu.agent_id = ?
+            WHERE cr.id = ? AND bu.admin_id = ?
             LIMIT 1
         ");
-        $chk_stmt->execute([$request_id, $agent_id]);
+        $chk_stmt->execute([$request_id, $admin_id]);
         $request = $chk_stmt->fetch();
 
         if (!$request) {
@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     SET status = 'approved', refund_amount = ?, processed_at = NOW(), processed_by = ? 
                     WHERE id = ?
                 ");
-                $up_stmt->execute([$refund_val, $agent_id, $request_id]);
+                $up_stmt->execute([$refund_val, $admin_id, $request_id]);
 
                 // 2. Set booking status to 'cancelled'
                 $bk_stmt = $pdo->prepare("UPDATE bookings SET status = 'cancelled' WHERE id = ?");
@@ -76,9 +76,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         INSERT INTO system_notifications (user_id, user_role, message) 
                         VALUES (?, 'customer', ?)
                     ");
-                    // Wait, customer is not in the system_notifications user_role enum? Let's check schema.
-                    // Oh, schema system_notifications user_role is: ENUM('admin', 'agent')!
-                    // So we cannot insert user_role = 'customer' into system_notifications. Let's send only to admins/agents.
                 }
 
                 // Notify admin of refund processing
@@ -88,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 ");
                 $notif_admin->execute(["Cancellation Approved for Booking " . $request['booking_reference'] . ". Refund processed: ₹" . number_format($refund_val, 2)]);
 
-                log_activity($pdo, $agent_id, 'CANCELLATION_APPROVE', "Approved cancellation request " . $request['request_number'] . " for Booking " . $request['booking_reference'] . ". Refunded: ₹$refund_val", "pending", "approved");
+                log_activity($pdo, $admin_id, 'CANCELLATION_APPROVE', "Approved cancellation request " . $request['request_number'] . " for Booking " . $request['booking_reference'] . ". Refunded: ₹$refund_val", "pending", "approved");
                 $success_msg = "Cancellation approved successfully and seats released.";
 
             } elseif ($action === 'reject') {
@@ -98,9 +95,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     SET status = 'rejected', processed_at = NOW(), processed_by = ? 
                     WHERE id = ?
                 ");
-                $up_stmt->execute([$agent_id, $request_id]);
+                $up_stmt->execute([$admin_id, $request_id]);
 
-                log_activity($pdo, $agent_id, 'CANCELLATION_REJECT', "Rejected cancellation request " . $request['request_number'] . " for Booking " . $request['booking_reference'], "pending", "rejected");
+                log_activity($pdo, $admin_id, 'CANCELLATION_REJECT', "Rejected cancellation request " . $request['request_number'] . " for Booking " . $request['booking_reference'], "pending", "rejected");
                 $success_msg = "Cancellation request has been rejected.";
             }
 
@@ -137,10 +134,10 @@ try {
         JOIN trips t ON b.trip_id = t.id
         JOIN buses bs ON t.bus_id = bs.id
         JOIN routes r ON t.route_id = r.id
-        WHERE bs.agent_id = ?
+        WHERE bs.admin_id = ?
         ORDER BY cr.created_at DESC
     ");
-    $list_stmt->execute([$agent_id]);
+    $list_stmt->execute([$admin_id]);
     $requests = $list_stmt->fetchAll();
 
 } catch (PDOException $e) {

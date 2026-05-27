@@ -10,7 +10,7 @@ require_once __DIR__ . '/header.php';
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <?php
 
-$agent_id = $_SESSION['user_id'];
+$admin_id = $_SESSION['user_id'];
 $error = '';
 $success = '';
 
@@ -60,11 +60,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = "Please fill in all route cities, mileage distance, and at least one pickup/drop milestone.";
             } else {
                 $stmt = $pdo->prepare("
-                    INSERT INTO routes (agent_id, source, destination, distance_km, duration, pickup_points, drop_points, status) 
+                    INSERT INTO routes (admin_id, source, destination, distance_km, duration, pickup_points, drop_points, status) 
                     VALUES (?, ?, ?, ?, ?, ?, ?, 'active')
                 ");
                 $stmt->execute([
-                    $agent_id, 
+                    $admin_id, 
                     $source, 
                     $destination, 
                     $distance, 
@@ -88,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 $success = "Route registered successfully!";
-                log_activity($pdo, $agent_id, 'ROUTE_ADD', "Added route $source to $destination ($distance km, $duration)");
+                log_activity($pdo, $admin_id, 'ROUTE_ADD', "Added route $source to $destination ($distance km, $duration)");
             }
         }
 
@@ -133,7 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt = $pdo->prepare("
                     UPDATE routes 
                     SET source = ?, destination = ?, distance_km = ?, duration = ?, pickup_points = ?, drop_points = ?, status = ?
-                    WHERE id = ? AND agent_id = ?
+                    WHERE id = ? AND admin_id = ?
                 ");
                 $stmt->execute([
                     $source, 
@@ -144,7 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     json_encode($drops), 
                     $status, 
                     $route_id, 
-                    $agent_id
+                    $admin_id
                 ]);
 
                 // Sync Boarding Points in DB Table
@@ -162,7 +162,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 $success = "Route updated successfully!";
-                log_activity($pdo, $agent_id, 'ROUTE_EDIT', "Updated route ID $route_id: $source to $destination");
+                log_activity($pdo, $admin_id, 'ROUTE_EDIT', "Updated route ID $route_id: $source to $destination");
             }
         }
 
@@ -171,12 +171,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $route_id = intval($_POST['route_id'] ?? 0);
             
             // Soft delete
-            $stmt = $pdo->prepare("UPDATE routes SET status = 'inactive' WHERE id = ? AND agent_id = ?");
-            $stmt->execute([$route_id, $agent_id]);
+            $stmt = $pdo->prepare("UPDATE routes SET status = 'inactive' WHERE id = ? AND admin_id = ?");
+            $stmt->execute([$route_id, $admin_id]);
             
             if ($stmt->rowCount() > 0) {
                 $success = "Route removed successfully!";
-                log_activity($pdo, $agent_id, 'ROUTE_DELETE', "Soft deleted route ID: $route_id");
+                log_activity($pdo, $admin_id, 'ROUTE_DELETE', "Soft deleted route ID: $route_id");
             } else {
                 $error = "Failed to delete route. Invalid ID or authorization conflict.";
             }
@@ -186,8 +186,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Fetch Agent's Routes
 try {
-    $stmt = $pdo->prepare("SELECT * FROM routes WHERE agent_id = ? AND status = 'active' ORDER BY id DESC");
-    $stmt->execute([$agent_id]);
+    $stmt = $pdo->prepare("SELECT * FROM routes WHERE admin_id = ? AND status = 'active' ORDER BY id DESC");
+    $stmt->execute([$admin_id]);
     $routes = $stmt->fetchAll();
 } catch (PDOException $e) {
     $routes = [];

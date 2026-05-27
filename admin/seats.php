@@ -4,7 +4,7 @@
  */
 require_once __DIR__ . '/header.php';
 
-$agent_id = $_SESSION['user_id'];
+$admin_id = $_SESSION['user_id'];
 $error = '';
 $success = '';
 
@@ -21,10 +21,10 @@ try {
         FROM trips t
         JOIN buses b ON t.bus_id = b.id
         JOIN routes r ON t.route_id = r.id
-        WHERE b.agent_id = ? AND t.status = 'active'
+        WHERE b.admin_id = ? AND t.status = 'active'
         ORDER BY t.departure_time DESC
     ");
-    $stmt->execute([$agent_id]);
+    $stmt->execute([$admin_id]);
     $trips = $stmt->fetchAll();
 } catch (PDOException $e) {
     $trips = [];
@@ -41,10 +41,10 @@ if ($selected_trip_id > 0) {
         FROM trips t
         JOIN buses b ON t.bus_id = b.id
         JOIN routes r ON t.route_id = r.id
-        WHERE t.id = ? AND b.agent_id = ? AND t.status = 'active'
+        WHERE t.id = ? AND b.admin_id = ? AND t.status = 'active'
         LIMIT 1
     ");
-    $stmt->execute([$selected_trip_id, $agent_id]);
+    $stmt->execute([$selected_trip_id, $admin_id]);
     $trip_details = $stmt->fetch();
 
     if ($trip_details) {
@@ -74,7 +74,7 @@ if ($selected_trip_id > 0) {
                                 $stmt->execute([$selected_trip_id, $seat]);
                             }
                             $success = "Successfully placed " . count($target_seats) . " seat(s) on manual Hold.";
-                            log_activity($pdo, $agent_id, 'SEAT_HOLD_BULK', "Held seats (" . implode(',', $target_seats) . ") on Trip: $selected_trip_id");
+                            log_activity($pdo, $admin_id, 'SEAT_HOLD_BULK', "Held seats (" . implode(',', $target_seats) . ") on Trip: $selected_trip_id");
                         } 
                         elseif ($action === 'release') {
                             $stmt = $pdo->prepare("UPDATE trip_seats SET status = 'available', hold_expires_at = NULL WHERE trip_id = ? AND seat_number = ?");
@@ -82,7 +82,7 @@ if ($selected_trip_id > 0) {
                                 $stmt->execute([$selected_trip_id, $seat]);
                             }
                             $success = "Successfully released " . count($target_seats) . " seat(s) back to available pool.";
-                            log_activity($pdo, $agent_id, 'SEAT_RELEASE_BULK', "Released seats (" . implode(',', $target_seats) . ") on Trip: $selected_trip_id");
+                            log_activity($pdo, $admin_id, 'SEAT_RELEASE_BULK', "Released seats (" . implode(',', $target_seats) . ") on Trip: $selected_trip_id");
                         } 
                         elseif ($action === 'block') {
                             $stmt = $pdo->prepare("
@@ -94,7 +94,7 @@ if ($selected_trip_id > 0) {
                                 $stmt->execute([$selected_trip_id, $seat]);
                             }
                             $success = "Successfully Blocked " . count($target_seats) . " seat(s).";
-                            log_activity($pdo, $agent_id, 'SEAT_BLOCK_BULK', "Blocked seats (" . implode(',', $target_seats) . ") on Trip: $selected_trip_id");
+                            log_activity($pdo, $admin_id, 'SEAT_BLOCK_BULK', "Blocked seats (" . implode(',', $target_seats) . ") on Trip: $selected_trip_id");
                         } 
                         elseif ($action === 'unblock') {
                             $stmt = $pdo->prepare("UPDATE trip_seats SET status = 'available' WHERE trip_id = ? AND seat_number = ?");
@@ -102,7 +102,7 @@ if ($selected_trip_id > 0) {
                                 $stmt->execute([$selected_trip_id, $seat]);
                             }
                             $success = "Successfully Unblocked " . count($target_seats) . " seat(s).";
-                            log_activity($pdo, $agent_id, 'SEAT_UNBLOCK_BULK', "Unblocked seats (" . implode(',', $target_seats) . ") on Trip: $selected_trip_id");
+                            log_activity($pdo, $admin_id, 'SEAT_UNBLOCK_BULK', "Unblocked seats (" . implode(',', $target_seats) . ") on Trip: $selected_trip_id");
                         } 
                         elseif ($action === 'price') {
                             $base_price = floatval($_POST['base_price'] ?? 0.00);
@@ -121,7 +121,7 @@ if ($selected_trip_id > 0) {
                                     $stmt->execute([$selected_trip_id, $seat, $base_price, $current_price, $offer_price]);
                                 }
                                 $success = "Pricing overrides applied to " . count($target_seats) . " seat(s).";
-                                log_activity($pdo, $agent_id, 'PRICE_OVERRIDE_BULK', "Override fares for seats (" . implode(',', $target_seats) . ") on Trip: $selected_trip_id");
+                                log_activity($pdo, $admin_id, 'PRICE_OVERRIDE_BULK', "Override fares for seats (" . implode(',', $target_seats) . ") on Trip: $selected_trip_id");
                             }
                         }
 

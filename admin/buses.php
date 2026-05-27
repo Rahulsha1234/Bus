@@ -1,10 +1,10 @@
 <?php
 /**
- * Bus Management Portal
+ * Bus Operator Bus Management Portal
  */
 require_once __DIR__ . '/header.php';
 
-$agent_id = $_SESSION['user_id'];
+$admin_id = $_SESSION['user_id'];
 $error = '';
 $success = '';
 
@@ -23,6 +23,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $number = strtoupper(trim($_POST['bus_number'] ?? ''));
             $type = $_POST['bus_type'] ?? '';
             $total_seats = intval($_POST['total_seats'] ?? 30);
+            $discount_type = $_POST['discount_type'] ?? 'none';
+            $percentage = floatval($_POST['percentage'] ?? 0.00);
+            $fixed = floatval($_POST['fixed'] ?? 0.00);
             
             // Set layout dynamically based on type
             $layout = (strpos($type, 'Sleeper') !== false) ? '2x1_sleeper' : '2x2_seater';
@@ -43,10 +46,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($chk->fetchColumn()) {
                     $error = "Bus Number already registered.";
                 } else {
-                    $stmt = $pdo->prepare("INSERT INTO buses (agent_id, bus_name, bus_number, bus_type, total_seats, seat_layout_type) VALUES (?, ?, ?, ?, ?, ?)");
-                    $stmt->execute([$agent_id, $name, $number, $type, $total_seats, $layout]);
+                    $stmt = $pdo->prepare("INSERT INTO buses (admin_id, bus_name, bus_number, bus_type, total_seats, seat_layout_type, discount_type, percentage, fixed) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt->execute([$admin_id, $name, $number, $type, $total_seats, $layout, $discount_type, $percentage, $fixed]);
                     $success = "Bus added successfully!";
-                    log_activity($pdo, $agent_id, 'BUS_ADD', "Added bus $name ($number)");
+                    log_activity($pdo, $admin_id, 'BUS_ADD', "Added bus $name ($number)");
                 }
             }
         }
@@ -57,6 +60,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $name = trim($_POST['bus_name'] ?? '');
             $number = strtoupper(trim($_POST['bus_number'] ?? ''));
             $type = $_POST['bus_type'] ?? '';
+            $discount_type = $_POST['discount_type'] ?? 'none';
+            $percentage = floatval($_POST['percentage'] ?? 0.00);
+            $fixed = floatval($_POST['fixed'] ?? 0.00);
             
             $layout = (strpos($type, 'Sleeper') !== false) ? '2x1_sleeper' : '2x2_seater';
             $total_seats = (strpos($type, 'Sleeper') !== false) ? 30 : 40;
@@ -72,10 +78,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($chk->fetchColumn()) {
                     $error = "Bus Number already registered to another vehicle.";
                 } else {
-                    $stmt = $pdo->prepare("UPDATE buses SET bus_name = ?, bus_number = ?, bus_type = ?, total_seats = ?, seat_layout_type = ? WHERE id = ? AND agent_id = ?");
-                    $stmt->execute([$name, $number, $type, $total_seats, $layout, $bus_id, $agent_id]);
+                    $stmt = $pdo->prepare("UPDATE buses SET bus_name = ?, bus_number = ?, bus_type = ?, total_seats = ?, seat_layout_type = ?, discount_type = ?, percentage = ?, fixed = ? WHERE id = ? AND admin_id = ?");
+                    $stmt->execute([$name, $number, $type, $total_seats, $layout, $discount_type, $percentage, $fixed, $bus_id, $admin_id]);
                     $success = "Bus updated successfully!";
-                    log_activity($pdo, $agent_id, 'BUS_EDIT', "Updated bus $name ($number)");
+                    log_activity($pdo, $admin_id, 'BUS_EDIT', "Updated bus $name ($number)");
                 }
             }
         }
@@ -85,12 +91,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $bus_id = intval($_POST['bus_id'] ?? 0);
             
             // Verify ownership and soft delete
-            $stmt = $pdo->prepare("UPDATE buses SET status = 'inactive' WHERE id = ? AND agent_id = ?");
-            $stmt->execute([$bus_id, $agent_id]);
+            $stmt = $pdo->prepare("UPDATE buses SET status = 'inactive' WHERE id = ? AND admin_id = ?");
+            $stmt->execute([$bus_id, $admin_id]);
             
             if ($stmt->rowCount() > 0) {
                 $success = "Bus removed successfully!";
-                log_activity($pdo, $agent_id, 'BUS_DELETE', "Soft deleted bus ID: $bus_id");
+                log_activity($pdo, $admin_id, 'BUS_DELETE', "Soft deleted bus ID: $bus_id");
             } else {
                 $error = "Failed to delete bus. Ownership mismatch or invalid ID.";
             }
@@ -120,7 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ");
                 $stmt->execute([$bus_id, $op_name, $op_phone, $op_whatsapp, $op_emergency, $op_email]);
                 $success = "Operator contacts updated successfully!";
-                log_activity($pdo, $agent_id, 'BUS_OPERATOR_UPDATE', "Updated operator info for bus ID: $bus_id");
+                log_activity($pdo, $admin_id, 'BUS_OPERATOR_UPDATE', "Updated operator info for bus ID: $bus_id");
             }
         }
     }
@@ -132,10 +138,10 @@ try {
         SELECT b.*, op.operator_name, op.contact_number, op.whatsapp_number, op.emergency_number, op.support_email 
         FROM buses b 
         LEFT JOIN operator_contacts op ON b.id = op.bus_id
-        WHERE b.agent_id = ? AND b.status = 'active'
+        WHERE b.admin_id = ? AND b.status = 'active'
         ORDER BY b.created_at DESC
     ");
-    $stmt->execute([$agent_id]);
+    $stmt->execute([$admin_id]);
     $buses = $stmt->fetchAll();
 } catch (PDOException $e) {
     $buses = [];
@@ -177,6 +183,7 @@ try {
                         <th>Classification</th>
                         <th>Capacity</th>
                         <th>Layout Plan</th>
+                        <th>Agent Discount</th>
                         <th>Registered Date</th>
                         <th class="text-end">Actions</th>
                     </tr>
@@ -189,12 +196,25 @@ try {
                             <td><span class="badge bg-secondary"><?= htmlspecialchars($bus['bus_type']) ?></span></td>
                             <td><?= htmlspecialchars($bus['total_seats']) ?> Berth Seats</td>
                             <td><span class="font-monospace text-secondary small"><?= htmlspecialchars($bus['seat_layout_type']) ?></span></td>
+                            <td>
+                                <span class="font-monospace text-warning small">
+                                    <?php 
+                                    if ($bus['discount_type'] === 'percentage') {
+                                        echo htmlspecialchars($bus['percentage']) . '%';
+                                    } elseif ($bus['discount_type'] === 'fixed') {
+                                        echo '₹' . htmlspecialchars($bus['fixed']);
+                                    } else {
+                                        echo 'None';
+                                    }
+                                    ?>
+                                </span>
+                            </td>
                             <td class="text-secondary small"><?= date('d M Y', strtotime($bus['created_at'])) ?></td>
                             <td class="text-end">
                                 <div class="d-flex gap-2 justify-content-end align-items-center">
                                     <a href="configure_layout.php?bus_id=<?= $bus['id'] ?>" class="btn btn-secondary-glass py-1 px-2 small" title="Configure Seats"><i class="fa-solid fa-table-cells text-indigo"></i></a>
                                     <button class="btn btn-secondary-glass py-1 px-2 small operator-btn" data-id="<?= $bus['id'] ?>" data-name="<?= htmlspecialchars($bus['operator_name'] ?? '') ?>" data-phone="<?= htmlspecialchars($bus['contact_number'] ?? '') ?>" data-whatsapp="<?= htmlspecialchars($bus['whatsapp_number'] ?? '') ?>" data-emergency="<?= htmlspecialchars($bus['emergency_number'] ?? '') ?>" data-email="<?= htmlspecialchars($bus['support_email'] ?? '') ?>" data-bs-toggle="modal" data-bs-target="#operatorModal" title="Operator Contact Details"><i class="fa-solid fa-phone"></i></button>
-                                    <button class="btn btn-secondary-glass py-1 px-2 small edit-bus-btn" data-id="<?= $bus['id'] ?>" data-name="<?= htmlspecialchars($bus['bus_name']) ?>" data-number="<?= htmlspecialchars($bus['bus_number']) ?>" data-type="<?= htmlspecialchars($bus['bus_type']) ?>" data-bs-toggle="modal" data-bs-target="#editBusModal" title="Edit Bus"><i class="fa-solid fa-pen-to-square"></i></button>
+                                    <button class="btn btn-secondary-glass py-1 px-2 small edit-bus-btn" data-id="<?= $bus['id'] ?>" data-name="<?= htmlspecialchars($bus['bus_name']) ?>" data-number="<?= htmlspecialchars($bus['bus_number']) ?>" data-type="<?= htmlspecialchars($bus['bus_type']) ?>" data-discount="<?= htmlspecialchars($bus['discount_type']) ?>" data-percentage="<?= htmlspecialchars($bus['percentage']) ?>" data-fixed="<?= htmlspecialchars($bus['fixed']) ?>" data-bs-toggle="modal" data-bs-target="#editBusModal" title="Edit Bus"><i class="fa-solid fa-pen-to-square"></i></button>
                                     <button class="btn btn-secondary-glass py-1 px-2 text-danger small delete-bus-btn" data-id="<?= $bus['id'] ?>" data-bs-toggle="modal" data-bs-target="#deleteBusModal" title="Delete Bus"><i class="fa-solid fa-trash-can"></i></button>
                                 </div>
                             </td>
@@ -238,6 +258,27 @@ try {
                             <option value="Non-AC Seater">Non-AC Seater (40 Seats Layout)</option>
                         </select>
                     </div>
+
+                    <!-- Discount Section -->
+                    <div class="row border-top border-secondary border-opacity-20 pt-3 mt-3">
+                        <h6 class="text-white fw-bold mb-3 small text-uppercase">Agent Partner Discount Configuration</h6>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label text-secondary small fw-semibold">Discount Type</label>
+                            <select name="discount_type" class="form-select form-control-swift" required>
+                                <option value="none">None</option>
+                                <option value="percentage">Percentage (%)</option>
+                                <option value="fixed">Fixed (₹)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label text-secondary small fw-semibold">Percentage (%)</label>
+                            <input type="number" name="percentage" class="form-control form-control-swift" min="0" max="100" step="0.01" value="0.00">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label text-secondary small fw-semibold">Fixed (₹)</label>
+                            <input type="number" name="fixed" class="form-control form-control-swift" min="0" step="0.01" value="0.00">
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer border-secondary border-opacity-20 p-4">
                     <button type="button" class="btn btn-secondary-glass" data-bs-dismiss="modal">Cancel</button>
@@ -280,6 +321,27 @@ try {
                             <option value="AC Seater">AC Seater (40 Seats Layout)</option>
                             <option value="Non-AC Seater">Non-AC Seater (40 Seats Layout)</option>
                         </select>
+                    </div>
+
+                    <!-- Discount Section -->
+                    <div class="row border-top border-secondary border-opacity-20 pt-3 mt-3">
+                        <h6 class="text-white fw-bold mb-3 small text-uppercase">Agent Partner Discount Configuration</h6>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label text-secondary small fw-semibold">Discount Type</label>
+                            <select name="discount_type" id="edit_discount_type" class="form-select form-control-swift" required>
+                                <option value="none">None</option>
+                                <option value="percentage">Percentage (%)</option>
+                                <option value="fixed">Fixed (₹)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label text-secondary small fw-semibold">Percentage (%)</label>
+                            <input type="number" name="percentage" id="edit_percentage" class="form-control form-control-swift" min="0" max="100" step="0.01">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label text-secondary small fw-semibold">Fixed (₹)</label>
+                            <input type="number" name="fixed" id="edit_fixed" class="form-control form-control-swift" min="0" step="0.01">
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer border-secondary border-opacity-20 p-4">
@@ -370,6 +432,9 @@ $(document).ready(function() {
         $('#edit_bus_name').val($(this).data('name'));
         $('#edit_bus_number').val($(this).data('number'));
         $('#edit_bus_type').val($(this).data('type'));
+        $('#edit_discount_type').val($(this).data('discount'));
+        $('#edit_percentage').val($(this).data('percentage'));
+        $('#edit_fixed').val($(this).data('fixed'));
     });
 
     // Fill Delete fields
