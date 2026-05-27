@@ -25,56 +25,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $password = $_POST['password'] ?? '';
         $confirm_password = $_POST['confirm_password'] ?? '';
         $agency_name = trim($_POST['agency_name'] ?? '');
+        $agency_name = trim($_POST['agency_name'] ?? '');
         $phone = trim($_POST['phone'] ?? '');
-        $admin_id = intval($_POST['admin_id'] ?? 0);
+        $operator_code = strtoupper(trim($_POST['operator_code'] ?? ''));
         $role = 'agent';
 
-        if (empty($username) || empty($email) || empty($password) || empty($confirm_password) || empty($agency_name) || empty($phone) || $admin_id === 0) {
-            $error = "Please fill in all fields including agency credentials and Operator selection.";
+        if (empty($username) || empty($email) || empty($password) || empty($confirm_password) || empty($agency_name) || empty($phone) || empty($operator_code)) {
+            $error = "Please fill in all fields including agency credentials and Operator Code.";
         } elseif ($password !== $confirm_password) {
             $error = "Passwords do not match.";
         } elseif (strlen($password) < 6) {
             $error = "Password must be at least 6 characters long.";
         } else {
-            // Verify if email or username already exists
-            $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ? OR email = ? LIMIT 1");
-            $stmt->execute([$username, $email]);
-            if ($stmt->fetchColumn()) {
-                $error = "Username or Email already registered.";
+            // Verify Operator Code exists and belongs to approved Bus Operator
+            $op_stmt = $pdo->prepare("SELECT id FROM users WHERE role = 'admin' AND status = 'approved' AND operator_code = ? LIMIT 1");
+            $op_stmt->execute([$operator_code]);
+            $admin_id = $op_stmt->fetchColumn();
+
+            if (!$admin_id) {
+                $error = "Invalid or inactive Operator Code. Please check with your Bus Operator.";
             } else {
-                try {
-                    $pdo->beginTransaction();
+                // Verify if email or username already exists
+                $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ? OR email = ? LIMIT 1");
+                $stmt->execute([$username, $email]);
+                if ($stmt->fetchColumn()) {
+                    $error = "Username or Email already registered.";
+                } else {
+                    try {
+                        $pdo->beginTransaction();
 
-                    $hashed_pass = password_hash($password, PASSWORD_BCRYPT);
-                    $status = 'pending'; // Agents are pending admin approval
+                        $hashed_pass = password_hash($password, PASSWORD_BCRYPT);
+                        $status = 'pending'; // Agents are pending admin approval
 
-                    $insertUser = $pdo->prepare("INSERT INTO users (username, email, password, role, status) VALUES (?, ?, ?, ?, ?)");
-                    $insertUser->execute([$username, $email, $hashed_pass, $role, $status]);
-                    $new_user_id = $pdo->lastInsertId();
+                        $insertUser = $pdo->prepare("INSERT INTO users (username, email, password, role, status) VALUES (?, ?, ?, ?, ?)");
+                        $insertUser->execute([$username, $email, $hashed_pass, $role, $status]);
+                        $new_user_id = $pdo->lastInsertId();
 
-                    $insertProfile = $pdo->prepare("INSERT INTO agent_profiles (user_id, agency_name, phone, admin_id) VALUES (?, ?, ?, ?)");
-                    $insertProfile->execute([$new_user_id, $agency_name, $phone, $admin_id]);
+                        $insertProfile = $pdo->prepare("INSERT INTO agent_profiles (user_id, agency_name, phone, admin_id) VALUES (?, ?, ?, ?)");
+                        $insertProfile->execute([$new_user_id, $agency_name, $phone, $admin_id]);
 
-                    $success = "Registration successful! Your agency account is pending approval by the selected Bus Operator.";
-                    log_activity($pdo, $new_user_id, 'AGENT_REGISTER', "Agent signed up: $agency_name under Admin ID: $admin_id");
+                        $success = "Registration successful! Your agency account is pending approval by the Bus Operator.";
+                        log_activity($pdo, $new_user_id, 'AGENT_REGISTER', "Agent signed up: $agency_name under Admin ID: $admin_id");
 
-                    $pdo->commit();
-                } catch (Exception $e) {
-                    $pdo->rollBack();
-                    $error = "Registration failed. Please try again. Info: " . $e->getMessage();
+                        $pdo->commit();
+                    } catch (Exception $e) {
+                        $pdo->rollBack();
+                        $error = "Registration failed. Please try again. Info: " . $e->getMessage();
+                    }
                 }
             }
         }
     }
-}
-
-// Fetch active approved admins (Operators) for Agent dropdown
-$active_admins = [];
-try {
-    $stmt = $pdo->query("SELECT id, username FROM users WHERE role = 'admin' AND status = 'approved' ORDER BY username ASC");
-    $active_admins = $stmt->fetchAll();
-} catch (PDOException $e) {
-    $active_admins = [];
 }
 
 require_once __DIR__ . '/../includes/header.php';
@@ -145,13 +146,12 @@ require_once __DIR__ . '/../includes/header.php';
                         </div>
                     </div>
                     <div class="mb-3 mt-3">
-                        <label for="admin_id" class="form-label text-secondary small fw-semibold">Select Bus Operator / Admin</label>
-                        <select name="admin_id" id="admin_id" class="form-select form-control-swift" required>
-                            <option value="">Choose Operator...</option>
-                            <?php foreach ($active_admins as $adm): ?>
-                                <option value="<?= $adm['id'] ?>"><?= htmlspecialchars($adm['username']) ?></option>
-                            <?php endforeach; ?>
-                        </select>
+                        <label for="operator_code" class="form-label text-secondary small fw-semibold">Enter Bus Operator Code</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-dark border-secondary text-secondary"><i class="fa-solid fa-key"></i></span>
+                            <input type="text" name="operator_code" id="operator_code" class="form-control form-control-swift" placeholder="e.g. 7A8D3F9E12" required>
+                        </div>
+                        <div class="small text-secondary mt-1" style="font-size:0.75rem;"><i class="fa-solid fa-circle-info me-1"></i> Ask your partner Bus Operator for their unique 10-digit connection code.</div>
                     </div>
                 </div>
 

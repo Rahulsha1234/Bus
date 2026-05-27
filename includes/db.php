@@ -15,6 +15,25 @@ try {
     die("Database connection failed. Please check your credentials in config/config.php and ensure MySQL is running: " . $e->getMessage());
 }
 
+// Auto-check and add operator_code column if missing
+try {
+    $check_col = $pdo->query("SHOW COLUMNS FROM users LIKE 'operator_code'");
+    if (!$check_col->fetch()) {
+        $pdo->exec("ALTER TABLE users ADD COLUMN operator_code VARCHAR(50) NULL UNIQUE");
+        
+        // Populate existing admin accounts with a unique code
+        $admins_stmt = $pdo->query("SELECT id FROM users WHERE role = 'admin'");
+        $admins = $admins_stmt->fetchAll();
+        $update_stmt = $pdo->prepare("UPDATE users SET operator_code = ? WHERE id = ?");
+        foreach ($admins as $admin) {
+            $code = strtoupper(substr(md5(uniqid(rand(), true)), 0, 10));
+            $update_stmt->execute([$code, $admin['id']]);
+        }
+    }
+} catch (Exception $ex) {
+    // Silent fail if table does not exist yet during initial setup
+}
+
 // Verify that the logged-in user exists in the database to prevent stale sessions after database reset
 if (isset($_SESSION['user_id'])) {
     try {

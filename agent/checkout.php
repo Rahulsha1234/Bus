@@ -32,6 +32,9 @@ if (!$trip) {
     die("Trip details not found or unauthorized.");
 }
 
+// Pre-warm helper tables (avoids DDL inside any later transaction)
+ensure_refactor_tables_exist($pdo);
+
 $base_fare = floatval($trip['base_fare']);
 $total_fare = 0;
 $seat_fares = [];
@@ -45,10 +48,8 @@ if ($trip['discount_type'] === 'percentage') {
 }
 
 foreach ($seats as $seat) {
-    $fare = $base_fare;
-    if (strpos($seat, 'U') === 0) {
-        $fare += 100; // Upper berth premium
-    }
+    // Use the same dynamic pricing helper as book.php and checkout.php
+    $fare = get_actual_seat_price($pdo, $trip_id, $seat, $base_fare);
     $seat_fares[$seat] = $fare;
     $total_fare += $fare;
 
@@ -63,6 +64,7 @@ foreach ($seats as $seat) {
 
 $total_discount = round($total_discount, 2);
 $final_fare = max(0, $total_fare - $total_discount);
+
 
 // Fetch boarding and dropping points from POST
 $boarding_point = $_POST['boarding_point'] ?? '';
@@ -196,7 +198,7 @@ foreach ($seats as $seat) {
 
                 <div class="d-grid mt-4">
                     <button type="button" id="btnInitiatePayment" class="btn btn-primary-gradient py-3 text-uppercase fw-bold" style="border-radius: 12px; letter-spacing: 0.5px;">
-                        <i class="fa-solid fa-check-double me-2"></i>Process Booking & Issue Ticket
+                        <i class="fa-solid fa-lock me-2"></i>Pay &amp; Issue Ticket &mdash; &#8377;<?= number_format($final_fare, 2) ?>
                     </button>
                 </div>
             </form>
@@ -241,25 +243,78 @@ foreach ($seats as $seat) {
     </div>
 </div>
 
+<!-- MOCK RAZORPAY GATEWAY OVERLAY MODAL -->
+<div class="modal fade" id="razorpayModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-card border-secondary text-white shadow-2xl" style="border-radius: 24px; background: #121829;">
+            <div class="modal-header border-secondary p-4 d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="p-2 rounded-3 text-white d-flex align-items-center justify-content-center" style="background:#5252ff;"><i class="fa-solid fa-shield-halved"></i></span>
+                    <div>
+                        <h6 class="modal-title fw-bold text-white mb-0">Razorpay Secure Checkout</h6>
+                        <span class="text-secondary small" style="font-size:0.75rem;">Merchant: <?= defined("SYSTEM_NAME") ? SYSTEM_NAME : "Bus Booking" ?> Inc.</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="text-center mb-4">
+                    <span class="text-secondary small d-block">AMOUNT TO PAY (AGENT FARE)</span>
+                    <h2 class="fw-bold" style="font-size: 2.5rem; color:#0F5132;">&#8377;<?= number_format($final_fare, 2) ?></h2>
+                    <?php if ($total_discount > 0): ?>
+                        <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-1 mt-1">Agent Discount: -&#8377;<?= number_format($total_discount, 2) ?></span>
+                    <?php endif; ?>
+                </div>
+                <div class="p-3 rounded-4 bg-dark bg-opacity-30 border border-secondary border-opacity-20 mb-4 small text-secondary">
+                    <div class="d-flex justify-content-between mb-2"><span>Order Reference</span><span class="text-white font-monospace">AGT-<?= time() ?></span></div>
+                    <div class="d-flex justify-content-between"><span>Seats</span><span class="text-white"><?= htmlspecialchars($selected_seats) ?></span></div>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label text-secondary small fw-semibold">Select Payment Method</label>
+                    <div class="d-grid gap-3">
+                        <button type="button" class="btn btn-secondary-glass text-start py-3 px-3 d-flex align-items-center justify-content-between w-100 rounded-3 select-payment-opt" data-status="success">
+                            <span><i class="fa-solid fa-credit-card text-success me-3"></i>Credit / Debit Card (Simulate Success)</span>
+                            <i class="fa-solid fa-chevron-right text-secondary small"></i>
+                        </button>
+                        <button type="button" class="btn btn-secondary-glass text-start py-3 px-3 d-flex align-items-center justify-content-between w-100 rounded-3 select-payment-opt" data-status="failed">
+                            <span><i class="fa-solid fa-circle-xmark text-danger me-3"></i>Simulate Failed Transaction</span>
+                            <i class="fa-solid fa-chevron-right text-secondary small"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-secondary p-4 d-flex justify-content-between align-items-center">
+                <span class="text-secondary small" style="font-size: 0.75rem;"><i class="fa-solid fa-lock me-1"></i>256-bit SSL Encrypted Connection</span>
+                <span class="text-secondary small font-monospace text-uppercase" style="font-size: 0.75rem;">Razorpay v3</span>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 $(document).ready(function() {
+    // Open Razorpay modal on button click
     $('#btnInitiatePayment').click(function() {
         var form = $('#paymentCheckForm')[0];
         if (!form.checkValidity()) {
             form.reportValidity();
             return;
         }
+        $('#razorpayModal').modal('show');
+    });
 
-        if (!confirm("Confirm booking this ticket? The ticket will be booked immediately using the agent account discount settings.")) {
+    // Handle payment simulation
+    $('.select-payment-opt').click(function() {
+        var status = $(this).data('status');
+        if (status === 'failed') {
+            alert('Mock Payment Failed: Simulated transaction failure. Please use card simulation for success.');
+            $('#razorpayModal').modal('hide');
             return;
         }
-
+        $('#razorpayModal').modal('hide');
         var originalBtnText = $('#btnInitiatePayment').html();
-        $('#btnInitiatePayment').html('<i class="fa-solid fa-spinner fa-spin me-2"></i>Issuing Ticket...').addClass('disabled');
-
-        // Compile payload
+        $('#btnInitiatePayment').html('<i class="fa-solid fa-spinner fa-spin me-2"></i>Processing Secure Transaction...').addClass('disabled');
         var formData = $('#paymentCheckForm').serialize();
-
         $.ajax({
             url: '<?= BASE_URL ?>/checkout.php?action=process_payment',
             type: 'POST',
@@ -267,15 +322,14 @@ $(document).ready(function() {
             dataType: 'json',
             success: function(response) {
                 if (response.success) {
-                    alert("Ticket booked successfully!");
                     window.location.href = '<?= BASE_URL ?>/ticket.php?ref=' + response.booking_ref;
                 } else {
-                    alert("Booking Failed: " + response.message);
+                    alert('Booking Error: ' + response.message);
                     $('#btnInitiatePayment').html(originalBtnText).removeClass('disabled');
                 }
             },
             error: function() {
-                alert("CRITICAL ERROR: Failed to communicate with booking engine.");
+                alert('CRITICAL ERROR: Failed to communicate with payment processor.');
                 $('#btnInitiatePayment').html(originalBtnText).removeClass('disabled');
             }
         });

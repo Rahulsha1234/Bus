@@ -110,7 +110,7 @@ $user = get_logged_user();
         </div>
 
         <!-- Main Display Panel -->
-        <div class="col-md-9 col-lg-10 py-5 px-md-5">
+        <div class="col-md-9 col-lg-10 py-5 px-md-5 main-display-panel">
             <!-- Mobile Header -->
             <div class="d-flex d-md-none justify-content-between align-items-center mb-4 pb-2 border-bottom border-secondary border-opacity-25">
                 <a href="<?= BASE_URL ?>/index.php" class="text-decoration-none">

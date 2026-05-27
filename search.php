@@ -148,6 +148,8 @@ require_once __DIR__ . '/includes/header.php';
                 
                 $pickups = json_decode($trip['pickup_points'], true) ?? [];
                 $drops = json_decode($trip['drop_points'], true) ?? [];
+                $trip_dep_fmt = $dep_time->format('H:i');
+                $trip_arr_fmt = $arr_time->format('H:i');
             ?>
                 <!-- Individual Bus Card -->
                 <div class="bg-white text-dark p-4 mb-4 border rounded-4 shadow-sm" style="background: var(--card-bg) !important; border: 1px solid var(--border-color) !important;">
@@ -190,22 +192,26 @@ require_once __DIR__ . '/includes/header.php';
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-dark glass-card p-3 border-0 mt-2" style="min-width: 250px;">
                                     <h6 class="text-success small fw-bold mb-2" style="color: var(--accent-primary) !important;">Pickups (<?= htmlspecialchars($source) ?>)</h6>
-                                    <?php foreach ($pickups as $p): 
-                                        $formatted_time = !empty($p['time']) ? date('H:i', strtotime($p['time'])) : '00:00';
+                                    <?php foreach ($pickups as $p):
+                                        $pt = $p['time'] ?? '';
+                                        $has_time = !empty($pt) && $pt !== '00:00' && $pt !== '00:00:00';
+                                        $display_time = $has_time ? date('H:i', strtotime($pt)) : $trip_dep_fmt;
                                     ?>
                                         <li class="small text-secondary mb-1 d-flex justify-content-between">
                                             <span><?= htmlspecialchars($p['name']) ?></span>
-                                            <span class="text-white"><?= htmlspecialchars($formatted_time) ?></span>
+                                            <span class="text-white ms-3"><?= $display_time ?></span>
                                         </li>
                                     <?php endforeach; ?>
                                     <li><hr class="dropdown-divider border-secondary my-2"></li>
                                     <h6 class="text-success small fw-bold mb-2" style="color: var(--accent-secondary) !important;">Drops (<?= htmlspecialchars($destination) ?>)</h6>
-                                    <?php foreach ($drops as $d): 
-                                        $formatted_time = !empty($d['time']) ? date('H:i', strtotime($d['time'])) : '00:00';
+                                    <?php foreach ($drops as $d):
+                                        $dt = $d['time'] ?? '';
+                                        $has_time = !empty($dt) && $dt !== '00:00' && $dt !== '00:00:00';
+                                        $display_time = $has_time ? date('H:i', strtotime($dt)) : $trip_arr_fmt;
                                     ?>
                                         <li class="small text-secondary mb-1 d-flex justify-content-between">
                                             <span><?= htmlspecialchars($d['name']) ?></span>
-                                            <span class="text-white"><?= htmlspecialchars($formatted_time) ?></span>
+                                            <span class="text-white ms-3"><?= $display_time ?></span>
                                         </li>
                                     <?php endforeach; ?>
                                 </ul>

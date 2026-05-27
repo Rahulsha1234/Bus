@@ -44,7 +44,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     }
-    header("Location: " . $_SERVER['PHP_SELF']);
+    if (!headers_sent()) {
+        header("Location: " . $_SERVER['PHP_SELF']);
+    } else {
+        echo "<script>window.location.replace('" . $_SERVER['PHP_SELF'] . "');</script>";
+    }
     exit();
 }
 
@@ -60,6 +64,7 @@ try {
             username,
             email,
             status,
+            operator_code,
             created_at
         FROM users
         WHERE role = 'admin'
@@ -94,6 +99,7 @@ try {
                 <thead>
                     <tr>
                         <th>Username</th>
+                        <th>Operator Code</th>
                         <th>Contact Email</th>
                         <th>Status</th>
                         <th>Registered Date</th>
@@ -104,6 +110,7 @@ try {
                     <?php foreach ($operators as $operator): ?>
                         <tr>
                             <td><span class="fw-semibold text-white fs-6"><?= htmlspecialchars($operator['username']) ?></span></td>
+                            <td><code class="text-warning font-monospace small"><?= htmlspecialchars($operator['operator_code'] ?? 'N/A') ?></code></td>
                             <td><?= htmlspecialchars($operator['email']) ?></td>
                             <td>
                                 <?php if ($operator['status'] === 'approved'): ?>

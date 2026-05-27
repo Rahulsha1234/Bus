@@ -36,6 +36,11 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
     }
 
     try {
+        // Pre-warm helper tables BEFORE starting the transaction.
+        // CREATE TABLE (DDL) causes an implicit MySQL commit, which would
+        // silently kill the PDO transaction and cause "no active transaction" errors.
+        ensure_refactor_tables_exist($pdo);
+
         // Start transaction
         $pdo->beginTransaction();
 
@@ -308,11 +313,14 @@ if (empty($trip_id) || empty($selected_seats)) {
 // Convert string to array
 $seats = explode(',', $selected_seats);
 
-// Establish database holds for 10 minutes to lock these seats
+// Establish database holds for 7 minutes to lock these seats
 try {
     $now = date('Y-m-d H:i:s');
-    $expire_time = date('Y-m-d H:i:s', strtotime('+10 minutes'));
+    $expire_time = date('Y-m-d H:i:s', strtotime('+7 minutes'));
     $session_id = session_id();
+
+    // Pre-warm tables before transaction (DDL must not run inside a transaction)
+    ensure_refactor_tables_exist($pdo);
 
     $pdo->beginTransaction();
 

@@ -273,5 +273,5 @@ $user = get_logged_user();
     </script>
 
     <?php if (!(basename($_SERVER['SCRIPT_NAME']) === 'index.php' && strpos($_SERVER['SCRIPT_NAME'], '/admin/') === false && strpos($_SERVER['SCRIPT_NAME'], '/agent/') === false && strpos($_SERVER['SCRIPT_NAME'], '/super_admin/') === false)): ?>
-        <div class="container-fluid px-md-5 my-5" style="margin-top: 5rem !important;">
+        <div class="container-fluid px-md-5 my-5 main-site-content" style="margin-top: 5rem !important;">
     <?php endif; ?>

@@ -44,9 +44,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     $hashed_pass = password_hash($password, PASSWORD_BCRYPT);
                     $status = 'pending'; // Admins must be approved by Super Admin
+                    
+                    // Generate unique 10-digit alphanumeric code
+                    $operator_code = strtoupper(substr(md5(uniqid(rand(), true)), 0, 10));
 
-                    $insertUser = $pdo->prepare("INSERT INTO users (username, email, password, role, status) VALUES (?, ?, ?, ?, ?)");
-                    $insertUser->execute([$username, $email, $hashed_pass, $role, $status]);
+                    $insertUser = $pdo->prepare("INSERT INTO users (username, email, password, role, status, operator_code) VALUES (?, ?, ?, ?, ?, ?)");
+                    $insertUser->execute([$username, $email, $hashed_pass, $role, $status, $operator_code]);
                     $new_user_id = $pdo->lastInsertId();
 
                     $success = "Registration successful! Your operator account is pending approval by the Super Admin.";

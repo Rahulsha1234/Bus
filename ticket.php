@@ -27,6 +27,7 @@ try {
             b.created_at,
             b.boarding_point,
             b.dropping_point,
+            b.booking_source,
             t.departure_time,
             t.arrival_time,
             bs.id AS bus_id,
@@ -111,8 +112,15 @@ require_once __DIR__ . '/includes/header.php';
     <div class="col-lg-8">
         
         <!-- Ticket print toolbar (no-print helper) -->
+        <?php
+            $is_agent_booking = ($booking['booking_source'] ?? '') === 'agent';
+            $book_another_url = $is_agent_booking
+                ? BASE_URL . '/agent/search.php'
+                : BASE_URL . '/index.php';
+            $book_another_label = $is_agent_booking ? 'Search Another Trip' : 'Book Another';
+        ?>
         <div class="d-flex justify-content-between align-items-center mb-4 no-print">
-            <a href="<?= BASE_URL ?>/index.php" class="btn btn-secondary-glass py-2 px-3 small"><i class="fa-solid fa-house me-2"></i>Book Another</a>
+            <a href="<?= $book_another_url ?>" class="btn btn-secondary-glass py-2 px-3 small"><i class="fa-solid fa-<?= $is_agent_booking ? 'arrow-left' : 'house' ?> me-2"></i><?= $book_another_label ?></a>
             <a href="<?= BASE_URL ?>/ticket_pdf.php?ref=<?= urlencode($ref) ?>" target="_blank" class="btn btn-primary-gradient py-2 px-4 fw-bold"><i class="fa-solid fa-file-pdf me-2"></i>Download E-Ticket PDF</a>
         </div>
 

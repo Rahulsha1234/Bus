@@ -77,6 +77,24 @@ try {
     $rows_count = $layout ? intval($layout['rows_count']) : ($trip['seat_layout_type'] === '2x1_sleeper' ? 10 : 10);
     $cols_count = $layout ? intval($layout['cols_count']) : ($trip['seat_layout_type'] === '2x1_sleeper' ? 3 : 5);
 
+    // --- Release THIS session's own prior temp_locked seats on fresh page load ---
+    // Prevents seats appearing permanently "selected" if user navigated away.
+    $session_id_current = session_id();
+    $pdo->prepare("
+        UPDATE trip_seats
+        SET status = 'available', locked_at = NULL, locked_by_session = NULL
+        WHERE trip_id = ? AND status = 'temp_locked' AND locked_by_session = ?
+    ")->execute([$trip_id, $session_id_current]);
+
+    // --- Auto-release expired temp_locked seats (7-minute window) ---
+    $seven_mins_ago = date('Y-m-d H:i:s', strtotime('-7 minutes'));
+    $pdo->prepare("
+        UPDATE trip_seats
+        SET status = 'available', locked_at = NULL, locked_by_session = NULL
+        WHERE trip_id = ? AND status = 'temp_locked' AND locked_at <= ?
+    ")->execute([$trip_id, $seven_mins_ago]);
+
+
     // Fetch seat statuses & pricing overrides
     $seats_stmt = $pdo->prepare("
         SELECT 
@@ -94,7 +112,7 @@ try {
     // Map dynamic seats
     $seats_lookup = [];
     $now = date('Y-m-d H:i:s');
-    $ten_mins_ago = date('Y-m-d H:i:s', strtotime('-10 minutes'));
+    $seven_mins_ago = date('Y-m-d H:i:s', strtotime('-7 minutes'));
     $session_id = session_id();
 
     // Fill defaults if layout was never configured
@@ -129,9 +147,9 @@ try {
             $status = 'blocked';
         }
 
-        // Check locks expiration
+        // Check locks expiration (7 minutes)
         if ($status === 'temp_locked') {
-            if (empty($s['locked_at']) || $s['locked_at'] <= $ten_mins_ago) {
+            if (empty($s['locked_at']) || $s['locked_at'] <= $seven_mins_ago) {
                 $status = 'available';
             } elseif ($s['locked_by_session'] === $session_id) {
                 $status = 'selected';
@@ -219,14 +237,11 @@ require_once __DIR__ . '/includes/header.php';
 
             <!-- Seat status legend -->
             <div class="d-flex gap-3 mb-4 justify-content-center flex-wrap small">
-                <div class="legend-item"><span class="legend-dot bg-success" style="background:#E2E8F0 !important; border:1px solid #CBD5E1 !important;"></span><span class="text-secondary">Available</span></div>
-                <div class="legend-item"><span class="legend-dot" style="background:var(--accent-gold-gradient);"></span><span class="text-secondary">Selected</span></div>
-                <div class="legend-item"><span class="legend-dot bg-danger" style="background:#FCA5A5 !important; border:1px solid #EF4444 !important;"></span><span class="text-secondary">Booked</span></div>
-                <div class="legend-item"><span class="legend-dot bg-warning" style="background:#FDE68A !important; border:1px solid #F59E0B !important;"></span><span class="text-secondary">Hold</span></div>
-                <div class="legend-item"><span class="legend-dot bg-dark" style="background:#1F2937 !important; border:1px solid #111827 !important;"></span><span class="text-secondary">Blocked</span></div>
-                <div class="legend-item"><span class="legend-dot bg-primary" style="background:#BFDBFE !important; border:1px solid #3B82F6 !important;"></span><span class="text-secondary">Reserved</span></div>
-                <div class="legend-item"><span class="legend-dot" style="background:#FBCFE8 !important; border:1px solid #EC4899 !important;"></span><span class="text-secondary">Female (Booked/Protected)</span></div>
-                <div class="legend-item"><span class="legend-dot bg-info" style="background:#FEF08A !important; border:1px solid #EAB308 !important;"></span><span class="text-secondary">Temp Locked</span></div>
+                <div class="legend-item"><span class="legend-dot" style="background:#FFFDF8 !important; border:1px solid #D4C9B5 !important;"></span><span class="text-secondary">Available</span></div>
+                <div class="legend-item"><span class="legend-dot" style="background:#0F5132 !important; border:1px solid #0a3d22 !important;"></span><span class="text-secondary">Selected</span></div>
+                <div class="legend-item"><span class="legend-dot" style="background:#9CA3AF !important; border:1px solid #6B7280 !important;"></span><span class="text-secondary">Booked</span></div>
+                <div class="legend-item"><span class="legend-dot" style="background:#EAB308 !important; border:1px solid #B45309 !important;"></span><span class="text-secondary">Hold</span></div>
+                <div class="legend-item"><span class="legend-dot" style="background:#F472B6 !important; border:1px solid #EC4899 !important;"></span><span class="text-secondary">Female (Booked/Protected)</span></div>
             </div>
 
             <!-- Seating Grid -->
@@ -363,9 +378,11 @@ require_once __DIR__ . '/includes/header.php';
                     <select name="boarding_point" id="boarding_point" class="form-select form-control-swift" required>
                         <option value="">Choose Boarding...</option>
                         <?php foreach ($boardings as $bs): 
-                            $formatted_time = !empty($bs['time']) ? date('H:i', strtotime($bs['time'])) : '00:00';
+                            $has_time = !empty($bs['time']) && $bs['time'] !== '00:00:00' && $bs['time'] !== '00:00';
+                            $label = htmlspecialchars($bs['name']);
+                            if ($has_time) $label .= ' (' . date('H:i', strtotime($bs['time'])) . ')';
                         ?>
-                            <option value="<?= htmlspecialchars($bs['name']) ?>"><?= htmlspecialchars($bs['name']) ?> (<?= htmlspecialchars($formatted_time) ?>)</option>
+                            <option value="<?= htmlspecialchars($bs['name']) ?>"><?= $label ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
@@ -376,9 +393,11 @@ require_once __DIR__ . '/includes/header.php';
                     <select name="dropping_point" id="dropping_point" class="form-select form-control-swift" required>
                         <option value="">Choose Dropping...</option>
                         <?php foreach ($droppings as $ds): 
-                            $formatted_time = !empty($ds['time']) ? date('H:i', strtotime($ds['time'])) : '00:00';
+                            $has_time = !empty($ds['time']) && $ds['time'] !== '00:00:00' && $ds['time'] !== '00:00';
+                            $label = htmlspecialchars($ds['name']);
+                            if ($has_time) $label .= ' (' . date('H:i', strtotime($ds['time'])) . ')';
                         ?>
-                            <option value="<?= htmlspecialchars($ds['name']) ?>"><?= htmlspecialchars($ds['name']) ?> (<?= htmlspecialchars($formatted_time) ?>)</option>
+                            <option value="<?= htmlspecialchars($ds['name']) ?>"><?= $label ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>

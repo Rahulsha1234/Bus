@@ -532,7 +532,7 @@ $(document).ready(function() {
                     'grid-row': (r + 1),
                     'grid-column': (c + 1)
                 });
-                
+
                 if (seat) {
                     var activeClass = seat.active === 1 ? '' : ' disabled-seat';
                     var typeClass = ' type-' + seat.type.toLowerCase().replace(/ /g, '-');
@@ -548,7 +548,7 @@ $(document).ready(function() {
                         '<span>' + seat.number + '</span>' +
                         '<span class="seat-type-badge">' + seat.type + '</span>' +
                         '</div>');
-                    
+
                     seatElement.on('dragstart', handleDragStart(r, c));
                     cell.append(seatElement);
                 } else {
@@ -648,6 +648,23 @@ $(document).ready(function() {
     var dragSrcRow = null;
     var dragSrcCol = null;
 
+    function isSleeper(type) {
+        if (!type) return false;
+        var t = type.toLowerCase();
+        return t.indexOf('sleeper') !== -1 && t.indexOf('semi') === -1;
+    }
+
+    // Returns shadowed (row,col) keys — cells occupied by the lower half of a sleeper above
+    function getShadowedCells() {
+        var shadowed = {};
+        seats.forEach(function(s) {
+            if (isSleeper(s.type)) {
+                shadowed[(s.row + 1) + ',' + s.col] = true;
+            }
+        });
+        return shadowed;
+    }
+
     function handleDragStart(row, col) {
         return function(e) {
             dragSrcRow = row;
@@ -669,28 +686,64 @@ $(document).ready(function() {
     function handleDrop(row, col) {
         return function(e) {
             e.preventDefault();
-            if (dragSrcRow !== null && dragSrcCol !== null) {
-                var srcSeat = findSeat(dragSrcRow, dragSrcCol);
-                var destSeat = findSeat(row, col);
+            if (dragSrcRow === null || dragSrcCol === null) return;
 
-                if (srcSeat && !destSeat) {
-                    var newNumber = incrementSeatNumber(srcSeat.number);
-                    while (seats.find(s => s.number === newNumber)) {
-                        newNumber = incrementSeatNumber(newNumber);
-                    }
-                    seats.push({
-                        number: newNumber,
-                        row: row,
-                        col: col,
-                        type: srcSeat.type,
-                        active: srcSeat.active,
-                        price: srcSeat.price
-                    });
-                }
+            var srcSeat = findSeat(dragSrcRow, dragSrcCol);
+            var destSeat = findSeat(row, col);
+
+            // Check if drop target is shadowed by another sleeper
+            var shadowed = getShadowedCells();
+            if (shadowed[row + ',' + col]) {
+                alert('This cell is occupied by the lower half of a sleeper above it. Choose a different cell.');
                 dragSrcRow = null;
                 dragSrcCol = null;
-                renderGrid();
+                return;
             }
+
+            if (srcSeat && !destSeat) {
+                var sleeperSeat = isSleeper(srcSeat.type);
+
+                // Sleeper needs 2 rows — reject if no room below or if below cell is occupied/shadowed
+                if (sleeperSeat) {
+                    if (row + 1 >= rows) {
+                        alert('A sleeper berth needs 2 row-heights. This is the last row — not enough space.');
+                        dragSrcRow = null;
+                        dragSrcCol = null;
+                        return;
+                    }
+                    if (findSeat(row + 1, col)) {
+                        alert('A sleeper berth needs 2 free consecutive vertical cells. The cell below is occupied.');
+                        dragSrcRow = null;
+                        dragSrcCol = null;
+                        return;
+                    }
+                    if (shadowed[(row + 1) + ',' + col]) {
+                        alert('A sleeper berth needs 2 free consecutive vertical cells. The cell below is occupied by another sleeper\'s shadow.');
+                        dragSrcRow = null;
+                        dragSrcCol = null;
+                        return;
+                    }
+                }
+
+                // Generate unique seat number (Copy behavior)
+                var newNumber = incrementSeatNumber(srcSeat.number);
+                while (seats.find(function(s) { return s.number === newNumber; })) {
+                    newNumber = incrementSeatNumber(newNumber);
+                }
+
+                seats.push({
+                    number: newNumber,
+                    row: row,
+                    col: col,
+                    type: srcSeat.type,
+                    active: srcSeat.active,
+                    price: srcSeat.price
+                });
+            }
+
+            dragSrcRow = null;
+            dragSrcCol = null;
+            renderGrid();
         };
     }
 

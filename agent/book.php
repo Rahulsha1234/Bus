@@ -91,8 +91,24 @@ try {
     // Map dynamic seats
     $seats_lookup = [];
     $now = date('Y-m-d H:i:s');
-    $ten_mins_ago = date('Y-m-d H:i:s', strtotime('-10 minutes'));
+    $seven_mins_ago = date('Y-m-d H:i:s', strtotime('-7 minutes'));
     $session_id = session_id();
+
+    // Release THIS session's own temp_locked seats on fresh page load.
+    // If the user navigated away (dashboard, search, etc.) and returns,
+    // their previous selection should be cleared so they start fresh.
+    $pdo->prepare("
+        UPDATE trip_seats
+        SET status = 'available', locked_at = NULL, locked_by_session = NULL
+        WHERE trip_id = ? AND status = 'temp_locked' AND locked_by_session = ?
+    ")->execute([$trip_id, $session_id]);
+
+    // Also auto-release any other expired temp_locked seats (7-minute window)
+    $pdo->prepare("
+        UPDATE trip_seats
+        SET status = 'available', locked_at = NULL, locked_by_session = NULL
+        WHERE trip_id = ? AND status = 'temp_locked' AND locked_at <= ?
+    ")->execute([$trip_id, $seven_mins_ago]);
 
     // Load booked genders to check female protection rules
     $gender_stmt = $pdo->prepare("
@@ -120,9 +136,9 @@ try {
             $status = 'blocked';
         }
 
-        // Check locks expiration
+        // Check locks expiration (7 minutes)
         if ($status === 'temp_locked') {
-            if (empty($s['locked_at']) || $s['locked_at'] <= $ten_mins_ago) {
+            if (empty($s['locked_at']) || $s['locked_at'] <= $seven_mins_ago) {
                 $status = 'available';
             } elseif ($s['locked_by_session'] === $session_id) {
                 $status = 'selected';
@@ -217,13 +233,11 @@ try {
 
             <!-- Seat status legend -->
             <div class="d-flex gap-3 mb-4 justify-content-center flex-wrap small">
-                <div class="legend-item"><span class="legend-dot bg-success" style="background:#E2E8F0 !important; border:1px solid #CBD5E1 !important;"></span><span class="text-secondary">Available</span></div>
-                <div class="legend-item"><span class="legend-dot" style="background:var(--accent-gold-gradient);"></span><span class="text-secondary">Selected</span></div>
-                <div class="legend-item"><span class="legend-dot bg-danger" style="background:#FCA5A5 !important; border:1px solid #EF4444 !important;"></span><span class="text-secondary">Booked</span></div>
-                <div class="legend-item"><span class="legend-dot bg-warning" style="background:#FDE68A !important; border:1px solid #F59E0B !important;"></span><span class="text-secondary">Hold</span></div>
-                <div class="legend-item"><span class="legend-dot bg-dark" style="background:#1F2937 !important; border:1px solid #111827 !important;"></span><span class="text-secondary">Blocked</span></div>
-                <div class="legend-item"><span class="legend-dot bg-primary" style="background:#BFDBFE !important; border:1px solid #3B82F6 !important;"></span><span class="text-secondary">Reserved</span></div>
-                <div class="legend-item"><span class="legend-dot" style="background:#FBCFE8 !important; border:1px solid #EC4899 !important;"></span><span class="text-secondary">Female Protected</span></div>
+                <div class="legend-item"><span class="legend-dot" style="background:#FFFDF8 !important; border:1px solid #D4C9B5 !important;"></span><span class="text-secondary">Available</span></div>
+                <div class="legend-item"><span class="legend-dot" style="background:#0F5132 !important; border:1px solid #0a3d22 !important;"></span><span class="text-secondary">Selected</span></div>
+                <div class="legend-item"><span class="legend-dot" style="background:#9CA3AF !important; border:1px solid #6B7280 !important;"></span><span class="text-secondary">Booked</span></div>
+                <div class="legend-item"><span class="legend-dot" style="background:#EAB308 !important; border:1px solid #B45309 !important;"></span><span class="text-secondary">Hold</span></div>
+                <div class="legend-item"><span class="legend-dot" style="background:#F472B6 !important; border:1px solid #EC4899 !important;"></span><span class="text-secondary">Female (Booked/Protected)</span></div>
             </div>
 
             <!-- Seating Grid -->
@@ -255,8 +269,15 @@ try {
                     <label class="form-label text-secondary small fw-semibold">Choose Boarding point</label>
                     <select name="boarding_point" class="form-select form-control-swift" required>
                         <option value="">Select pickup station...</option>
-                        <?php foreach ($boardings as $b): ?>
-                            <option value="<?= htmlspecialchars($b['name'] . ' (' . $b['time'] . ')') ?>"><?= htmlspecialchars($b['name'] . ' - departs ' . $b['time']) ?></option>
+                        <?php
+                        $trip_dep_fmt = date('H:i', strtotime($trip['departure_time']));
+                        $trip_arr_fmt = date('H:i', strtotime($trip['arrival_time']));
+                        foreach ($boardings as $b):
+                            $bt = $b['time'] ?? '';
+                            $has_bt = !empty($bt) && $bt !== '00:00' && $bt !== '00:00:00';
+                            $b_display = $has_bt ? date('H:i', strtotime($bt)) : $trip_dep_fmt;
+                        ?>
+                            <option value="<?= htmlspecialchars($b['name']) ?>"><?= htmlspecialchars($b['name']) ?> (departs <?= $b_display ?>)</option>
                         <?php endforeach; ?>
                     </select>
                 </div>
@@ -265,8 +286,12 @@ try {
                     <label class="form-label text-secondary small fw-semibold">Choose Dropping point</label>
                     <select name="dropping_point" class="form-select form-control-swift" required>
                         <option value="">Select dropping station...</option>
-                        <?php foreach ($droppings as $d): ?>
-                            <option value="<?= htmlspecialchars($d['name'] . ' (' . $d['time'] . ')') ?>"><?= htmlspecialchars($d['name'] . ' - arrival ' . $d['time']) ?></option>
+                        <?php foreach ($droppings as $d):
+                            $dt = $d['time'] ?? '';
+                            $has_dt = !empty($dt) && $dt !== '00:00' && $dt !== '00:00:00';
+                            $d_display = $has_dt ? date('H:i', strtotime($dt)) : $trip_arr_fmt;
+                        ?>
+                            <option value="<?= htmlspecialchars($d['name']) ?>"><?= htmlspecialchars($d['name']) ?> (arrives <?= $d_display ?>)</option>
                         <?php endforeach; ?>
                     </select>
                 </div>
@@ -300,12 +325,16 @@ try {
     align-items: center;
     justify-content: center;
 }
+/* Sleeper berths are taller */
+.grid-cell.is-sleeper {
+    height: 120px;
+}
 .console-seat-box {
     width: 100%;
     height: 100%;
     border-radius: 8px;
-    border: 1px solid var(--border-glass);
-    color: var(--text-main);
+    border: 1.5px solid #D4C9B5;
+    color: #0F5132;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -315,19 +344,17 @@ try {
     font-weight: 700;
     transition: all 0.2s ease;
 }
-.console-seat-box.available { background: rgba(78, 135, 82, 0.12); border-color: rgba(78, 135, 82, 0.35); color: var(--seat-available); }
-.console-seat-box.hold { background: rgba(217, 140, 69, 0.12); border-color: rgba(217, 140, 69, 0.35); color: var(--seat-hold); }
-.console-seat-box.booked { background: rgba(184, 92, 92, 0.12); border-color: rgba(184, 92, 92, 0.35); color: var(--seat-booked); }
-.console-seat-box.blocked { background: #1a1f2c; border-color: #2D3442; color: #4E5A70; }
-.console-seat-box.reserved { background: rgba(99, 102, 241, 0.12); border-color: rgba(99, 102, 241, 0.35); color: #818cf8; }
-.console-seat-box.temp_locked { background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.35); color: #fbbf24; }
-.console-seat-box.female_booked, .console-seat-box.female_protected { background: rgba(236, 72, 153, 0.12); border-color: rgba(236, 72, 153, 0.35); color: #ec4899; }
-
-.console-seat-box.selected {
-    background: var(--accent-gold-gradient);
-    border-color: var(--accent-primary);
-    color: var(--text-white-fixed);
-}
+/* New premium palette */
+.console-seat-box.available  { background: #FFFDF8; border-color: #D4C9B5; color: #0F5132; }
+.console-seat-box.available:hover { background: #F0EAD8; border-color: #C8A96B; transform: scale(1.05); }
+.console-seat-box.selected   { background: #0F5132; border-color: #0a3d22; color: #ffffff; box-shadow: 0 0 10px rgba(15,81,50,0.35); }
+.console-seat-box.booked     { background: #9CA3AF; border-color: #6B7280; color: #ffffff; cursor: not-allowed; }
+.console-seat-box.hold       { background: #EAB308; border-color: #B45309; color: #1C1917; cursor: not-allowed; }
+.console-seat-box.blocked    { background: #343a40; border-color: #212529; color: #adb5bd; cursor: not-allowed; }
+.console-seat-box.reserved   { background: #BFDBFE; border-color: #3B82F6; color: #1E3A8A; cursor: not-allowed; }
+.console-seat-box.temp_locked { background: #EAB308; border-color: #B45309; color: #1C1917; }
+.console-seat-box.female_booked  { background: #F472B6; border-color: #EC4899; color: #ffffff; cursor: not-allowed; }
+.console-seat-box.female_protected { background: rgba(244,114,182,0.08); border: 2px dashed #EC4899; color: #EC4899; }
 .console-seat-box .price-lbl {
     font-size: 0.55rem;
     opacity: 0.85;
@@ -352,16 +379,19 @@ $(document).ready(function() {
         for (var r = 0; r < rows; r++) {
             for (var c = 0; c < cols; c++) {
                 var seat = seats.find(s => s.row === r && s.col === c);
-                var cell = $('<div class="grid-cell"></div>');
+                var isSleeper = seat && (seat.type.toLowerCase().includes('sleeper'));
+                var cellH = isSleeper ? '120px' : '60px';
+                var cell = $('<div class="grid-cell"></div>').css('height', cellH);
 
                 if (seat) {
                     var isSelected = selectedSeats.includes(seat.number) ? ' selected' : '';
                     var typeClass = ' type-' + seat.type.toLowerCase().replace(/ /g, '-');
                     var box = $('<div class="console-seat-box ' + seat.status + isSelected + typeClass + '" data-seat="' + seat.number + '">' +
+                        (isSleeper ? '<div style="width:28px;height:6px;background:currentColor;border-radius:3px;opacity:0.5;margin-bottom:4px;"></div>' : '') +
                         '<span>' + seat.number + '</span>' +
                         '<span class="price-lbl">₹' + seat.price.toFixed(0) + '</span>' +
                         '</div>');
-                    
+
                     box.click(handleSeatClick(seat));
                     cell.append(box);
                 }

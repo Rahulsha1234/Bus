@@ -39,7 +39,7 @@ function in_repeat_action($val, $arr) {
 
 try {
     $now = date('Y-m-d H:i:s');
-    $ten_mins_ago = date('Y-m-d H:i:s', strtotime('-10 minutes'));
+    $seven_mins_ago = date('Y-m-d H:i:s', strtotime('-7 minutes'));
 
     // Fetch current status
     $stmt = $pdo->prepare("SELECT status, locked_at, locked_by_session FROM trip_seats WHERE trip_id = ? AND seat_number = ? LIMIT 1");
@@ -50,7 +50,7 @@ try {
         if ($current) {
             $status = $current['status'];
             // Check if locked and not expired
-            if ($status === 'temp_locked' && !empty($current['locked_at']) && $current['locked_at'] > $ten_mins_ago) {
+            if ($status === 'temp_locked' && !empty($current['locked_at']) && $current['locked_at'] > $seven_mins_ago) {
                 if ($current['locked_by_session'] !== $session_id) {
                     echo json_encode(['success' => false, 'message' => 'This seat is temporarily locked by another user.']);
                     exit();
