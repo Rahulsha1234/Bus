@@ -307,7 +307,7 @@ try {
                     Layout</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <form action="<?= htmlspecialchars($_SERVER['PHP_SELF']) ?>" method="POST">
+            <form action="" method="POST">
                 <div class="modal-body p-4">
                     <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
                     <input type="hidden" name="action" value="add">
@@ -407,7 +407,7 @@ try {
                     Route</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <form action="<?= htmlspecialchars($_SERVER['PHP_SELF']) ?>" method="POST">
+            <form action="" method="POST">
                 <div class="modal-body p-4">
                     <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
                     <input type="hidden" name="action" value="edit">
@@ -484,7 +484,7 @@ try {
     <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content glass-card text-white border-secondary border-opacity-30"
             style="background:#131a2e; border-radius: 20px;">
-            <form action="<?= htmlspecialchars($_SERVER['PHP_SELF']) ?>" method="POST">
+            <form action="" method="POST">
                 <div class="modal-body p-4 text-center">
                     <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
                     <input type="hidden" name="action" value="delete">

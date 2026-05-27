@@ -303,7 +303,7 @@ try {
                 <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-calendar-plus me-2 text-indigo"></i>Schedule New Trip</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <form action="<?= htmlspecialchars($_SERVER['PHP_SELF']) ?>" method="POST">
+            <form action="" method="POST">
                 <div class="modal-body p-4">
                     <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
                     <input type="hidden" name="action" value="add">
@@ -379,7 +379,7 @@ try {
                 <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-calendar-check me-2 text-indigo"></i>Modify Trip Details</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <form action="<?= htmlspecialchars($_SERVER['PHP_SELF']) ?>" method="POST">
+            <form action="" method="POST">
                 <div class="modal-body p-4">
                     <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
                     <input type="hidden" name="action" value="edit">
@@ -458,7 +458,7 @@ try {
 <div class="modal fade" id="deleteTripModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content glass-card text-white border-secondary border-opacity-30" style="border-radius: 20px;">
-            <form action="<?= htmlspecialchars($_SERVER['PHP_SELF']) ?>" method="POST">
+            <form action="" method="POST">
                 <div class="modal-body p-4 text-center">
                     <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
                     <input type="hidden" name="action" value="delete">

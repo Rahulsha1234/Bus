@@ -35,151 +35,211 @@ $trip_details = null;
 $seats_list = [];
 
 if ($selected_trip_id > 0) {
-    // Verify ownership
-    $stmt = $pdo->prepare("
-        SELECT t.id, t.bus_id, b.seat_layout_type, b.bus_name, r.source, r.destination 
-        FROM trips t
-        JOIN buses b ON t.bus_id = b.id
-        JOIN routes r ON t.route_id = r.id
-        WHERE t.id = ? AND b.admin_id = ? AND t.status = 'active'
-        LIMIT 1
-    ");
-    $stmt->execute([$selected_trip_id, $admin_id]);
-    $trip_details = $stmt->fetch();
+    try {
+        // Verify ownership
+        $stmt = $pdo->prepare("
+            SELECT t.id, t.bus_id, b.seat_layout_type, b.bus_name, r.source, r.destination 
+            FROM trips t
+            JOIN buses b ON t.bus_id = b.id
+            JOIN routes r ON t.route_id = r.id
+            WHERE t.id = ? AND b.admin_id = ? AND t.status = 'active'
+            LIMIT 1
+        ");
+        $stmt->execute([$selected_trip_id, $admin_id]);
+        $trip_details = $stmt->fetch();
 
-    if ($trip_details) {
-        // Handle Seat Bulk Operations
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-            $csrf_token = $_POST['csrf_token'] ?? '';
-            if (!verify_csrf_token($csrf_token)) {
-                $error = "Security token validation failed.";
-            } else {
-                $action = $_POST['action'];
-                $target_seats_str = $_POST['seats_list'] ?? '';
-                $target_seats = array_filter(array_map('trim', explode(',', $target_seats_str)));
-
-                if (empty($target_seats)) {
-                    $error = "No seats selected for allocation modification.";
+        if ($trip_details) {
+            // Handle Seat Bulk Operations
+            if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+                $csrf_token = $_POST['csrf_token'] ?? '';
+                if (!verify_csrf_token($csrf_token)) {
+                    $error = "Security token validation failed.";
                 } else {
-                    try {
-                        $pdo->beginTransaction();
+                    $action = $_POST['action'];
+                    $target_seats_str = $_POST['seats_list'] ?? '';
+                    $target_seats = array_filter(array_map('trim', explode(',', $target_seats_str)));
 
-                        if ($action === 'hold') {
-                            $stmt = $pdo->prepare("
-                                INSERT INTO trip_seats (trip_id, seat_number, status, hold_expires_at)
-                                VALUES (?, ?, 'hold', NULL)
-                                ON DUPLICATE KEY UPDATE status = 'hold', hold_expires_at = NULL
-                            ");
-                            foreach ($target_seats as $seat) {
-                                $stmt->execute([$selected_trip_id, $seat]);
-                            }
-                            $success = "Successfully placed " . count($target_seats) . " seat(s) on manual Hold.";
-                            log_activity($pdo, $admin_id, 'SEAT_HOLD_BULK', "Held seats (" . implode(',', $target_seats) . ") on Trip: $selected_trip_id");
-                        } 
-                        elseif ($action === 'release') {
-                            $stmt = $pdo->prepare("UPDATE trip_seats SET status = 'available', hold_expires_at = NULL WHERE trip_id = ? AND seat_number = ?");
-                            foreach ($target_seats as $seat) {
-                                $stmt->execute([$selected_trip_id, $seat]);
-                            }
-                            $success = "Successfully released " . count($target_seats) . " seat(s) back to available pool.";
-                            log_activity($pdo, $admin_id, 'SEAT_RELEASE_BULK', "Released seats (" . implode(',', $target_seats) . ") on Trip: $selected_trip_id");
-                        } 
-                        elseif ($action === 'block') {
-                            $stmt = $pdo->prepare("
-                                INSERT INTO trip_seats (trip_id, seat_number, status)
-                                VALUES (?, ?, 'blocked')
-                                ON DUPLICATE KEY UPDATE status = 'blocked'
-                            ");
-                            foreach ($target_seats as $seat) {
-                                $stmt->execute([$selected_trip_id, $seat]);
-                            }
-                            $success = "Successfully Blocked " . count($target_seats) . " seat(s).";
-                            log_activity($pdo, $admin_id, 'SEAT_BLOCK_BULK', "Blocked seats (" . implode(',', $target_seats) . ") on Trip: $selected_trip_id");
-                        } 
-                        elseif ($action === 'unblock') {
-                            $stmt = $pdo->prepare("UPDATE trip_seats SET status = 'available' WHERE trip_id = ? AND seat_number = ?");
-                            foreach ($target_seats as $seat) {
-                                $stmt->execute([$selected_trip_id, $seat]);
-                            }
-                            $success = "Successfully Unblocked " . count($target_seats) . " seat(s).";
-                            log_activity($pdo, $admin_id, 'SEAT_UNBLOCK_BULK', "Unblocked seats (" . implode(',', $target_seats) . ") on Trip: $selected_trip_id");
-                        } 
-                        elseif ($action === 'price') {
-                            $base_price = floatval($_POST['base_price'] ?? 0.00);
-                            $current_price = floatval($_POST['current_price'] ?? 0.00);
-                            $offer_price = floatval($_POST['offer_price'] ?? 0.00);
+                    if (empty($target_seats)) {
+                        $error = "No seats selected for allocation modification.";
+                    } else {
+                        try {
+                            $pdo->beginTransaction();
 
-                            if ($base_price <= 0 || $current_price <= 0 || $offer_price <= 0) {
-                                $error = "Fares must be positive numeric values.";
-                            } else {
+                            if ($action === 'hold') {
                                 $stmt = $pdo->prepare("
-                                    INSERT INTO seat_pricing (trip_id, seat_number, base_price, current_price, offer_price)
-                                    VALUES (?, ?, ?, ?, ?)
-                                    ON DUPLICATE KEY UPDATE base_price = VALUES(base_price), current_price = VALUES(current_price), offer_price = VALUES(offer_price)
+                                    INSERT INTO trip_seats (trip_id, seat_number, status, hold_expires_at)
+                                    VALUES (?, ?, 'hold', NULL)
+                                    ON DUPLICATE KEY UPDATE status = 'hold', hold_expires_at = NULL
                                 ");
                                 foreach ($target_seats as $seat) {
-                                    $stmt->execute([$selected_trip_id, $seat, $base_price, $current_price, $offer_price]);
+                                    $stmt->execute([$selected_trip_id, $seat]);
                                 }
-                                $success = "Pricing overrides applied to " . count($target_seats) . " seat(s).";
-                                log_activity($pdo, $admin_id, 'PRICE_OVERRIDE_BULK', "Override fares for seats (" . implode(',', $target_seats) . ") on Trip: $selected_trip_id");
-                            }
-                        }
+                                $success = "Successfully placed " . count($target_seats) . " seat(s) on manual Hold.";
+                                log_activity($pdo, $admin_id, 'SEAT_HOLD_BULK', "Held seats (" . implode(',', $target_seats) . ") on Trip: $selected_trip_id");
+                            } 
+                            elseif ($action === 'release') {
+                                $stmt = $pdo->prepare("UPDATE trip_seats SET status = 'available', hold_expires_at = NULL WHERE trip_id = ? AND seat_number = ?");
+                                foreach ($target_seats as $seat) {
+                                    $stmt->execute([$selected_trip_id, $seat]);
+                                }
+                                $success = "Successfully released " . count($target_seats) . " seat(s) back to available pool.";
+                                log_activity($pdo, $admin_id, 'SEAT_RELEASE_BULK', "Released seats (" . implode(',', $target_seats) . ") on Trip: $selected_trip_id");
+                            } 
+                            elseif ($action === 'block') {
+                                $stmt = $pdo->prepare("
+                                    INSERT INTO trip_seats (trip_id, seat_number, status)
+                                    VALUES (?, ?, 'blocked')
+                                    ON DUPLICATE KEY UPDATE status = 'blocked'
+                                ");
+                                foreach ($target_seats as $seat) {
+                                    $stmt->execute([$selected_trip_id, $seat]);
+                                }
+                                $success = "Successfully Blocked " . count($target_seats) . " seat(s).";
+                                log_activity($pdo, $admin_id, 'SEAT_BLOCK_BULK', "Blocked seats (" . implode(',', $target_seats) . ") on Trip: $selected_trip_id");
+                            } 
+                            elseif ($action === 'unblock') {
+                                $stmt = $pdo->prepare("UPDATE trip_seats SET status = 'available' WHERE trip_id = ? AND seat_number = ?");
+                                foreach ($target_seats as $seat) {
+                                    $stmt->execute([$selected_trip_id, $seat]);
+                                }
+                                $success = "Successfully Unblocked " . count($target_seats) . " seat(s).";
+                                log_activity($pdo, $admin_id, 'SEAT_UNBLOCK_BULK', "Unblocked seats (" . implode(',', $target_seats) . ") on Trip: $selected_trip_id");
+                            } 
+                            elseif ($action === 'price') {
+                                $base_price = floatval($_POST['base_price'] ?? 0.00);
+                                $current_price = floatval($_POST['current_price'] ?? 0.00);
+                                $offer_price = floatval($_POST['offer_price'] ?? 0.00);
 
-                        if (empty($error)) {
-                            $pdo->commit();
-                        } else {
-                            $pdo->rollBack();
+                                if ($base_price <= 0 || $current_price <= 0 || $offer_price <= 0) {
+                                    $error = "Fares must be positive numeric values.";
+                                } else {
+                                    $stmt = $pdo->prepare("
+                                        INSERT INTO seat_pricing (trip_id, seat_number, base_price, current_price, offer_price)
+                                        VALUES (?, ?, ?, ?, ?)
+                                        ON DUPLICATE KEY UPDATE base_price = VALUES(base_price), current_price = VALUES(current_price), offer_price = VALUES(offer_price)
+                                    ");
+                                    foreach ($target_seats as $seat) {
+                                        $stmt->execute([$selected_trip_id, $seat, $base_price, $current_price, $offer_price]);
+                                    }
+                                    $success = "Pricing overrides applied to " . count($target_seats) . " seat(s).";
+                                    log_activity($pdo, $admin_id, 'PRICE_OVERRIDE_BULK', "Override fares for seats (" . implode(',', $target_seats) . ") on Trip: $selected_trip_id");
+                                }
+                            }
+
+                            if (empty($error)) {
+                                $pdo->commit();
+                            } else {
+                                $pdo->rollBack();
+                            }
+                        } catch (Exception $e) {
+                            if ($pdo->inTransaction()) {
+                                $pdo->rollBack();
+                            }
+                            $error = "Allocation Action failed: " . $e->getMessage();
                         }
-                    } catch (Exception $e) {
-                        if ($pdo->inTransaction()) {
-                            $pdo->rollBack();
-                        }
-                        $error = "Allocation Action failed: " . $e->getMessage();
                     }
                 }
             }
-        }
 
-        // Fetch Grid Dimension details
-        $layout_stmt = $pdo->prepare("SELECT * FROM bus_layouts WHERE bus_id = ? LIMIT 1");
-        $layout_stmt->execute([$trip_details['bus_id']]);
-        $layout = $layout_stmt->fetch();
+            // Fetch Grid Dimension details
+            $layout_stmt = $pdo->prepare("SELECT * FROM bus_layouts WHERE bus_id = ? LIMIT 1");
+            $layout_stmt->execute([$trip_details['bus_id']]);
+            $layout = $layout_stmt->fetch();
 
-        $rows_count = $layout ? intval($layout['rows_count']) : 10;
-        $cols_count = $layout ? intval($layout['cols_count']) : 5;
+            $rows_count = $layout ? intval($layout['rows_count']) : 10;
+            $cols_count = $layout ? intval($layout['cols_count']) : 5;
 
-        // Fetch all seats configured for this bus, left-joining status overrides
-        $seats_stmt = $pdo->prepare("
-            SELECT 
-                s.seat_number, s.row_pos, s.col_pos, s.seat_type, s.is_active,
-                ts.status, ts.hold_expires_at,
-                sp.base_price AS current_base, sp.current_price AS current_cur
-            FROM bus_seats s
-            LEFT JOIN trip_seats ts ON s.seat_number = ts.seat_number AND ts.trip_id = ?
-            LEFT JOIN seat_pricing sp ON s.seat_number = sp.seat_number AND sp.trip_id = ?
-            WHERE s.bus_id = ? AND s.is_active = 1
-        ");
-        $seats_stmt->execute([$selected_trip_id, $selected_trip_id, $trip_details['bus_id']]);
-        $db_seats = $seats_stmt->fetchAll();
+            // Fetch all seats configured for this bus, left-joining status overrides
+            $seats_stmt = $pdo->prepare("
+                SELECT 
+                    s.seat_number, s.row_pos, s.col_pos, s.seat_type, s.is_active,
+                    ts.status, ts.hold_expires_at,
+                    sp.base_price AS current_base, sp.current_price AS current_cur
+                FROM bus_seats s
+                LEFT JOIN trip_seats ts ON s.seat_number = ts.seat_number AND ts.trip_id = ?
+                LEFT JOIN seat_pricing sp ON s.seat_number = sp.seat_number AND sp.trip_id = ?
+                WHERE s.bus_id = ? AND s.is_active = 1
+            ");
+            $seats_stmt->execute([$selected_trip_id, $selected_trip_id, $trip_details['bus_id']]);
+            $db_seats = $seats_stmt->fetchAll();
 
-        // Convert to mapped list
-        $now = date('Y-m-d H:i:s');
-        foreach ($db_seats as $s) {
-            $status = !empty($s['status']) ? $s['status'] : 'available';
-            // Expired hold behaves as available
-            if ($status === 'hold' && !empty($s['hold_expires_at']) && strtotime($s['hold_expires_at']) < strtotime($now)) {
-                $status = 'available';
+            // Convert to mapped list
+            $now = date('Y-m-d H:i:s');
+            if (count($db_seats) > 0) {
+                foreach ($db_seats as $s) {
+                    $status = !empty($s['status']) ? $s['status'] : 'available';
+                    // Expired hold behaves as available
+                    if ($status === 'hold' && !empty($s['hold_expires_at']) && strtotime($s['hold_expires_at']) < strtotime($now)) {
+                        $status = 'available';
+                    }
+
+                    $seats_list[] = [
+                        'number' => $s['seat_number'],
+                        'row' => intval($s['row_pos']),
+                        'col' => intval($s['col_pos']),
+                        'type' => $s['seat_type'],
+                        'status' => $status,
+                        'price' => !empty($s['current_cur']) ? floatval($s['current_cur']) : (!empty($s['current_base']) ? floatval($s['current_base']) : 500.00)
+                    ];
+                }
+            } else {
+                // Fallback: Fetch directly from trip_seats and seat_pricing
+                $seats_stmt = $pdo->prepare("
+                    SELECT 
+                        ts.seat_number, ts.status, ts.hold_expires_at,
+                        sp.base_price AS current_base, sp.current_price AS current_cur
+                    FROM trip_seats ts
+                    LEFT JOIN seat_pricing sp ON ts.seat_number = sp.seat_number AND sp.trip_id = ?
+                    WHERE ts.trip_id = ?
+                ");
+                $seats_stmt->execute([$selected_trip_id, $selected_trip_id]);
+                $fallback_seats = $seats_stmt->fetchAll();
+
+                // Set grid dimensions based on layout type
+                if ($trip_details['seat_layout_type'] === '2x1_sleeper') {
+                    $rows_count = 10;
+                    $cols_count = 3;
+                } else {
+                    $rows_count = 10;
+                    $cols_count = 5; // standard 2x2 with aisle
+                }
+
+                $idx = 0;
+                foreach ($fallback_seats as $fs) {
+                    $seat_num = $fs['seat_number'];
+                    $status = !empty($fs['status']) ? $fs['status'] : 'available';
+                    if ($status === 'hold' && !empty($fs['hold_expires_at']) && strtotime($fs['hold_expires_at']) < strtotime($now)) {
+                        $status = 'available';
+                    }
+
+                    // Map standard coordinates dynamically
+                    if ($trip_details['seat_layout_type'] === '2x1_sleeper') {
+                        $type = (strpos($seat_num, 'U') !== false) ? 'Upper Sleeper' : 'Lower Sleeper';
+                        $num_val = intval(preg_replace('/[^0-9]/', '', $seat_num));
+                        $r = ($num_val - 1) % 10;
+                        $c = (strpos($seat_num, 'U') !== false) ? 2 : 0;
+                    } else {
+                        // 2x2 Seater layout mapping
+                        $r = floor($idx / 4);
+                        $c = $idx % 4;
+                        if ($c >= 2) $c += 1; // Aisle space
+                        $type = 'Normal';
+                    }
+
+                    $seats_list[] = [
+                        'number' => $seat_num,
+                        'row' => $r,
+                        'col' => $c,
+                        'type' => $type,
+                        'status' => $status,
+                        'price' => !empty($fs['current_cur']) ? floatval($fs['current_cur']) : (!empty($fs['current_base']) ? floatval($fs['current_base']) : 500.00)
+                    ];
+                    $idx++;
+                }
             }
-
-            $seats_list[] = [
-                'number' => $s['seat_number'],
-                'row' => intval($s['row_pos']),
-                'col' => intval($s['col_pos']),
-                'type' => $s['seat_type'],
-                'status' => $status,
-                'price' => !empty($s['current_cur']) ? floatval($s['current_cur']) : (!empty($s['current_base']) ? floatval($s['current_base']) : 500.00)
-            ];
         }
+    } catch (PDOException $e) {
+        $error = "Database Error: " . $e->getMessage();
     }
 }
 ?>
