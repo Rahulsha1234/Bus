@@ -378,6 +378,11 @@ if ($selected_trip_id > 0) {
     font-size: 0.55rem;
     opacity: 0.85;
 }
+.console-seat-box.sleeper-berth {
+    height: 130px;
+    position: relative;
+    z-index: 10;
+}
 </style>
 
 <script>
@@ -396,19 +401,56 @@ $(document).ready(function() {
             'grid-template-columns': 'repeat(' + (cols + 1) + ', 60px)'
         });
 
+        // Map occupied cells due to row-spanning sleepers (excluding Semi Sleeper)
+        var occupied = {};
+        seats.forEach(function(s) {
+            var isSleeper = s.type.toLowerCase().indexOf('sleeper') !== -1 && s.type.toLowerCase().indexOf('semi') === -1;
+            if (isSleeper) {
+                occupied[(s.row + 1) + ',' + s.col] = true;
+            }
+        });
+
         for (var r = 0; r < rows; r++) {
             var rowHeaderCell = $('<div class="grid-cell" style="cursor: pointer; font-size: 0.7rem; color: var(--text-muted);" data-row-header="' + r + '">Row ' + (r + 1) + '</div>');
+            rowHeaderCell.css({
+                'grid-row': (r + 1),
+                'grid-column': 1
+            });
             rowHeaderCell.click(handleRowHeaderClick(r));
             canvas.append(rowHeaderCell);
             
             for (var c = 0; c < cols; c++) {
+                if (occupied[r + ',' + c]) {
+                    var spacer = $('<div class="grid-cell spacer-cell"></div>');
+                    spacer.css({
+                        'grid-row': (r + 1),
+                        'grid-column': (c + 2),
+                        'visibility': 'hidden',
+                        'pointer-events': 'none'
+                    });
+                    canvas.append(spacer);
+                    continue;
+                }
+
                 var seat = seats.find(s => s.row === r && s.col === c);
                 var cell = $('<div class="grid-cell"></div>');
+                cell.css({
+                    'grid-row': (r + 1),
+                    'grid-column': (c + 2)
+                });
 
                 if (seat) {
                     var isSelected = selectedSeats.includes(seat.number) ? ' selected-action' : '';
                     var typeClass = ' type-' + seat.type.toLowerCase().replace(/ /g, '-');
-                    var box = $('<div class="console-seat-box ' + seat.status + isSelected + typeClass + '" data-seat="' + seat.number + '">' +
+                    var isSleeper = seat.type.toLowerCase().indexOf('sleeper') !== -1 && seat.type.toLowerCase().indexOf('semi') === -1;
+                    if (isSleeper) {
+                        cell.css({
+                            'grid-row': (r + 1) + ' / span 2',
+                            'height': '130px'
+                        });
+                    }
+                    var sleeperClass = isSleeper ? ' sleeper-berth' : '';
+                    var box = $('<div class="console-seat-box ' + seat.status + isSelected + typeClass + sleeperClass + '" data-seat="' + seat.number + '">' +
                         '<span>' + seat.number + '</span>' +
                         '<span class="price-lbl">₹' + seat.price.toFixed(0) + '</span>' +
                         '</div>');
