@@ -1,10 +1,10 @@
 <?php
 /**
- * Customer Registration Portal
+ * Agent Registration Portal
  */
-require_once __DIR__ . '/includes/auth_middleware.php';
+require_once __DIR__ . '/../includes/auth_middleware.php';
 
-$page_title = "Customer Registration";
+$page_title = "Agent Partner Registration";
 
 // Redirect if already logged in
 if (is_logged_in()) {
@@ -24,10 +24,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $email = trim($_POST['email'] ?? '');
         $password = $_POST['password'] ?? '';
         $confirm_password = $_POST['confirm_password'] ?? '';
-        $role = 'customer';
+        $agency_name = trim($_POST['agency_name'] ?? '');
+        $phone = trim($_POST['phone'] ?? '');
+        $admin_id = intval($_POST['admin_id'] ?? 0);
+        $role = 'agent';
 
-        if (empty($username) || empty($email) || empty($password) || empty($confirm_password)) {
-            $error = "Please fill in all fields.";
+        if (empty($username) || empty($email) || empty($password) || empty($confirm_password) || empty($agency_name) || empty($phone) || $admin_id === 0) {
+            $error = "Please fill in all fields including agency credentials and Operator selection.";
         } elseif ($password !== $confirm_password) {
             $error = "Passwords do not match.";
         } elseif (strlen($password) < 6) {
@@ -43,14 +46,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $pdo->beginTransaction();
 
                     $hashed_pass = password_hash($password, PASSWORD_BCRYPT);
-                    $status = 'approved'; // Customers are auto-approved
+                    $status = 'pending'; // Agents are pending admin approval
 
                     $insertUser = $pdo->prepare("INSERT INTO users (username, email, password, role, status) VALUES (?, ?, ?, ?, ?)");
                     $insertUser->execute([$username, $email, $hashed_pass, $role, $status]);
                     $new_user_id = $pdo->lastInsertId();
 
-                    $success = "Registration successful! You can now log in.";
-                    log_activity($pdo, $new_user_id, 'CUSTOMER_REGISTER', "Customer signed up: $username");
+                    $insertProfile = $pdo->prepare("INSERT INTO agent_profiles (user_id, agency_name, phone, admin_id) VALUES (?, ?, ?, ?)");
+                    $insertProfile->execute([$new_user_id, $agency_name, $phone, $admin_id]);
+
+                    $success = "Registration successful! Your agency account is pending approval by the selected Bus Operator.";
+                    log_activity($pdo, $new_user_id, 'AGENT_REGISTER', "Agent signed up: $agency_name under Admin ID: $admin_id");
 
                     $pdo->commit();
                 } catch (Exception $e) {
@@ -62,16 +68,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-require_once __DIR__ . '/includes/header.php';
+// Fetch active approved admins (Operators) for Agent dropdown
+$active_admins = [];
+try {
+    $stmt = $pdo->query("SELECT id, username FROM users WHERE role = 'admin' AND status = 'approved' ORDER BY username ASC");
+    $active_admins = $stmt->fetchAll();
+} catch (PDOException $e) {
+    $active_admins = [];
+}
+
+require_once __DIR__ . '/../includes/header.php';
 ?>
 
 <div class="row justify-content-center">
     <div class="col-md-6 col-sm-12">
         <div class="glass-card p-5 mt-3">
             <div class="text-center mb-4">
-                <i class="fa-solid fa-user-plus text-indigo" style="font-size: 3rem; color: var(--accent); filter: drop-shadow(0 0 15px rgba(212,175,55,0.4));"></i>
-                <h2 class="fw-bold mt-3 text-white">Customer Registration</h2>
-                <p class="text-secondary small">Sign up to book bus tickets instantly</p>
+                <i class="fa-solid fa-handshake text-indigo" style="font-size: 3rem; color: var(--accent); filter: drop-shadow(0 0 15px rgba(212,175,55,0.4));"></i>
+                <h2 class="fw-bold mt-3 text-white">Agent Registration</h2>
+                <p class="text-secondary small">Register to partner with a Bus Operator and earn commissions</p>
             </div>
 
             <?php if (!empty($error)): ?>
@@ -117,6 +132,29 @@ require_once __DIR__ . '/includes/header.php';
                     </div>
                 </div>
 
+                <div class="p-4 rounded-4 mb-4 border border-secondary bg-dark bg-opacity-20">
+                    <h5 class="mb-3 fw-bold" style="color: var(--accent);"><i class="fa-solid fa-briefcase me-2"></i>Agency Details</h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="agency_name" class="form-label text-secondary small fw-semibold">Agency Name</label>
+                            <input type="text" name="agency_name" id="agency_name" class="form-control form-control-swift" placeholder="e.g. Golden Travels" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="phone" class="form-label text-secondary small fw-semibold">Contact Mobile</label>
+                            <input type="text" name="phone" id="phone" class="form-control form-control-swift" placeholder="Phone Number" required>
+                        </div>
+                    </div>
+                    <div class="mb-3 mt-3">
+                        <label for="admin_id" class="form-label text-secondary small fw-semibold">Select Bus Operator / Admin</label>
+                        <select name="admin_id" id="admin_id" class="form-select form-control-swift" required>
+                            <option value="">Choose Operator...</option>
+                            <?php foreach ($active_admins as $adm): ?>
+                                <option value="<?= $adm['id'] ?>"><?= htmlspecialchars($adm['username']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+
                 <div class="d-grid mb-3">
                     <button type="submit" class="btn btn-primary-gradient py-3">Register Account</button>
                 </div>
@@ -124,12 +162,12 @@ require_once __DIR__ . '/includes/header.php';
 
             <div class="text-center mt-4">
                 <span class="text-secondary small">Already have an account? </span>
-                <a href="<?= BASE_URL ?>/login.php" class="text-decoration-none small text-indigo" style="color: var(--accent); font-weight: 500;">Login here</a>
+                <a href="<?= BASE_URL ?>/login.php" class="text-decoration-none small" style="color: var(--accent); font-weight: 500;">Login here</a>
             </div>
         </div>
     </div>
 </div>
 
 <?php
-require_once __DIR__ . '/includes/footer.php';
+require_once __DIR__ . '/../includes/footer.php';
 ?>

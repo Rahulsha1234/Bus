@@ -116,6 +116,9 @@ try {
     foreach ($db_seats as $s) {
         $seatNum = $s['seat_number'];
         $status = !empty($s['seat_status']) ? $s['seat_status'] : 'available';
+        if (is_seat_blocked($pdo, $trip_id, $seatNum)) {
+            $status = 'blocked';
+        }
 
         // Check locks expiration
         if ($status === 'temp_locked') {
@@ -136,7 +139,7 @@ try {
         }
 
         // Map pricing
-        $seat_base = !empty($s['trip_off']) ? floatval($s['trip_off']) : (!empty($s['trip_cur']) ? floatval($s['trip_cur']) : (!empty($s['trip_base']) ? floatval($s['trip_base']) : floatval($trip['base_fare'])));
+        $seat_base = get_actual_seat_price($pdo, $trip_id, $seatNum, $trip['base_fare']);
 
         // Calculate direct discounted fare for Agent view
         $applied_discount = 0;

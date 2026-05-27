@@ -347,16 +347,11 @@ try {
                             </div>
                             <div id="pickupRowsContainer">
                                 <div class="row g-2 mb-2 alignment-row">
-                                    <div class="col-8">
+                                    <div class="col-12">
                                         <input type="text" name="pickup_name[]"
                                             class="form-control form-control-swift py-1" placeholder="Station name"
                                             required>
-                                    </div>
-                                    <div class="col-4">
-                                        <input type="text" name="pickup_time[]"
-                                            class="form-control form-control-swift py-1 time-picker-24h"
-                                            placeholder="HH:MM" pattern="^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$"
-                                            title="Please enter time in 24-hour HH:MM format (e.g., 20:30)" required>
+                                        <input type="hidden" name="pickup_time[]" value="00:00">
                                     </div>
                                 </div>
                             </div>
@@ -371,16 +366,11 @@ try {
                             </div>
                             <div id="dropRowsContainer">
                                 <div class="row g-2 mb-2 alignment-row">
-                                    <div class="col-8">
+                                    <div class="col-12">
                                         <input type="text" name="drop_name[]"
                                             class="form-control form-control-swift py-1" placeholder="Station name"
                                             required>
-                                    </div>
-                                    <div class="col-4">
-                                        <input type="text" name="drop_time[]"
-                                            class="form-control form-control-swift py-1 time-picker-24h"
-                                            placeholder="HH:MM" pattern="^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$"
-                                            title="Please enter time in 24-hour HH:MM format (e.g., 20:30)" required>
+                                        <input type="hidden" name="drop_time[]" value="00:00">
                                     </div>
                                 </div>
                             </div>
@@ -541,74 +531,58 @@ try {
             var pickupsContainer = $('#editPickupRowsContainer');
             pickupsContainer.empty();
             pickups.forEach(function (p) {
-                // format time in 24h before assigning
-                var formattedVal = p.time ? p.time : '00:00';
                 var $row = $('<div class="row g-2 mb-2 alignment-row">' +
-                    '<div class="col-8"><input type="text" name="pickup_name[]" class="form-control form-control-swift py-1" value="' + p.name + '" required></div>' +
-                    '<div class="col-3"><input type="text" name="pickup_time[]" class="form-control form-control-swift py-1 time-picker-24h" value="' + formattedVal + '" pattern="^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$" title="Please enter time in 24-hour HH:MM format (e.g., 20:30)" required></div>' +
+                    '<div class="col-11"><input type="text" name="pickup_name[]" class="form-control form-control-swift py-1" value="' + p.name + '" required><input type="hidden" name="pickup_time[]" value="00:00"></div>' +
                     '<div class="col-1 d-flex align-items-center"><button type="button" class="btn btn-link text-danger p-0 delete-row-btn"><i class="fa-solid fa-trash-can"></i></button></div>' +
                     '</div>');
                 pickupsContainer.append($row);
-                initTimePicker($row.find('.time-picker-24h'));
             });
 
             var dropsContainer = $('#editDropRowsContainer');
             dropsContainer.empty();
             drops.forEach(function (d) {
-                // format time in 24h before assigning
-                var formattedVal = d.time ? d.time : '00:00';
                 var $row = $('<div class="row g-2 mb-2 alignment-row">' +
-                    '<div class="col-8"><input type="text" name="drop_name[]" class="form-control form-control-swift py-1" value="' + d.name + '" required></div>' +
-                    '<div class="col-3"><input type="text" name="drop_time[]" class="form-control form-control-swift py-1 time-picker-24h" value="' + formattedVal + '" pattern="^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$" title="Please enter time in 24-hour HH:MM format (e.g., 20:30)" required></div>' +
+                    '<div class="col-11"><input type="text" name="drop_name[]" class="form-control form-control-swift py-1" value="' + d.name + '" required><input type="hidden" name="drop_time[]" value="00:00"></div>' +
                     '<div class="col-1 d-flex align-items-center"><button type="button" class="btn btn-link text-danger p-0 delete-row-btn"><i class="fa-solid fa-trash-can"></i></button></div>' +
                     '</div>');
                 dropsContainer.append($row);
-                initTimePicker($row.find('.time-picker-24h'));
             });
         });
 
         // Dynamic row addition for Pickups (ADD)
         $('#addPickupRowBtn').click(function () {
             var $row = $('<div class="row g-2 mb-2 alignment-row">' +
-                '<div class="col-8"><input type="text" name="pickup_name[]" class="form-control form-control-swift py-1" placeholder="Station name" required></div>' +
-                '<div class="col-3"><input type="text" name="pickup_time[]" class="form-control form-control-swift py-1 time-picker-24h" placeholder="HH:MM" pattern="^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$" title="Please enter time in 24-hour HH:MM format (e.g., 20:30)" required></div>' +
+                '<div class="col-11"><input type="text" name="pickup_name[]" class="form-control form-control-swift py-1" placeholder="Station name" required><input type="hidden" name="pickup_time[]" value="00:00"></div>' +
                 '<div class="col-1 d-flex align-items-center"><button type="button" class="btn btn-link text-danger p-0 delete-row-btn"><i class="fa-solid fa-trash-can"></i></button></div>' +
                 '</div>');
             $('#pickupRowsContainer').append($row);
-            initTimePicker($row.find('.time-picker-24h'));
         });
 
         // Dynamic row addition for Drops (ADD)
         $('#addDropRowBtn').click(function () {
             var $row = $('<div class="row g-2 mb-2 alignment-row">' +
-                '<div class="col-8"><input type="text" name="drop_name[]" class="form-control form-control-swift py-1" placeholder="Station name" required></div>' +
-                '<div class="col-3"><input type="text" name="drop_time[]" class="form-control form-control-swift py-1 time-picker-24h" placeholder="HH:MM" pattern="^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$" title="Please enter time in 24-hour HH:MM format (e.g., 20:30)" required></div>' +
+                '<div class="col-11"><input type="text" name="drop_name[]" class="form-control form-control-swift py-1" placeholder="Station name" required><input type="hidden" name="drop_time[]" value="00:00"></div>' +
                 '<div class="col-1 d-flex align-items-center"><button type="button" class="btn btn-link text-danger p-0 delete-row-btn"><i class="fa-solid fa-trash-can"></i></button></div>' +
                 '</div>');
             $('#dropRowsContainer').append($row);
-            initTimePicker($row.find('.time-picker-24h'));
         });
 
         // Dynamic row addition for Pickups (EDIT)
         $('#editAddPickupRowBtn').click(function () {
             var $row = $('<div class="row g-2 mb-2 alignment-row">' +
-                '<div class="col-8"><input type="text" name="pickup_name[]" class="form-control form-control-swift py-1" placeholder="Station name" required></div>' +
-                '<div class="col-3"><input type="text" name="pickup_time[]" class="form-control form-control-swift py-1 time-picker-24h" placeholder="HH:MM" pattern="^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$" title="Please enter time in 24-hour HH:MM format (e.g., 20:30)" required></div>' +
+                '<div class="col-11"><input type="text" name="pickup_name[]" class="form-control form-control-swift py-1" placeholder="Station name" required><input type="hidden" name="pickup_time[]" value="00:00"></div>' +
                 '<div class="col-1 d-flex align-items-center"><button type="button" class="btn btn-link text-danger p-0 delete-row-btn"><i class="fa-solid fa-trash-can"></i></button></div>' +
                 '</div>');
             $('#editPickupRowsContainer').append($row);
-            initTimePicker($row.find('.time-picker-24h'));
         });
 
         // Dynamic row addition for Drops (EDIT)
         $('#editAddDropRowBtn').click(function () {
             var $row = $('<div class="row g-2 mb-2 alignment-row">' +
-                '<div class="col-8"><input type="text" name="drop_name[]" class="form-control form-control-swift py-1" placeholder="Station name" required></div>' +
-                '<div class="col-3"><input type="text" name="drop_time[]" class="form-control form-control-swift py-1 time-picker-24h" placeholder="HH:MM" pattern="^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$" title="Please enter time in 24-hour HH:MM format (e.g., 20:30)" required></div>' +
+                '<div class="col-11"><input type="text" name="drop_name[]" class="form-control form-control-swift py-1" placeholder="Station name" required><input type="hidden" name="drop_time[]" value="00:00"></div>' +
                 '<div class="col-1 d-flex align-items-center"><button type="button" class="btn btn-link text-danger p-0 delete-row-btn"><i class="fa-solid fa-trash-can"></i></button></div>' +
                 '</div>');
             $('#editDropRowsContainer').append($row);
-            initTimePicker($row.find('.time-picker-24h'));
         });
 
         // Handle dynamically added row removal

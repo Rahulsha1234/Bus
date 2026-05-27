@@ -1,10 +1,10 @@
 <?php
 /**
- * Customer Registration Portal
+ * Super Admin Registration Portal
  */
-require_once __DIR__ . '/includes/auth_middleware.php';
+require_once __DIR__ . '/../includes/auth_middleware.php';
 
-$page_title = "Customer Registration";
+$page_title = "Super Admin Registration";
 
 // Redirect if already logged in
 if (is_logged_in()) {
@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $email = trim($_POST['email'] ?? '');
         $password = $_POST['password'] ?? '';
         $confirm_password = $_POST['confirm_password'] ?? '';
-        $role = 'customer';
+        $role = 'super_admin';
 
         if (empty($username) || empty($email) || empty($password) || empty($confirm_password)) {
             $error = "Please fill in all fields.";
@@ -43,14 +43,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $pdo->beginTransaction();
 
                     $hashed_pass = password_hash($password, PASSWORD_BCRYPT);
-                    $status = 'approved'; // Customers are auto-approved
+                    $status = 'approved'; // Super Admins are auto-approved
 
                     $insertUser = $pdo->prepare("INSERT INTO users (username, email, password, role, status) VALUES (?, ?, ?, ?, ?)");
                     $insertUser->execute([$username, $email, $hashed_pass, $role, $status]);
                     $new_user_id = $pdo->lastInsertId();
 
-                    $success = "Registration successful! You can now log in.";
-                    log_activity($pdo, $new_user_id, 'CUSTOMER_REGISTER', "Customer signed up: $username");
+                    $success = "Super Admin registration successful! You can now log in.";
+                    log_activity($pdo, $new_user_id, 'SUPER_ADMIN_REGISTER', "Super Admin signed up: $username");
 
                     $pdo->commit();
                 } catch (Exception $e) {
@@ -62,16 +62,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-require_once __DIR__ . '/includes/header.php';
+require_once __DIR__ . '/../includes/header.php';
 ?>
 
 <div class="row justify-content-center">
     <div class="col-md-6 col-sm-12">
         <div class="glass-card p-5 mt-3">
             <div class="text-center mb-4">
-                <i class="fa-solid fa-user-plus text-indigo" style="font-size: 3rem; color: var(--accent); filter: drop-shadow(0 0 15px rgba(212,175,55,0.4));"></i>
-                <h2 class="fw-bold mt-3 text-white">Customer Registration</h2>
-                <p class="text-secondary small">Sign up to book bus tickets instantly</p>
+                <i class="fa-solid fa-user-shield text-indigo" style="font-size: 3rem; color: var(--accent); filter: drop-shadow(0 0 15px rgba(212,175,55,0.4));"></i>
+                <h2 class="fw-bold mt-3 text-white">Super Admin Registration</h2>
+                <p class="text-secondary small">Register a system administrator account</p>
             </div>
 
             <?php if (!empty($error)): ?>
@@ -91,7 +91,7 @@ require_once __DIR__ . '/includes/header.php';
                 <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
 
                 <div class="mb-4">
-                    <label for="username" class="form-label text-secondary small fw-semibold">Username</label>
+                    <label for="username" class="form-label text-secondary small fw-semibold">Admin Username</label>
                     <div class="input-group">
                         <span class="input-group-text bg-dark border-secondary text-secondary"><i class="fa-solid fa-user"></i></span>
                         <input type="text" name="username" id="username" class="form-control form-control-swift" placeholder="Enter username" required>
@@ -118,18 +118,18 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
 
                 <div class="d-grid mb-3">
-                    <button type="submit" class="btn btn-primary-gradient py-3">Register Account</button>
+                    <button type="submit" class="btn btn-primary-gradient py-3">Register Super Admin</button>
                 </div>
             </form>
 
             <div class="text-center mt-4">
                 <span class="text-secondary small">Already have an account? </span>
-                <a href="<?= BASE_URL ?>/login.php" class="text-decoration-none small text-indigo" style="color: var(--accent); font-weight: 500;">Login here</a>
+                <a href="<?= BASE_URL ?>/login.php" class="text-decoration-none small" style="color: var(--accent); font-weight: 500;">Login here</a>
             </div>
         </div>
     </div>
 </div>
 
 <?php
-require_once __DIR__ . '/includes/footer.php';
+require_once __DIR__ . '/../includes/footer.php';
 ?>

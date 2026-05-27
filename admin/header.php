@@ -143,6 +143,10 @@ $user = get_logged_user();
                         class="sidebar-link <?= ($cur_nav === 'settlements.php') ? 'active' : '' ?>">
                         <i class="fa-solid fa-wallet"></i>Settlements
                     </a>
+                    <a href="<?= BASE_URL ?>/admin/agents.php"
+                        class="sidebar-link <?= ($cur_nav === 'agents.php') ? 'active' : '' ?>">
+                        <i class="fa-solid fa-users-gear"></i>Manage Agents
+                    </a>
 
                     <hr class="border-secondary my-4">
 
@@ -178,6 +182,8 @@ $user = get_logged_user();
                                     href="<?= BASE_URL ?>/admin/manage_cancellations.php">Cancellations</a></li>
                             <li><a class="dropdown-item py-2"
                                     href="<?= BASE_URL ?>/admin/settlements.php">Settlements</a></li>
+                            <li><a class="dropdown-item py-2"
+                                    href="<?= BASE_URL ?>/admin/agents.php">Agents</a></li>
                             <li>
                                 <hr class="dropdown-divider border-secondary">
                             </li>

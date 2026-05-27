@@ -80,3 +80,57 @@ if (!function_exists('log_activity')) {
         }
     }
 }
+
+// Get dynamic resolved seat price using override hierarchy
+if (!function_exists('get_actual_seat_price')) {
+    function get_actual_seat_price($pdo, $trip_id, $seat_number, $trip_base_fare) {
+        try {
+            // 1. Check seat_price_overrides
+            $stmt = $pdo->prepare("SELECT custom_price FROM seat_price_overrides WHERE trip_id = ? AND seat_number = ? LIMIT 1");
+            $stmt->execute([$trip_id, $seat_number]);
+            $price = $stmt->fetchColumn();
+            if ($price !== false && $price !== null) {
+                return floatval($price);
+            }
+            
+            // 2. Check seat_pricing (legacy)
+            $stmt = $pdo->prepare("SELECT current_price FROM seat_pricing WHERE trip_id = ? AND seat_number = ? LIMIT 1");
+            $stmt->execute([$trip_id, $seat_number]);
+            $price = $stmt->fetchColumn();
+            if ($price !== false && $price !== null) {
+                return floatval($price);
+            }
+        } catch (Exception $e) {
+            // fallback if tables don't exist yet
+        }
+
+        // 3. Fallback to trip base_fare
+        return floatval($trip_base_fare);
+    }
+}
+
+// Check if seat is blocked either in seat_blocks or trip_seats status
+if (!function_exists('is_seat_blocked')) {
+    function is_seat_blocked($pdo, $trip_id, $seat_number) {
+        try {
+            // 1. Check seat_blocks
+            $stmt = $pdo->prepare("SELECT 1 FROM seat_blocks WHERE trip_id = ? AND seat_number = ? LIMIT 1");
+            $stmt->execute([$trip_id, $seat_number]);
+            if ($stmt->fetchColumn()) {
+                return true;
+            }
+            
+            // 2. Check trip_seats status
+            $stmt = $pdo->prepare("SELECT status FROM trip_seats WHERE trip_id = ? AND seat_number = ? LIMIT 1");
+            $stmt->execute([$trip_id, $seat_number]);
+            $status = $stmt->fetchColumn();
+            if ($status === 'blocked') {
+                return true;
+            }
+        } catch (Exception $e) {
+            // fallback
+        }
+
+        return false;
+    }
+}

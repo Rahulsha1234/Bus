@@ -125,6 +125,9 @@ try {
     foreach ($db_seats as $s) {
         $seatNum = $s['seat_number'];
         $status = !empty($s['seat_status']) ? $s['seat_status'] : 'available';
+        if (is_seat_blocked($pdo, $trip_id, $seatNum)) {
+            $status = 'blocked';
+        }
 
         // Check locks expiration
         if ($status === 'temp_locked') {
@@ -145,7 +148,7 @@ try {
         }
 
         // Map pricing
-        $base = !empty($s['trip_off']) ? floatval($s['trip_off']) : (!empty($s['trip_cur']) ? floatval($s['trip_cur']) : (!empty($s['trip_base']) ? floatval($s['trip_base']) : floatval($trip['base_fare'])));
+        $base = get_actual_seat_price($pdo, $trip_id, $seatNum, $trip['base_fare']);
 
         $seats_lookup[$seatNum] = [
             'number' => $seatNum,
@@ -246,7 +249,10 @@ require_once __DIR__ . '/includes/header.php';
                                     <?php 
                                     foreach ($seats_lookup as $num => $s) {
                                         if (strpos($num, 'L') === 0) {
-                                            echo '<div class="seat sleeper-berth ' . $s['status'] . '" data-seat="' . $num . '" data-price="' . $s['price'] . '">' . $num . '</div>';
+                                            echo '<div class="seat sleeper-berth ' . $s['status'] . '" data-seat="' . $num . '" data-price="' . $s['price'] . '">' .
+                                                 '<span>' . $num . '</span>' .
+                                                 '<span class="price-lbl">₹' . number_format($s['price'], 0) . '</span>' .
+                                                 '</div>';
                                             $i = intval(substr($num, 1));
                                             if ($i % 2 === 0 && ($i + 1) % 3 === 0) {
                                                 echo '<div class="seat-walkway"></div>';
@@ -263,7 +269,10 @@ require_once __DIR__ . '/includes/header.php';
                                     <?php 
                                     foreach ($seats_lookup as $num => $s) {
                                         if (strpos($num, 'U') === 0) {
-                                            echo '<div class="seat sleeper-berth ' . $s['status'] . '" data-seat="' . $num . '" data-price="' . $s['price'] . '">' . $num . '</div>';
+                                            echo '<div class="seat sleeper-berth ' . $s['status'] . '" data-seat="' . $num . '" data-price="' . $s['price'] . '">' .
+                                                 '<span>' . $num . '</span>' .
+                                                 '<span class="price-lbl">₹' . number_format($s['price'], 0) . '</span>' .
+                                                 '</div>';
                                             $i = intval(substr($num, 1));
                                             if ($i % 2 === 0 && ($i + 1) % 3 === 0) {
                                                 echo '<div class="seat-walkway"></div>';
@@ -306,7 +315,9 @@ require_once __DIR__ . '/includes/header.php';
                                         echo '<div class="seat' . $sleeperClass . ' ' . $typeClass . ' ' . $seat['status'] . '" ' .
                                              'style="grid-row: ' . ($r + 1) . ' / span ' . $rowSpan . '; grid-column: ' . ($c + 1) . ';" ' .
                                              'data-seat="' . $seat['number'] . '" data-price="' . $seat['price'] . '">' . 
-                                             $seat['number'] . '</div>';
+                                             '<span>' . $seat['number'] . '</span>' .
+                                             '<span class="price-lbl">₹' . number_format($seat['price'], 0) . '</span>' .
+                                             '</div>';
                                     }
                                 }
                             }

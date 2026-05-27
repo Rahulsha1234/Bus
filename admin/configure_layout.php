@@ -251,14 +251,8 @@ $templates = $templates_stmt->fetchAll();
     <div class="col-md-4">
         <div class="glass-card p-4">
             <h5 class="fw-bold mb-3"><i class="fa-solid fa-sliders text-indigo me-2"></i>Layout Dimensions</h5>
-            <div class="mb-3">
-                <label class="form-label text-secondary small fw-semibold">Grid Rows</label>
-                <input type="number" id="grid_rows" class="form-control form-control-swift" value="<?= $rows_count ?>" min="1" max="15">
-            </div>
-            <div class="mb-3">
-                <label class="form-label text-secondary small fw-semibold">Grid Columns</label>
-                <input type="number" id="grid_cols" class="form-control form-control-swift" value="<?= $cols_count ?>" min="3" max="8">
-            </div>
+            <input type="hidden" id="grid_rows" value="<?= $rows_count ?>">
+            <input type="hidden" id="grid_cols" value="<?= $cols_count ?>">
             <div class="mb-3">
                 <label class="form-label text-secondary small fw-semibold">Class Classification</label>
                 <select id="layout_type" class="form-select form-control-swift">
@@ -269,7 +263,6 @@ $templates = $templates_stmt->fetchAll();
                     <option value="Mixed" <?= $layout_type === 'Mixed' ? 'selected' : '' ?>>Mixed Layout</option>
                 </select>
             </div>
-            <button type="button" id="btnUpdateGrid" class="btn btn-secondary-glass w-100 mb-4">Resize Grid</button>
 
             <hr class="border-secondary mb-4">
 

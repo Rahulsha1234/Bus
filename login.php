@@ -56,9 +56,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ($user_row && password_verify($password, $user_row['password'])) {
                 if ($user_row['role'] === 'agent' && $user_row['status'] === 'pending') {
-                    $error = "Your account is pending Super Admin approval. Please contact support.";
+                    $error = "Your agency account is pending approval by the selected Bus Operator.";
                 } elseif ($user_row['role'] === 'agent' && $user_row['status'] === 'suspended') {
-                    $error = "Your account is currently suspended by the Super Admin.";
+                    $error = "Your agency account is currently suspended.";
+                } elseif ($user_row['role'] === 'admin' && $user_row['status'] === 'pending') {
+                    $error = "Your operator account is pending Super Admin approval. Please contact support.";
+                } elseif ($user_row['role'] === 'admin' && $user_row['status'] === 'suspended') {
+                    $error = "Your operator account is currently suspended by the Super Admin.";
                 } else {
                     // Create Session
                     session_regenerate_id(true);

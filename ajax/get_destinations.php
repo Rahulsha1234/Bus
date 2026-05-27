@@ -14,12 +14,22 @@ if (empty($source)) {
 }
 
 try {
-    $stmt = $pdo->prepare(
-        "SELECT DISTINCT destination FROM routes 
-         WHERE source = ? AND status = 'active' 
-         ORDER BY destination ASC"
-    );
-    $stmt->execute([$source]);
+    $admin_id = intval($_GET['admin_id'] ?? 0);
+    if ($admin_id > 0) {
+        $stmt = $pdo->prepare(
+            "SELECT DISTINCT destination FROM routes 
+             WHERE source = ? AND status = 'active' AND admin_id = ? 
+             ORDER BY destination ASC"
+        );
+        $stmt->execute([$source, $admin_id]);
+    } else {
+        $stmt = $pdo->prepare(
+            "SELECT DISTINCT destination FROM routes 
+             WHERE source = ? AND status = 'active' 
+             ORDER BY destination ASC"
+        );
+        $stmt->execute([$source]);
+    }
     $destinations = $stmt->fetchAll(PDO::FETCH_COLUMN);
     echo json_encode($destinations);
 } catch (PDOException $e) {

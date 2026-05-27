@@ -627,6 +627,7 @@ body {
     background: #E2E8F0;
     color: #475569;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     font-size: 0.8rem;
@@ -641,49 +642,43 @@ body {
     border-radius: 12px;
 }
 .seat.available {
-    background: #E2E8F0 !important;
-    border-color: #CBD5E1 !important;
-    color: #475569 !important;
+    background: #198754 !important;
+    border-color: #146c43 !important;
+    color: #ffffff !important;
 }
 .seat.available:hover {
-    background: #CBD5E1 !important;
+    background: #146c43 !important;
     transform: scale(1.05);
 }
 .seat.selected {
-    background: var(--accent-gold-gradient) !important;
-    border-color: var(--accent-primary) !important;
-    color: var(--text-white-fixed) !important;
-    box-shadow: 0 0 10px rgba(200, 169, 107, 0.4);
+    background: var(--accent) !important;
+    border-color: #0F5132 !important;
+    color: #0F5132 !important;
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.4);
 }
 .seat.booked {
-    background: #FCA5A5 !important;
-    border-color: #EF4444 !important;
-    color: #B91C1C !important;
-    cursor: not-allowed;
-}
-.seat.hold {
-    background: #FDE68A !important;
-    border-color: #F59E0B !important;
-    color: #B45309 !important;
+    background: #dc3545 !important;
+    border-color: #b02a37 !important;
+    color: #ffffff !important;
     cursor: not-allowed;
 }
 .seat.blocked {
-    background: #1F2937 !important;
-    border-color: #111827 !important;
-    color: #9CA3AF !important;
+    background: #343a40 !important;
+    border-color: #212529 !important;
+    color: #adb5bd !important;
     cursor: not-allowed;
 }
-.seat.reserved {
-    background: #BFDBFE !important;
-    border-color: #3B82F6 !important;
-    color: #1D4ED8 !important;
+.seat.female_booked {
+    background: #ec4899 !important;
+    border-color: #db2777 !important;
+    color: #ffffff !important;
     cursor: not-allowed;
 }
-.seat.female_booked,
 .seat.female_protected {
-    background: #FBCFE8 !important;
-    border-color: #EC4899 !important;
-    color: #BE185D !important;
+    background: transparent !important;
+    border: 2px dashed #ec4899 !important;
+    color: #ec4899 !important;
+    font-weight: 700;
 }
 .seat.temp_locked {
     background: #FEF08A !important;
@@ -696,6 +691,12 @@ body {
     color: var(--text-muted) !important;
     cursor: default;
     opacity: 0.5;
+}
+.seat .price-lbl {
+    font-size: 0.55rem;
+    font-weight: 500;
+    margin-top: 1px;
+    display: block;
 }
 
 /* Status Legend */

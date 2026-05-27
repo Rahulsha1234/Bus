@@ -155,14 +155,11 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
         $base_fare = floatval($trip_info['base_fare']);
         $trip_admin_id = intval($trip_info['trip_admin_id']);
         
-        // Recalculate dynamic fare. Upper berths get +100 premium
+        // Recalculate dynamic fare using price overrides helper
         $total_amount = 0;
         $seat_fares = [];
         foreach ($seats as $seat) {
-            $fare = $base_fare;
-            if (strpos($seat, 'U') === 0) {
-                $fare += 100;
-            }
+            $fare = get_actual_seat_price($pdo, $trip_id, $seat, $base_fare);
             $seat_fares[$seat] = $fare;
             $total_amount += $fare;
         }
@@ -401,10 +398,7 @@ $base_fare = floatval($trip['base_fare']);
 $total_fare = 0;
 $seat_fares = [];
 foreach ($seats as $seat) {
-    $fare = $base_fare;
-    if (strpos($seat, 'U') === 0) {
-        $fare += 100; // Upper berth premium
-    }
+    $fare = get_actual_seat_price($pdo, $trip_id, $seat, $base_fare);
     $seat_fares[$seat] = $fare;
     $total_fare += $fare;
 }

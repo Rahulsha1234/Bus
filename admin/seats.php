@@ -38,7 +38,7 @@ if ($selected_trip_id > 0) {
     try {
         // Verify ownership
         $stmt = $pdo->prepare("
-            SELECT t.id, t.bus_id, b.seat_layout_type, b.bus_name, r.source, r.destination 
+            SELECT t.id, t.bus_id, t.base_fare, b.seat_layout_type, b.bus_name, r.source, r.destination 
             FROM trips t
             JOIN buses b ON t.bus_id = b.id
             JOIN routes r ON t.route_id = r.id
@@ -65,65 +65,67 @@ if ($selected_trip_id > 0) {
                         try {
                             $pdo->beginTransaction();
 
-                            if ($action === 'hold') {
-                                $stmt = $pdo->prepare("
-                                    INSERT INTO trip_seats (trip_id, seat_number, status, hold_expires_at)
-                                    VALUES (?, ?, 'hold', NULL)
-                                    ON DUPLICATE KEY UPDATE status = 'hold', hold_expires_at = NULL
-                                ");
-                                foreach ($target_seats as $seat) {
-                                    $stmt->execute([$selected_trip_id, $seat]);
-                                }
-                                $success = "Successfully placed " . count($target_seats) . " seat(s) on manual Hold.";
-                                log_activity($pdo, $admin_id, 'SEAT_HOLD_BULK', "Held seats (" . implode(',', $target_seats) . ") on Trip: $selected_trip_id");
-                            } 
-                            elseif ($action === 'release') {
-                                $stmt = $pdo->prepare("UPDATE trip_seats SET status = 'available', hold_expires_at = NULL WHERE trip_id = ? AND seat_number = ?");
-                                foreach ($target_seats as $seat) {
-                                    $stmt->execute([$selected_trip_id, $seat]);
-                                }
-                                $success = "Successfully released " . count($target_seats) . " seat(s) back to available pool.";
-                                log_activity($pdo, $admin_id, 'SEAT_RELEASE_BULK', "Released seats (" . implode(',', $target_seats) . ") on Trip: $selected_trip_id");
-                            } 
-                            elseif ($action === 'block') {
-                                $stmt = $pdo->prepare("
-                                    INSERT INTO trip_seats (trip_id, seat_number, status)
-                                    VALUES (?, ?, 'blocked')
-                                    ON DUPLICATE KEY UPDATE status = 'blocked'
-                                ");
-                                foreach ($target_seats as $seat) {
-                                    $stmt->execute([$selected_trip_id, $seat]);
-                                }
-                                $success = "Successfully Blocked " . count($target_seats) . " seat(s).";
-                                log_activity($pdo, $admin_id, 'SEAT_BLOCK_BULK', "Blocked seats (" . implode(',', $target_seats) . ") on Trip: $selected_trip_id");
-                            } 
-                            elseif ($action === 'unblock') {
-                                $stmt = $pdo->prepare("UPDATE trip_seats SET status = 'available' WHERE trip_id = ? AND seat_number = ?");
-                                foreach ($target_seats as $seat) {
-                                    $stmt->execute([$selected_trip_id, $seat]);
-                                }
-                                $success = "Successfully Unblocked " . count($target_seats) . " seat(s).";
-                                log_activity($pdo, $admin_id, 'SEAT_UNBLOCK_BULK', "Unblocked seats (" . implode(',', $target_seats) . ") on Trip: $selected_trip_id");
-                            } 
-                            elseif ($action === 'price') {
-                                $base_price = floatval($_POST['base_price'] ?? 0.00);
-                                $current_price = floatval($_POST['current_price'] ?? 0.00);
-                                $offer_price = floatval($_POST['offer_price'] ?? 0.00);
-
-                                if ($base_price <= 0 || $current_price <= 0 || $offer_price <= 0) {
-                                    $error = "Fares must be positive numeric values.";
+                            if ($action === 'price') {
+                                $final_price = floatval($_POST['final_price'] ?? 0.00);
+                                if ($final_price <= 0) {
+                                    $error = "Seat price must be a positive numeric value.";
                                 } else {
+                                    // 1. Insert/Update seat_price_overrides
                                     $stmt = $pdo->prepare("
+                                        INSERT INTO seat_price_overrides (trip_id, seat_number, custom_price, updated_by)
+                                        VALUES (?, ?, ?, ?)
+                                        ON DUPLICATE KEY UPDATE custom_price = VALUES(custom_price), updated_by = VALUES(updated_by)
+                                    ");
+                                    foreach ($target_seats as $seat) {
+                                        $stmt->execute([$selected_trip_id, $seat, $final_price, $admin_id]);
+                                    }
+                                    
+                                    // 2. Also insert/update seat_pricing for backwards compatibility
+                                    $stmt2 = $pdo->prepare("
                                         INSERT INTO seat_pricing (trip_id, seat_number, base_price, current_price, offer_price)
                                         VALUES (?, ?, ?, ?, ?)
                                         ON DUPLICATE KEY UPDATE base_price = VALUES(base_price), current_price = VALUES(current_price), offer_price = VALUES(offer_price)
                                     ");
                                     foreach ($target_seats as $seat) {
-                                        $stmt->execute([$selected_trip_id, $seat, $base_price, $current_price, $offer_price]);
+                                        $stmt2->execute([$selected_trip_id, $seat, $final_price, $final_price, $final_price]);
                                     }
-                                    $success = "Pricing overrides applied to " . count($target_seats) . " seat(s).";
-                                    log_activity($pdo, $admin_id, 'PRICE_OVERRIDE_BULK', "Override fares for seats (" . implode(',', $target_seats) . ") on Trip: $selected_trip_id");
+                                    
+                                    $success = "Successfully updated Final Seat Price to ₹" . number_format($final_price, 2) . " for " . count($target_seats) . " seat(s).";
+                                    log_activity($pdo, $admin_id, 'SEAT_PRICE_OVERRIDE', "Set custom price ₹$final_price for seats (" . implode(',', $target_seats) . ") on Trip: $selected_trip_id");
                                 }
+                            } 
+                            elseif ($action === 'toggle_block') {
+                                $blocked_seats_count = 0;
+                                $unblocked_seats_count = 0;
+                                foreach ($target_seats as $seat) {
+                                    if (is_seat_blocked($pdo, $selected_trip_id, $seat)) {
+                                        // Unblock it
+                                        $stmt1 = $pdo->prepare("DELETE FROM seat_blocks WHERE trip_id = ? AND seat_number = ?");
+                                        $stmt1->execute([$selected_trip_id, $seat]);
+                                        
+                                        $stmt2 = $pdo->prepare("UPDATE trip_seats SET status = 'available' WHERE trip_id = ? AND seat_number = ?");
+                                        $stmt2->execute([$selected_trip_id, $seat]);
+                                        $unblocked_seats_count++;
+                                    } else {
+                                        // Block it
+                                        $stmt1 = $pdo->prepare("
+                                            INSERT INTO seat_blocks (trip_id, seat_number, blocked_by)
+                                            VALUES (?, ?, ?)
+                                            ON DUPLICATE KEY UPDATE blocked_by = VALUES(blocked_by)
+                                        ");
+                                        $stmt1->execute([$selected_trip_id, $seat, $admin_id]);
+                                        
+                                        $stmt2 = $pdo->prepare("
+                                            INSERT INTO trip_seats (trip_id, seat_number, status)
+                                            VALUES (?, ?, 'blocked')
+                                            ON DUPLICATE KEY UPDATE status = 'blocked'
+                                        ");
+                                        $stmt2->execute([$selected_trip_id, $seat]);
+                                        $blocked_seats_count++;
+                                    }
+                                }
+                                $success = "Successfully updated " . count($target_seats) . " seat(s) status ($blocked_seats_count blocked, $unblocked_seats_count unblocked).";
+                                log_activity($pdo, $admin_id, 'SEAT_BLOCK_TOGGLE', "Toggled block/unblock for seats (" . implode(',', $target_seats) . ") on Trip: $selected_trip_id");
                             }
 
                             if (empty($error)) {
@@ -153,88 +155,74 @@ if ($selected_trip_id > 0) {
             $seats_stmt = $pdo->prepare("
                 SELECT 
                     s.seat_number, s.row_pos, s.col_pos, s.seat_type, s.is_active,
-                    ts.status, ts.hold_expires_at,
-                    sp.base_price AS current_base, sp.current_price AS current_cur
+                    ts.status AS trip_seat_status,
+                    sb.id AS is_blocked_override,
+                    spo.custom_price
                 FROM bus_seats s
                 LEFT JOIN trip_seats ts ON s.seat_number = ts.seat_number AND ts.trip_id = ?
-                LEFT JOIN seat_pricing sp ON s.seat_number = sp.seat_number AND sp.trip_id = ?
+                LEFT JOIN seat_blocks sb ON s.seat_number = sb.seat_number AND sb.trip_id = ?
+                LEFT JOIN seat_price_overrides spo ON s.seat_number = spo.seat_number AND spo.trip_id = ?
                 WHERE s.bus_id = ? AND s.is_active = 1
             ");
-            $seats_stmt->execute([$selected_trip_id, $selected_trip_id, $trip_details['bus_id']]);
+            $seats_stmt->execute([$selected_trip_id, $selected_trip_id, $selected_trip_id, $trip_details['bus_id']]);
             $db_seats = $seats_stmt->fetchAll();
 
-            // Convert to mapped list
-            $now = date('Y-m-d H:i:s');
-            if (count($db_seats) > 0) {
-                foreach ($db_seats as $s) {
-                    $status = !empty($s['status']) ? $s['status'] : 'available';
-                    // Expired hold behaves as available
-                    if ($status === 'hold' && !empty($s['hold_expires_at']) && strtotime($s['hold_expires_at']) < strtotime($now)) {
-                        $status = 'available';
-                    }
+            // Booked genders
+            $gender_stmt = $pdo->prepare("
+                SELECT bs.seat_number, bs.passenger_gender 
+                FROM booking_seats bs
+                JOIN bookings b ON bs.booking_id = b.id
+                WHERE b.trip_id = ? AND b.status = 'active'
+            ");
+            $gender_stmt->execute([$selected_trip_id]);
+            $booked_genders = $gender_stmt->fetchAll(PDO::FETCH_KEY_PAIR) ?: [];
 
-                    $seats_list[] = [
-                        'number' => $s['seat_number'],
-                        'row' => intval($s['row_pos']),
-                        'col' => intval($s['col_pos']),
-                        'type' => $s['seat_type'],
-                        'status' => $status,
-                        'price' => !empty($s['current_cur']) ? floatval($s['current_cur']) : (!empty($s['current_base']) ? floatval($s['current_base']) : 500.00)
-                    ];
+            foreach ($db_seats as $s) {
+                $status = 'available';
+                
+                // If booked
+                if ($s['trip_seat_status'] === 'booked') {
+                    $status = 'booked';
                 }
-            } else {
-                // Fallback: Fetch directly from trip_seats and seat_pricing
-                $seats_stmt = $pdo->prepare("
-                    SELECT 
-                        ts.seat_number, ts.status, ts.hold_expires_at,
-                        sp.base_price AS current_base, sp.current_price AS current_cur
-                    FROM trip_seats ts
-                    LEFT JOIN seat_pricing sp ON ts.seat_number = sp.seat_number AND sp.trip_id = ?
-                    WHERE ts.trip_id = ?
-                ");
-                $seats_stmt->execute([$selected_trip_id, $selected_trip_id]);
-                $fallback_seats = $seats_stmt->fetchAll();
-
-                // Set grid dimensions based on layout type
-                if ($trip_details['seat_layout_type'] === '2x1_sleeper') {
-                    $rows_count = 10;
-                    $cols_count = 3;
-                } else {
-                    $rows_count = 10;
-                    $cols_count = 5; // standard 2x2 with aisle
+                
+                // Override status if blocked
+                if ($s['is_blocked_override'] || $s['trip_seat_status'] === 'blocked') {
+                    $status = 'blocked';
                 }
 
-                $idx = 0;
-                foreach ($fallback_seats as $fs) {
-                    $seat_num = $fs['seat_number'];
-                    $status = !empty($fs['status']) ? $fs['status'] : 'available';
-                    if ($status === 'hold' && !empty($fs['hold_expires_at']) && strtotime($fs['hold_expires_at']) < strtotime($now)) {
-                        $status = 'available';
-                    }
+                if ($status === 'booked' && ($booked_genders[$s['seat_number']] ?? '') === 'Female') {
+                    $status = 'female_booked';
+                }
 
-                    // Map standard coordinates dynamically
-                    if ($trip_details['seat_layout_type'] === '2x1_sleeper') {
-                        $type = (strpos($seat_num, 'U') !== false) ? 'Upper Sleeper' : 'Lower Sleeper';
-                        $num_val = intval(preg_replace('/[^0-9]/', '', $seat_num));
-                        $r = ($num_val - 1) % 10;
-                        $c = (strpos($seat_num, 'U') !== false) ? 2 : 0;
-                    } else {
-                        // 2x2 Seater layout mapping
-                        $r = floor($idx / 4);
-                        $c = $idx % 4;
-                        if ($c >= 2) $c += 1; // Aisle space
-                        $type = 'Normal';
-                    }
+                // Pricing
+                $price = get_actual_seat_price($pdo, $selected_trip_id, $s['seat_number'], $trip_details['base_fare']);
 
-                    $seats_list[] = [
-                        'number' => $seat_num,
-                        'row' => $r,
-                        'col' => $c,
-                        'type' => $type,
-                        'status' => $status,
-                        'price' => !empty($fs['current_cur']) ? floatval($fs['current_cur']) : (!empty($fs['current_base']) ? floatval($fs['current_base']) : 500.00)
-                    ];
-                    $idx++;
+                $seats_list[] = [
+                    'number' => $s['seat_number'],
+                    'row' => intval($s['row_pos']),
+                    'col' => intval($s['col_pos']),
+                    'type' => $s['seat_type'],
+                    'status' => $status,
+                    'price' => $price
+                ];
+            }
+
+            // Apply adjacent Female Protection rules
+            foreach ($seats_list as $seatNum => $sInfo) {
+                if ($sInfo['status'] === 'female_booked') {
+                    $adj_col = -1;
+                    if ($sInfo['col'] === 0) $adj_col = 1;
+                    elseif ($sInfo['col'] === 1) $adj_col = 0;
+                    elseif ($sInfo['col'] === 3) $adj_col = 4;
+                    elseif ($sInfo['col'] === 4) $adj_col = 3;
+
+                    if ($adj_col !== -1) {
+                        foreach ($seats_list as $otherIdx => $otherInfo) {
+                            if ($otherInfo['row'] === $sInfo['row'] && $otherInfo['col'] === $adj_col && $otherInfo['status'] === 'available') {
+                                $seats_list[$otherIdx]['status'] = 'female_protected';
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -284,7 +272,7 @@ if ($selected_trip_id > 0) {
                     <input type="hidden" name="seats_list" id="action_seats_list" value="">
                     
                     <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold">Selected Seats Count:</label>
+                        <label class="form-label text-secondary small fw-semibold">Selected Seats:</label>
                         <div id="selection_preview" class="p-2 border border-secondary border-opacity-10 rounded bg-dark bg-opacity-20 font-semibold small text-indigo">
                             0 Seats Selected
                         </div>
@@ -293,27 +281,16 @@ if ($selected_trip_id > 0) {
                     <div class="mb-4">
                         <label class="form-label text-secondary small fw-semibold">Execute Allocation Action</label>
                         <select name="action" id="action_selector" class="form-select form-control-swift" required>
-                            <option value="hold">Offline Hold (Indefinite)</option>
-                            <option value="release">Release Hold / Block</option>
-                            <option value="block">Block Seats (System Block)</option>
-                            <option value="unblock">Unblock Seats</option>
-                            <option value="price">Modify Seat Fares (Trip Overrides)</option>
+                            <option value="price">Modify Seat Price</option>
+                            <option value="toggle_block">Block / Unblock Seat</option>
                         </select>
                     </div>
 
                     <!-- Pricing Overrides block (Shown only if 'price' selected) -->
-                    <div id="pricing_fields" style="display: none;" class="p-3 mb-4 rounded border border-secondary border-opacity-20 bg-dark bg-opacity-10">
-                        <div class="mb-2">
-                            <label class="form-label text-secondary small">Base Price (₹)</label>
-                            <input type="number" name="base_price" class="form-control form-control-swift py-1" value="500">
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label text-secondary small">Current Price (₹)</label>
-                            <input type="number" name="current_price" class="form-control form-control-swift py-1" value="500">
-                        </div>
+                    <div id="pricing_fields" class="p-3 mb-4 rounded border border-secondary border-opacity-20 bg-dark bg-opacity-10">
                         <div class="mb-0">
-                            <label class="form-label text-secondary small">Offer Price (₹)</label>
-                            <input type="number" name="offer_price" class="form-control form-control-swift py-1" value="500">
+                            <label class="form-label text-secondary small">Final Seat Price (₹)</label>
+                            <input type="number" name="final_price" class="form-control form-control-swift py-1" value="500" required>
                         </div>
                     </div>
 
@@ -336,7 +313,7 @@ if ($selected_trip_id > 0) {
             <?php else: ?>
                 <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom border-secondary border-opacity-20 flex-wrap gap-2">
                     <div>
-                        <h5 class="fw-bold mb-0">Seat Selection Layout</h5>
+                        <h5 class="fw-bold mb-0 text-white">Seat Selection Layout</h5>
                         <span class="text-secondary small">Hold Shift to select ranges / click cells to toggle.</span>
                     </div>
                     <div class="d-flex gap-1">
@@ -347,12 +324,11 @@ if ($selected_trip_id > 0) {
 
                 <!-- Legend details -->
                 <div class="d-flex gap-3 mb-4 justify-content-center flex-wrap small">
-                    <div class="legend-item"><span class="legend-dot bg-success"></span><span class="text-secondary">Available</span></div>
-                    <div class="legend-item"><span class="legend-dot bg-warning"></span><span class="text-secondary">Held</span></div>
-                    <div class="legend-item"><span class="legend-dot bg-danger"></span><span class="text-secondary">Booked</span></div>
-                    <div class="legend-item"><span class="legend-dot bg-dark border border-secondary"></span><span class="text-secondary">Blocked</span></div>
-                    <div class="legend-item"><span class="legend-dot bg-primary"></span><span class="text-secondary">VIP Reserved</span></div>
-                    <div class="legend-item"><span class="legend-dot bg-info"></span><span class="text-secondary">Temp Locked</span></div>
+                    <div class="legend-item"><span class="legend-dot" style="background:#198754; border:1px solid #146c43;"></span><span class="text-secondary">Available</span></div>
+                    <div class="legend-item"><span class="legend-dot" style="background:#dc3545; border:1px solid #b02a37;"></span><span class="text-secondary">Booked</span></div>
+                    <div class="legend-item"><span class="legend-dot" style="background:#343a40; border:1px solid #212529;"></span><span class="text-secondary">Blocked</span></div>
+                    <div class="legend-item"><span class="legend-dot" style="background:#f472b6; border:1px solid #db2777;"></span><span class="text-secondary">Female Booked</span></div>
+                    <div class="legend-item"><span class="legend-dot" style="background:transparent; border:2px dashed #db2777;"></span><span class="text-secondary">Female Adjacent Restricted</span></div>
                 </div>
 
                 <div class="text-center overflow-auto py-2">
@@ -387,16 +363,19 @@ if ($selected_trip_id > 0) {
     font-weight: 700;
     transition: all 0.2s ease;
 }
-.console-seat-box.available { background: rgba(78, 135, 82, 0.12); border-color: rgba(78, 135, 82, 0.35); color: var(--seat-available); }
-.console-seat-box.hold { background: rgba(217, 140, 69, 0.12); border-color: rgba(217, 140, 69, 0.35); color: var(--seat-hold); }
-.console-seat-box.booked { background: rgba(184, 92, 92, 0.12); border-color: rgba(184, 92, 92, 0.35); color: var(--seat-booked); }
-.console-seat-box.blocked { background: #1a1f2c; border-color: #2D3442; color: #4E5A70; }
-.console-seat-box.reserved { background: rgba(99, 102, 241, 0.12); border-color: rgba(99, 102, 241, 0.35); color: #818cf8; }
-.console-seat-box.temp_locked { background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.35); color: #fbbf24; }
+.console-seat-box.available { background: rgba(25, 135, 84, 0.15); border-color: #198754; color: #198754; }
+.console-seat-box.booked { background: #dc3545; border-color: #b02a37; color: #ffffff; }
+.console-seat-box.blocked { background: #343a40; border-color: #212529; color: #adb5bd; }
+.console-seat-box.female_booked { background: #f472b6; border-color: #db2777; color: #ffffff; }
+.console-seat-box.female_protected { background: transparent; border: 2px dashed #db2777; color: #db2777; }
 
 .console-seat-box.selected-action {
     outline: 2px solid var(--accent-primary) !important;
     outline-offset: 2px;
+}
+.console-seat-box .price-lbl {
+    font-size: 0.55rem;
+    opacity: 0.85;
 }
 </style>
 
@@ -419,6 +398,7 @@ $(document).ready(function() {
         for (var r = 0; r < rows; r++) {
             var rowHeaderCell = $('<div class="grid-cell" style="cursor: pointer; font-size: 0.7rem; color: var(--text-muted);" data-row-header="' + r + '">Row ' + (r + 1) + '</div>');
             rowHeaderCell.click(handleRowHeaderClick(r));
+            canvas.append(rowHeaderCell);
             
             for (var c = 0; c < cols; c++) {
                 var seat = seats.find(s => s.row === r && s.col === c);
@@ -429,6 +409,7 @@ $(document).ready(function() {
                     var typeClass = ' type-' + seat.type.toLowerCase().replace(/ /g, '-');
                     var box = $('<div class="console-seat-box ' + seat.status + isSelected + typeClass + '" data-seat="' + seat.number + '">' +
                         '<span>' + seat.number + '</span>' +
+                        '<span class="price-lbl">₹' + seat.price.toFixed(0) + '</span>' +
                         '</div>');
                     
                     box.click(handleSeatToggle(seat));
@@ -441,7 +422,7 @@ $(document).ready(function() {
 
     function handleSeatToggle(seat) {
         return function() {
-            if (seat.status === 'booked') {
+            if (seat.status === 'booked' || seat.status === 'female_booked') {
                 alert("Booked seats cannot be modified.");
                 return;
             }
@@ -457,7 +438,7 @@ $(document).ready(function() {
 
     function handleRowHeaderClick(rowIdx) {
         return function() {
-            var rowSeats = seats.filter(s => s.row === rowIdx && s.status !== 'booked');
+            var rowSeats = seats.filter(s => s.row === rowIdx && s.status !== 'booked' && s.status !== 'female_booked');
             var rowSeatNums = rowSeats.map(s => s.number);
             
             // Check if all are already selected
@@ -484,7 +465,7 @@ $(document).ready(function() {
     }
 
     $('#btnSelectAll').click(function() {
-        selectedSeats = seats.filter(s => s.status !== 'booked').map(s => s.number);
+        selectedSeats = seats.filter(s => s.status !== 'booked' && s.status !== 'female_booked').map(s => s.number);
         renderConsoleGrid();
         updateSelectionPreview();
     });

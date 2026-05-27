@@ -82,6 +82,9 @@ $user = get_logged_user();
                 <a href="<?= BASE_URL ?>/super_admin/dashboard.php" class="sidebar-link <?= ($cur === 'dashboard.php') ? 'active' : '' ?>">
                     <i class="fa-solid fa-chart-line"></i>Admin Home
                 </a>
+                <a href="<?= BASE_URL ?>/super_admin/operators.php" class="sidebar-link <?= ($cur === 'operators.php') ? 'active' : '' ?>">
+                    <i class="fa-solid fa-user-tie"></i>Manage Operators
+                </a>
                 <a href="<?= BASE_URL ?>/super_admin/agents.php" class="sidebar-link <?= ($cur === 'agents.php') ? 'active' : '' ?>">
                     <i class="fa-solid fa-users-gear"></i>Manage Agents
                 </a>
@@ -119,6 +122,7 @@ $user = get_logged_user();
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark glass-card p-2 border-0 mt-2">
                         <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/super_admin/dashboard.php">Admin Home</a></li>
+                        <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/super_admin/operators.php">Operators</a></li>
                         <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/super_admin/agents.php">Agents</a></li>
                         <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/super_admin/bookings.php">Bookings</a></li>
                         <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/super_admin/settlements.php">Settlements</a></li>

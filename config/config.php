@@ -25,10 +25,10 @@ if (!defined('BASE_URL')) {
 
 // Database Credentials (Dynamic configuration for Local WAMP and Live Server)
 $host = $_SERVER['HTTP_HOST'] ?? '';
-$is_local = (in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1']) 
+$is_local = php_sapi_name() === 'cli' || ((in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1']) 
     || $host === 'localhost' 
     || strpos($host, '127.0.0.1') !== false)
-    && strpos($host, 'byethost') === false;
+    && strpos($host, 'byethost') === false);
 
 
 if ($is_local) {

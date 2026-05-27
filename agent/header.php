@@ -15,6 +15,18 @@ try {
     $agent_stmt->execute([$user['id']]);
     $agent_profile = $agent_stmt->fetch();
     $parent_admin_id = $agent_profile ? intval($agent_profile['admin_id']) : 0;
+    
+    if ($parent_admin_id === 0) {
+        $fallback_stmt = $pdo->query("SELECT id FROM users WHERE role = 'admin' AND status = 'approved' ORDER BY id ASC LIMIT 1");
+        $fallback_id = $fallback_stmt->fetchColumn();
+        if ($fallback_id !== false) {
+            $parent_admin_id = intval($fallback_id);
+            if ($agent_profile) {
+                $update_stmt = $pdo->prepare("UPDATE agent_profiles SET admin_id = ? WHERE user_id = ?");
+                $update_stmt->execute([$parent_admin_id, $user['id']]);
+            }
+        }
+    }
 } catch (Exception $e) {
     $parent_admin_id = 0;
 }

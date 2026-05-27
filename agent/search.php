@@ -267,7 +267,7 @@ $(document).ready(function() {
 
         $loading.show();
 
-        $.getJSON('<?= BASE_URL ?>/ajax/get_destinations.php', { source: source }, function(data) {
+        $.getJSON('<?= BASE_URL ?>/ajax/get_destinations.php', { source: source, admin_id: <?= $parent_admin_id ?> }, function(data) {
             $loading.hide();
             $dest.html('<option value="">Select Destination...</option>');
 
@@ -302,7 +302,7 @@ $(document).ready(function() {
         var source = $('#source').val();
         var $dest = $('#destination');
         
-        $.getJSON('<?= BASE_URL ?>/ajax/get_destinations.php', { source: source }, function(data) {
+        $.getJSON('<?= BASE_URL ?>/ajax/get_destinations.php', { source: source, admin_id: <?= $parent_admin_id ?> }, function(data) {
             $dest.html('<option value="">Select Destination...</option>');
             $.each(data, function(i, dest) {
                 $dest.append($('<option>', { 
