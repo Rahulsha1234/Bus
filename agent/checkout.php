@@ -18,7 +18,7 @@ $seats = explode(',', $selected_seats);
 
 // Fetch Trip details and check ownership
 $trip_stmt = $pdo->prepare("
-    SELECT t.base_fare, b.bus_name, b.discount_type, b.percentage, b.fixed, r.source, r.destination 
+    SELECT t.base_fare, t.discount_type, t.percentage, t.fixed, b.bus_name, r.source, r.destination 
     FROM trips t 
     JOIN buses b ON t.bus_id = b.id
     JOIN routes r ON t.route_id = r.id

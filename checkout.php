@@ -143,11 +143,10 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
             }
         }
 
-        // 3. Fetch base fare and discount details of the bus/trip
+        // 3. Fetch base fare and discount details of the trip
         $trip_stmt = $pdo->prepare("
-            SELECT t.base_fare, t.admin_id AS trip_admin_id, b.discount_type, b.percentage, b.fixed
+            SELECT t.base_fare, t.admin_id AS trip_admin_id, t.discount_type, t.percentage, t.fixed
             FROM trips t
-            JOIN buses b ON t.bus_id = b.id
             WHERE t.id = ? 
             LIMIT 1
         ");

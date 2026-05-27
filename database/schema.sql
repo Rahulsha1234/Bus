@@ -157,6 +157,9 @@ CREATE TABLE trips (
     departure_time DATETIME NOT NULL,
     arrival_time DATETIME NOT NULL,
     base_fare DECIMAL(10,2) NOT NULL,
+    discount_type ENUM('none','percentage','fixed') NOT NULL DEFAULT 'none',
+    percentage DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+    fixed DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     seat_prices TEXT NULL, -- JSON details if any seats have premium rates
     status ENUM('active', 'cancelled') NOT NULL DEFAULT 'active',
     FOREIGN KEY (bus_id) REFERENCES buses(id) ON DELETE CASCADE,

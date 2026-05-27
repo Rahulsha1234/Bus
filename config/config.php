@@ -24,9 +24,12 @@ if (!defined('BASE_URL')) {
 }
 
 // Database Credentials (Dynamic configuration for Local WAMP and Live Server)
-$is_local = in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1']) 
-    || ($_SERVER['HTTP_HOST'] ?? '') === 'localhost' 
-    || strpos($_SERVER['HTTP_HOST'] ?? '', '127.0.0.1') !== false;
+$host = $_SERVER['HTTP_HOST'] ?? '';
+$is_local = (in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1']) 
+    || $host === 'localhost' 
+    || strpos($host, '127.0.0.1') !== false)
+    && strpos($host, 'byethost') === false;
+
 
 if ($is_local) {
     define('DB_HOST', '127.0.0.1;port=3307');

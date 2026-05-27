@@ -30,6 +30,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $dep_time = $_POST['departure_time'] ?? '';
             $arr_time = $_POST['arrival_time'] ?? '';
             $fare = floatval($_POST['base_fare'] ?? 0.00);
+            $discount_type = $_POST['discount_type'] ?? 'none';
+            $percentage = floatval($_POST['percentage'] ?? 0.00);
+            $fixed = floatval($_POST['fixed'] ?? 0.00);
 
             if ($bus_id === 0 || $route_id === 0 || empty($dep_time) || empty($arr_time)) {
                 $error = "Please fill in all scheduling fields.";
@@ -50,10 +53,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     } else {
                         // 2. Schedule Trip
                         $stmt = $pdo->prepare("
-                            INSERT INTO trips (bus_id, route_id, admin_id, departure_time, arrival_time, base_fare, status) 
-                            VALUES (?, ?, ?, ?, ?, ?, 'active')
+                            INSERT INTO trips (bus_id, route_id, admin_id, departure_time, arrival_time, base_fare, discount_type, percentage, fixed, status) 
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')
                         ");
-                        $stmt->execute([$bus_id, $route_id, $admin_id, $dep_time, $arr_time, $fare]);
+                        $stmt->execute([$bus_id, $route_id, $admin_id, $dep_time, $arr_time, $fare, $discount_type, $percentage, $fixed]);
                         $trip_id = $pdo->lastInsertId();
 
                         // 3. Initialize all seat records
@@ -110,6 +113,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $arr_time = $_POST['arrival_time'] ?? '';
             $fare = floatval($_POST['base_fare'] ?? 0.00);
             $status = $_POST['status'] ?? 'active';
+            $discount_type = $_POST['discount_type'] ?? 'none';
+            $percentage = floatval($_POST['percentage'] ?? 0.00);
+            $fixed = floatval($_POST['fixed'] ?? 0.00);
 
             if ($trip_id === 0 || $bus_id === 0 || $route_id === 0 || empty($dep_time) || empty($arr_time)) {
                 $error = "Please fill in all scheduling fields.";
@@ -123,10 +129,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($chk->fetchColumn()) {
                     $stmt = $pdo->prepare("
                         UPDATE trips 
-                        SET bus_id = ?, route_id = ?, departure_time = ?, arrival_time = ?, base_fare = ?, status = ?
+                        SET bus_id = ?, route_id = ?, departure_time = ?, arrival_time = ?, base_fare = ?, discount_type = ?, percentage = ?, fixed = ?, status = ?
                         WHERE id = ?
                     ");
-                    $stmt->execute([$bus_id, $route_id, $dep_time, $arr_time, $fare, $status, $trip_id]);
+                    $stmt->execute([$bus_id, $route_id, $dep_time, $arr_time, $fare, $discount_type, $percentage, $fixed, $status, $trip_id]);
                     $success = "Trip details updated successfully!";
                     log_activity($pdo, $admin_id, 'TRIP_EDIT', "Updated Trip ID: $trip_id");
                 } else {
@@ -165,6 +171,9 @@ try {
             t.departure_time,
             t.arrival_time,
             t.base_fare,
+            t.discount_type,
+            t.percentage,
+            t.fixed,
             t.bus_id,
             t.route_id,
             t.status AS trip_status,
@@ -232,6 +241,7 @@ try {
                         <th>Route details</th>
                         <th>Departure Timing</th>
                         <th>Arrival Timing</th>
+                        <th>Agent Discount</th>
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>
@@ -246,6 +256,19 @@ try {
                             <td><span class="fw-semibold text-white"><?= htmlspecialchars($trip['source']) ?> <i class="fa-solid fa-arrow-right mx-1 text-indigo"></i> <?= htmlspecialchars($trip['destination']) ?></span></td>
                             <td class="text-white"><?= date('d M Y, H:i', strtotime($trip['departure_time'])) ?></td>
                             <td class="text-secondary small"><?= date('d M Y, H:i', strtotime($trip['arrival_time'])) ?></td>
+                            <td>
+                                <span class="font-monospace text-warning small">
+                                    <?php 
+                                    if (($trip['discount_type'] ?? 'none') === 'percentage') {
+                                        echo htmlspecialchars($trip['percentage']) . '%';
+                                    } elseif (($trip['discount_type'] ?? 'none') === 'fixed') {
+                                        echo '₹' . htmlspecialchars($trip['fixed']);
+                                    } else {
+                                        echo 'None';
+                                    }
+                                    ?>
+                                </span>
+                            </td>
                             <td class="text-end">
                                 <div class="d-flex gap-2 justify-content-end">
                                     <a href="trip_pricing.php?trip_id=<?= $trip['trip_id'] ?>" class="btn btn-secondary-glass py-1 px-2 small" title="Configure Seat Prices"><i class="fa-solid fa-tags text-indigo"></i></a>
@@ -257,6 +280,9 @@ try {
                                             data-arr="<?= date('Y-m-d\TH:i', strtotime($trip['arrival_time'])) ?>" 
                                             data-fare="<?= $trip['base_fare'] ?>" 
                                             data-status="<?= $trip['trip_status'] ?>"
+                                            data-discount="<?= htmlspecialchars($trip['discount_type'] ?? 'none') ?>"
+                                            data-percentage="<?= htmlspecialchars($trip['percentage'] ?? '0.00') ?>"
+                                            data-fixed="<?= htmlspecialchars($trip['fixed'] ?? '0.00') ?>"
                                             data-bs-toggle="modal" data-bs-target="#editTripModal" title="Edit Trip"><i class="fa-solid fa-pen-to-square"></i></button>
                                     <button class="btn btn-secondary-glass py-1 px-2 text-danger small delete-trip-btn" data-id="<?= $trip['trip_id'] ?>" data-bs-toggle="modal" data-bs-target="#deleteTripModal" title="Cancel Trip"><i class="fa-solid fa-ban"></i></button>
                                 </div>
@@ -314,6 +340,27 @@ try {
                     </div>
 
                     <input type="hidden" name="base_fare" value="0.00">
+
+                    <!-- Agent Partner Discount Configuration -->
+                    <div class="row border-top border-secondary border-opacity-20 pt-3 mt-3">
+                        <h6 class="text-white fw-bold mb-3 small text-uppercase">Agent Partner Discount</h6>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label text-secondary small fw-semibold">Discount Type</label>
+                            <select name="discount_type" class="form-select form-control-swift">
+                                <option value="none">None</option>
+                                <option value="percentage">Percentage (%)</option>
+                                <option value="fixed">Fixed (₹)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label text-secondary small fw-semibold">Percentage (%)</label>
+                            <input type="number" name="percentage" class="form-control form-control-swift" min="0" max="100" step="0.01" value="0.00">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label text-secondary small fw-semibold">Fixed (₹)</label>
+                            <input type="number" name="fixed" class="form-control form-control-swift" min="0" step="0.01" value="0.00">
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer border-secondary border-opacity-20 p-4">
                     <button type="button" class="btn btn-secondary-glass" data-bs-dismiss="modal">Cancel</button>
@@ -368,6 +415,27 @@ try {
                     </div>
 
                     <input type="hidden" name="base_fare" id="edit_base_fare">
+
+                    <!-- Agent Partner Discount Configuration -->
+                    <div class="row border-top border-secondary border-opacity-20 pt-3 mt-3">
+                        <h6 class="text-white fw-bold mb-3 small text-uppercase">Agent Partner Discount</h6>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label text-secondary small fw-semibold">Discount Type</label>
+                            <select name="discount_type" id="edit_discount_type" class="form-select form-control-swift">
+                                <option value="none">None</option>
+                                <option value="percentage">Percentage (%)</option>
+                                <option value="fixed">Fixed (₹)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label text-secondary small fw-semibold">Percentage (%)</label>
+                            <input type="number" name="percentage" id="edit_percentage" class="form-control form-control-swift" min="0" max="100" step="0.01">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label text-secondary small fw-semibold">Fixed (₹)</label>
+                            <input type="number" name="fixed" id="edit_fixed" class="form-control form-control-swift" min="0" step="0.01">
+                        </div>
+                    </div>
 
                     <div class="mb-3">
                         <label class="form-label text-secondary small fw-semibold">Trip Status</label>
@@ -439,6 +507,9 @@ $(document).ready(function() {
         $('#edit_arrival_time')[0]._flatpickr.setDate(arrVal);
         
         $('#edit_base_fare').val($(this).data('fare'));
+        $('#edit_discount_type').val($(this).data('discount'));
+        $('#edit_percentage').val($(this).data('percentage'));
+        $('#edit_fixed').val($(this).data('fixed'));
         $('#edit_status').val($(this).data('status'));
     });
 });
