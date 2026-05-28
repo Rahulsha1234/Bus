@@ -696,8 +696,8 @@ $(document).ready(function() {
 
         if (mode === 'conservative') {
             if (occ_percent > 90) occ_pct_inc = 15;
-            elseif (occ_percent > 80) occ_pct_inc = 10;
-            elseif (occ_percent > 50) occ_pct_inc = 5;
+            else if (occ_percent > 80) occ_pct_inc = 10;
+            else if (occ_percent > 50) occ_pct_inc = 5;
 
             if (days_left < 3) time_pct_inc = 10;
             else if (days_left <= 7) time_pct_inc = 5;
