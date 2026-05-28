@@ -436,24 +436,24 @@ require_once __DIR__ . '/includes/header.php';
                                                 <div>
                                                     <div class="d-flex justify-content-between align-items-center mb-3">
                                                         <span class="badge bg-success bg-opacity-10 text-success px-3 py-1.5 rounded-pill" style="font-size: 0.75rem; font-weight: 600;"><?= $badge ?></span>
-                                                        <span class="fw-bold text-success text-monospace" style="font-size: 1.15rem;">₹<?= number_format($trip['base_fare'], 0) ?> <span class="text-secondary" style="font-size: 0.75rem; font-weight: normal;">onwards</span></span>
+                                                        <span class="fw-bold text-success text-monospace" style="font-size: 1.15rem;">₹<?= number_format(floatval($trip['base_fare']) > 0 ? floatval($trip['base_fare']) : 399, 0) ?> <span class="text-secondary" style="font-size: 0.75rem; font-weight: normal;">onwards</span></span>
                                                     </div>
 
-                                                    <h5 class="fw-bold mb-2 text-dark d-flex align-items-center gap-2" style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1.15rem;">
+                                                    <h5 class="fw-bold mb-2 text-main d-flex align-items-center gap-2" style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1.15rem;">
                                                         <span><?= htmlspecialchars($trip['source']) ?></span>
                                                         <i class="fa-solid fa-arrow-right-long text-success" style="font-size: 0.9rem;"></i>
                                                         <span><?= htmlspecialchars($trip['destination']) ?></span>
                                                     </h5>
 
                                                     <div class="text-secondary small mb-3">
-                                                        <div class="d-flex align-items-center gap-1.5 mb-1.5">
-                                                            <i class="fa-regular fa-clock text-success"></i>
+                                                        <div class="d-flex align-items-center mb-1.5">
+                                                            <i class="fa-regular fa-clock text-success me-2"></i>
                                                             <span>Approx. <?= htmlspecialchars($trip['duration'] ?: '6h') ?></span>
-                                                            <span class="mx-1 text-muted">•</span>
+                                                            <span class="mx-2 text-muted">•</span>
                                                             <span><?= htmlspecialchars($trip['bus_type']) ?></span>
                                                         </div>
-                                                        <div class="d-flex align-items-center gap-1.5">
-                                                            <i class="fa-regular fa-calendar text-success"></i>
+                                                        <div class="d-flex align-items-center">
+                                                            <i class="fa-regular fa-calendar text-success me-2"></i>
                                                             <span>Departs: <strong><?= $dep_date ?></strong> at <strong><?= $dep_time ?></strong></span>
                                                         </div>
                                                     </div>
@@ -534,7 +534,7 @@ require_once __DIR__ . '/includes/header.php';
                 <div class="accordion-item"
                     style="background: transparent; border-bottom: 1px solid var(--border-glass);">
                     <h2 class="accordion-header" id="faq-headingOne">
-                        <button class="accordion-button collapsed fw-bold text-dark py-3"
+                        <button class="accordion-button collapsed fw-bold text-main py-3"
                             style="background: transparent;" type="button" data-bs-toggle="collapse"
                             data-bs-target="#faq-collapseOne" aria-expanded="false" aria-controls="faq-collapseOne">
                             How do I book tickets online?
@@ -552,7 +552,7 @@ require_once __DIR__ . '/includes/header.php';
                 <div class="accordion-item"
                     style="background: transparent; border-bottom: 1px solid var(--border-glass);">
                     <h2 class="accordion-header" id="faq-headingTwo">
-                        <button class="accordion-button collapsed fw-bold text-dark py-3"
+                        <button class="accordion-button collapsed fw-bold text-main py-3"
                             style="background: transparent;" type="button" data-bs-toggle="collapse"
                             data-bs-target="#faq-collapseTwo" aria-expanded="false" aria-controls="faq-collapseTwo">
                             Can I cancel or reschedule my ticket?
@@ -569,7 +569,7 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
                 <div class="accordion-item" style="background: transparent; border-bottom: none;">
                     <h2 class="accordion-header" id="faq-headingThree">
-                        <button class="accordion-button collapsed fw-bold text-dark py-3"
+                        <button class="accordion-button collapsed fw-bold text-main py-3"
                             style="background: transparent;" type="button" data-bs-toggle="collapse"
                             data-bs-target="#faq-collapseThree" aria-expanded="false" aria-controls="faq-collapseThree">
                             What are the payment methods accepted?

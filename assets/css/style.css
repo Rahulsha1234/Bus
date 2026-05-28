@@ -427,7 +427,8 @@ body {
     color: #ffffff !important;
     font-size: 0.9rem !important;
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
-    backdrop-filter: blur(8px) !webkit-backdrop-filter: blur(8px) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
 }
 
 .navbar-search-input::placeholder {
@@ -925,6 +926,22 @@ body .modal-content,
 /* Bootstrap Utility Theme Overrides */
 .bg-dark {
     background-color: var(--bg-secondary) !important;
+}
+
+/* Custom Accordion Styling to adapt to light/dark themes */
+.accordion-button {
+    color: var(--text-main) !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+}
+
+.accordion-button:not(.collapsed) {
+    color: var(--accent-primary) !important;
+    background-color: transparent !important;
+}
+
+.accordion-button::after {
+    filter: var(--btn-close-filter);
 }
 
 .bg-secondary {
