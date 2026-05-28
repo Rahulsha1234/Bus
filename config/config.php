@@ -53,9 +53,25 @@ if (session_status() == PHP_SESSION_NONE) {
     ini_set('session.cookie_httponly', 1);
     ini_set('session.use_only_cookies', 1);
 
-    // Enable secure cookies if HTTPS
-    if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {
-        ini_set('session.cookie_secure', 1);
+    // Detect secure connection (accounting for proxies/load balancers)
+    $is_secure = false;
+    if (isset($_SERVER['HTTPS']) && ($_SERVER['HTTPS'] === 'on' || $_SERVER['HTTPS'] == 1)) {
+        $is_secure = true;
+    } elseif (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
+        $is_secure = true;
+    }
+
+    // Set SameSite=Lax for compatibility with shared subdomains
+    if (PHP_VERSION_ID >= 70300) {
+        session_set_cookie_params([
+            'path' => '/',
+            'secure' => $is_secure,
+            'httponly' => true,
+            'samesite' => 'Lax'
+        ]);
+    } else {
+        // Fallback for PHP versions older than 7.3
+        session_set_cookie_params(0, '/; SameSite=Lax', null, $is_secure, true);
     }
 
     session_start();
