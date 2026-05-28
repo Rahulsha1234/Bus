@@ -169,7 +169,7 @@ try {
         <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
             <table class="table table-swift table-dark table-hover table-borderless align-middle" style="font-size:0.9rem;">
                 <thead>
-                    <tr style="position: sticky; top: 0; background: #0f172a; z-index:10;">
+                    <tr style="position: sticky; top: 0; background: #111111; z-index:10;">
                         <th>Performer</th>
                         <th>Action Code</th>
                         <th>Details / Description</th>

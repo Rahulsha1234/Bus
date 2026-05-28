@@ -224,7 +224,7 @@ require_once __DIR__ . '/header.php';
                                     <!-- Approve Modal -->
                                     <div class="modal fade" id="approveModal<?= $r['request_id'] ?>" tabindex="-1" aria-hidden="true">
                                         <div class="modal-dialog modal-dialog-centered">
-                                            <div class="modal-content glass-card text-white border-secondary border-opacity-20 shadow-2xl p-3" style="background:#121829; border-radius: 20px;">
+                                            <div class="modal-content glass-card text-white border-secondary border-opacity-20 shadow-2xl p-3" style="background:#111111; border-radius: 20px;">
                                                 <form method="POST">
                                                     <input type="hidden" name="request_id" value="<?= $r['request_id'] ?>">
                                                     <input type="hidden" name="action" value="approve">

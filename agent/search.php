@@ -91,8 +91,8 @@ try {
             <label for="destination" class="form-label text-secondary small fw-semibold">Going To</label>
             <div class="input-group">
                 <span class="input-group-text bg-dark border-secondary border-end-0 text-secondary" style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-location-crosshairs"></i></span>
-                <select name="destination" id="destination" class="form-select form-control-swift border-start-0" style="border-radius: 0 12px 12px 0;" required disabled>
-                    <option value="">Select Origin first...</option>
+                <select name="destination" id="destination" class="form-select form-control-swift border-start-0" style="border-radius: 0 12px 12px 0;" required>
+                    <option value="">Select Destination...</option>
                 </select>
             </div>
             <div id="dest-loading" class="small text-muted mt-1" style="display:none;"><i class="fa-solid fa-spinner fa-spin me-1"></i>Loading...</div>
@@ -264,7 +264,7 @@ $(document).ready(function() {
         var $dest = $('#destination');
         var $loading = $('#dest-loading');
 
-        $dest.prop('disabled', true).html('<option value="">Select Destination...</option>');
+        $dest.prop('disabled', true).html('<option value="">Select Destination...</option>').trigger('change');
         $loading.hide();
 
         if (!source) {
@@ -281,10 +281,10 @@ $(document).ready(function() {
                 $dest.append($('<option>', { value: dest, text: dest }));
             });
 
-            $dest.prop('disabled', false);
+            $dest.prop('disabled', false).trigger('change').trigger('combobox:refresh');
         }).fail(function() {
             $loading.hide();
-            $dest.html('<option value="">Error loading routes</option>');
+            $dest.html('<option value="">Error loading routes</option>').trigger('change');
         });
     });
 
@@ -298,7 +298,7 @@ $(document).ready(function() {
         $('#source').val(destVal).trigger('change');
 
         setTimeout(function() {
-            $('#destination').val(srcVal);
+            $('#destination').val(srcVal).trigger('change');
         }, 500);
     });
 
@@ -317,7 +317,7 @@ $(document).ready(function() {
                     selected: (dest === currentDest)
                 }));
             });
-            $dest.prop('disabled', false);
+            $dest.prop('disabled', false).trigger('change').trigger('combobox:refresh');
         });
     }
 });

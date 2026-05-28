@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Customer Homepage - Search Buses
  */
@@ -10,7 +11,7 @@ $page_title = "Book Bus Tickets";
 try {
     $sources_stmt = $pdo->query("SELECT DISTINCT source FROM routes WHERE status = 'active' ORDER BY source ASC");
     $sources = $sources_stmt->fetchAll(PDO::FETCH_COLUMN);
-    
+
     // Fetch active schedules (trips) with route details and bus details
     $active_trips_stmt = $pdo->query("
         SELECT 
@@ -41,16 +42,21 @@ require_once __DIR__ . '/includes/header.php';
 
 <!-- Hero Banner Section with Video Background & Integrated Search Panel (Full Width) -->
 <div class="position-relative overflow-hidden hero-video-section shadow-lg"
-    style="height: 90vh; min-height: 600px; background-color: #0c2016; margin-top: -5rem;">
+    style="height: 90vh; min-height: 600px; background-color: #000000; margin-top: -5rem;">
     <!-- Background Video -->
-    <video autoplay muted loop playsinline class="position-absolute w-100 h-100 object-fit-cover top-0 start-0 z-0"
-        style="opacity: 0.5; filter: brightness(0.75);">
-        <source src="https://storage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4"
-            type="video/mp4">
-        <source src="https://assets.mixkit.co/videos/preview/mixkit-cars-on-a-highway-at-sunset-40068-large.mp4"
-            type="video/mp4">
-        <source src="https://vjs.zencdn.net/v/oceans.mp4" type="video/mp4">
-        Your browser does not support the video tag.
+    <video
+        autoplay
+        muted
+        loop
+        playsinline
+        preload="auto"
+        class="position-absolute top-0 start-0 w-100 h-100 object-fit-cover z-0"
+        style="filter: brightness(0.45);"
+    >
+        <!-- PRIMARY: Local video (download bus video, save as assets/videos/hero.mp4) -->
+        <source src="<?= BASE_URL ?>/assets/videos/hero.mp4" type="video/mp4">
+        <!-- FALLBACK: Google Storage — confirmed hotlink-allowed, always works -->
+        <source src="https://storage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4" type="video/mp4">
     </video>
 
 
@@ -121,8 +127,8 @@ require_once __DIR__ . '/includes/header.php';
                         <span class="input-group-text bg-light border-end-0 text-secondary"
                             style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-location-crosshairs"></i></span>
                         <select name="destination" id="destination" class="form-select border-start-0 bg-light"
-                            style="border-radius: 0 12px 12px 0; padding: 0.75rem;" required disabled>
-                            <option value="">Select Origin first...</option>
+                            style="border-radius: 0 12px 12px 0; padding: 0.75rem;" required>
+                            <option value="">Select Destination...</option>
                         </select>
                     </div>
                     <div id="dest-loading" class="small text-muted mt-1" style="display:none;"><i
@@ -155,7 +161,7 @@ require_once __DIR__ . '/includes/header.php';
         </div>
     </div>
 </div> <!-- Close container for search panel to allow full-width on subsequent sections -->
- <!-- Close container before full-width trust section -->
+<!-- Close container before full-width trust section -->
 
 <!-- Bento Style Premium Feature Showcase Section -->
 <div id="trust-section" class="position-relative overflow-hidden py-5 my-5 reveal-on-scroll"
@@ -171,7 +177,7 @@ require_once __DIR__ . '/includes/header.php';
             <rect width="100%" height="100%" fill="url(#trustDots)" />
         </svg>
     </div>
-    
+
     <div class="container position-relative z-1">
         <div class="text-center mb-5">
             <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill uppercase tracking-wider mb-2" style="font-size: 0.8rem; font-weight: 700; border: 1px solid rgba(46, 204, 113, 0.2);">SMART VOYAGES</span>
@@ -237,118 +243,118 @@ require_once __DIR__ . '/includes/header.php';
     </div>
 </div>
 
-    <!-- Scroll reveal style and Keyframes -->
-    <style>
-        .reveal-on-scroll {
-            opacity: 0;
-            transform: translateY(40px);
-            transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+<!-- Scroll reveal style and Keyframes -->
+<style>
+    .reveal-on-scroll {
+        opacity: 0;
+        transform: translateY(40px);
+        transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .reveal-on-scroll.visible {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    .hover-card-premium {
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        border: 1px solid var(--border-color) !important;
+        background: var(--card-bg) !important;
+        color: var(--text-primary) !important;
+    }
+
+    .hover-card-premium h5,
+    .hover-card-premium h4,
+    .hover-card-premium .text-dark {
+        color: var(--text-primary) !important;
+    }
+
+    .hover-card-premium p,
+    .hover-card-premium .text-secondary {
+        color: var(--text-secondary) !important;
+    }
+
+    .hover-card-premium:hover {
+        transform: translateY(-8px) scale(1.02);
+        box-shadow: var(--shadow-hover) !important;
+        border-color: var(--accent-primary) !important;
+    }
+
+    .trust-stat-card {
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .trust-stat-card:hover {
+        transform: translateY(-6px);
+        background: rgba(255, 255, 255, 0.1) !important;
+        border-color: rgba(46, 204, 113, 0.3) !important;
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    @keyframes floatOrb {
+
+        0%,
+        100% {
+            transform: translate(0, 0) scale(1);
         }
 
-        .reveal-on-scroll.visible {
-            opacity: 1;
+        50% {
+            transform: translate(20px, -30px) scale(1.1);
+        }
+    }
+
+    @keyframes float {
+
+        0%,
+        100% {
             transform: translateY(0);
         }
 
-        .hover-card-premium {
-            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-            border: 1px solid var(--border-color) !important;
-            background: var(--card-bg) !important;
-            color: var(--text-primary) !important;
+        50% {
+            transform: translateY(-10px);
+        }
+    }
+
+    .pointer-events-none {
+        pointer-events: none;
+    }
+
+    @keyframes moveRoute {
+        to {
+            stroke-dashoffset: -40;
+        }
+    }
+
+    @keyframes pulseGlow {
+        0% {
+            opacity: 1;
+            transform: scale(0.6);
         }
 
-        .hover-card-premium h5, 
-        .hover-card-premium h4, 
-        .hover-card-premium .text-dark {
-            color: var(--text-primary) !important;
+        50% {
+            opacity: 0.4;
+            transform: scale(1.5);
         }
 
-        .hover-card-premium p, 
-        .hover-card-premium .text-secondary {
-            color: var(--text-secondary) !important;
+        100% {
+            opacity: 0;
+            transform: scale(2.2);
         }
+    }
 
-        .hover-card-premium:hover {
-            transform: translateY(-8px) scale(1.02);
-            box-shadow: var(--shadow-hover) !important;
-            border-color: var(--accent-primary) !important;
-        }
+    .city-glow {
+        animation: pulseGlow 2.5s infinite ease-out;
+        transform-origin: center;
+    }
 
-        .trust-stat-card {
-            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-        }
+    .hover-zoom {
+        transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
 
-        .trust-stat-card:hover {
-            transform: translateY(-6px);
-            background: rgba(255, 255, 255, 0.1) !important;
-            border-color: rgba(46, 204, 113, 0.3) !important;
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
-        }
-
-        @keyframes floatOrb {
-
-            0%,
-            100% {
-                transform: translate(0, 0) scale(1);
-            }
-
-            50% {
-                transform: translate(20px, -30px) scale(1.1);
-            }
-        }
-
-        @keyframes float {
-
-            0%,
-            100% {
-                transform: translateY(0);
-            }
-
-            50% {
-                transform: translateY(-10px);
-            }
-        }
-
-        .pointer-events-none {
-            pointer-events: none;
-        }
-
-        @keyframes moveRoute {
-            to {
-                stroke-dashoffset: -40;
-            }
-        }
-
-        @keyframes pulseGlow {
-            0% {
-                opacity: 1;
-                transform: scale(0.6);
-            }
-
-            50% {
-                opacity: 0.4;
-                transform: scale(1.5);
-            }
-
-            100% {
-                opacity: 0;
-                transform: scale(2.2);
-            }
-        }
-
-        .city-glow {
-            animation: pulseGlow 2.5s infinite ease-out;
-            transform-origin: center;
-        }
-
-        .hover-zoom {
-            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        .hover-zoom:hover {
-            transform: scale(1.06);
-        }
-    </style>
+    .hover-zoom:hover {
+        transform: scale(1.06);
+    }
+</style>
 
 
 
@@ -404,9 +410,9 @@ require_once __DIR__ . '/includes/header.php';
                 <div id="popularRoutesCarousel" class="carousel slide" data-bs-ride="carousel">
                     <!-- Carousel Indicators -->
                     <div class="carousel-indicators mb-0" style="bottom: -40px;">
-                        <?php 
+                        <?php
                         $chunks = array_chunk($active_trips, 3);
-                        foreach ($chunks as $index => $chunk): 
+                        foreach ($chunks as $index => $chunk):
                         ?>
                             <button type="button" data-bs-target="#popularRoutesCarousel" data-bs-slide-to="<?= $index ?>" class="<?= $index === 0 ? 'active' : '' ?>" aria-current="<?= $index === 0 ? 'true' : 'false' ?>" aria-label="Slide <?= $index + 1 ?>" style="background-color: var(--accent-primary); width: 12px; height: 12px; border-radius: 50%;"></button>
                         <?php endforeach; ?>
@@ -416,11 +422,11 @@ require_once __DIR__ . '/includes/header.php';
                         <?php foreach ($chunks as $index => $chunk): ?>
                             <div class="carousel-item <?= $index === 0 ? 'active' : '' ?>">
                                 <div class="row g-4">
-                                    <?php foreach ($chunk as $trip): 
+                                    <?php foreach ($chunk as $trip):
                                         // Pick badge randomly or based on criteria
                                         $badges = ['Daily Service', 'High Demand', 'Premium Route', 'Eco Friendly'];
                                         $badge = $badges[($trip['trip_id'] % count($badges))];
-                                        
+
                                         // Format date and time
                                         $dep_time = date('h:i A', strtotime($trip['departure_time']));
                                         $dep_date = date('d M Y', strtotime($trip['departure_time']));
@@ -432,7 +438,7 @@ require_once __DIR__ . '/includes/header.php';
                                                         <span class="badge bg-success bg-opacity-10 text-success px-3 py-1.5 rounded-pill" style="font-size: 0.75rem; font-weight: 600;"><?= $badge ?></span>
                                                         <span class="fw-bold text-success text-monospace" style="font-size: 1.15rem;">₹<?= number_format($trip['base_fare'], 0) ?> <span class="text-secondary" style="font-size: 0.75rem; font-weight: normal;">onwards</span></span>
                                                     </div>
-                                                    
+
                                                     <h5 class="fw-bold mb-2 text-dark d-flex align-items-center gap-2" style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1.15rem;">
                                                         <span><?= htmlspecialchars($trip['source']) ?></span>
                                                         <i class="fa-solid fa-arrow-right-long text-success" style="font-size: 0.9rem;"></i>
@@ -890,9 +896,9 @@ require_once __DIR__ . '/includes/header.php';
 <div class="container"> <!-- Reopen container for remaining content / footer compatibility -->
 
     <script>
-        $(document).ready(function () {
+        $(document).ready(function() {
             // Interactive City Card Hover Effects on Route Map
-            $('.interactive-city-card').on('mouseenter', function () {
+            $('.interactive-city-card').on('mouseenter', function() {
                 const city = $(this).data('city');
 
                 // Highlight the card
@@ -926,7 +932,7 @@ require_once __DIR__ . '/includes/header.php';
                     $('#glow-bangalore, #glow-mumbai, #glow-chennai').css('animation-duration', '1s');
                     $('#dot-bangalore, #dot-mumbai, #dot-chennai').css('transform', 'scale(1.5)');
                 }
-            }).on('mouseleave', function () {
+            }).on('mouseleave', function() {
                 // Restore initial states
                 $(this).css({
                     'background': 'rgba(255, 255, 255, 0.02)',
@@ -950,14 +956,18 @@ require_once __DIR__ . '/includes/header.php';
                         entry.target.classList.add('visible');
                     }
                 });
-            }, { threshold: 0.1 });
+            }, {
+                threshold: 0.1
+            });
             document.querySelectorAll('.reveal-on-scroll').forEach((el) => observer.observe(el));
 
             // Counter Animation - count from 0 to target
             let counterAnimated = false;
+
             function formatNumber(n) {
                 return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
             }
+
             function animateCounters() {
                 if (counterAnimated) return;
                 counterAnimated = true;
@@ -971,7 +981,10 @@ require_once __DIR__ . '/includes/header.php';
                     setTimeout(() => {
                         function updateCounter(currentTime) {
                             const elapsed = currentTime - startTime - delay;
-                            if (elapsed < 0) { requestAnimationFrame(updateCounter); return; }
+                            if (elapsed < 0) {
+                                requestAnimationFrame(updateCounter);
+                                return;
+                            }
                             const progress = Math.min(elapsed / duration, 1);
                             // Ease-out cubic
                             const eased = 1 - Math.pow(1 - progress, 3);
@@ -993,51 +1006,59 @@ require_once __DIR__ . '/includes/header.php';
                         animateCounters();
                     }
                 });
-            }, { threshold: 0.3 });
+            }, {
+                threshold: 0.3
+            });
             const trustSection = document.getElementById('trust-section');
             if (trustSection) counterObserver.observe(trustSection);
 
             // Dynamically load destinations when source changes
-            $('#source').on('change', function () {
+            $('#source').on('change', function() {
                 var source = $(this).val();
                 var $dest = $('#destination');
                 var $loading = $('#dest-loading');
                 var $empty = $('#dest-empty');
 
                 // Reset
-                $dest.prop('disabled', true).html('<option value="">Select Destination...</option>');
+                $dest.prop('disabled', true).html('<option value="">Select Destination...</option>').trigger('change');
                 $loading.hide();
                 $empty.hide();
 
                 if (!source) {
-                    $dest.html('<option value="">Select Origin first...</option>');
+                    $dest.html('<option value="">Select Origin first...</option>').trigger('change');
                     return;
                 }
 
                 $loading.show();
 
-                $.getJSON('<?= BASE_URL ?>/ajax/get_destinations.php', { source: source }, function (data) {
+                $.getJSON('<?= BASE_URL ?>/ajax/get_destinations.php', {
+                    source: source
+                }, function(data) {
                     $loading.hide();
                     $dest.html('<option value="">Select Destination...</option>');
 
                     if (data.length === 0) {
                         $empty.show();
+                        $dest.trigger('change').trigger('combobox:refresh');
                         return;
                     }
 
-                    $.each(data, function (i, dest) {
-                        $dest.append($('<option>', { value: dest, text: dest }));
+                    $.each(data, function(i, dest) {
+                        $dest.append($('<option>', {
+                            value: dest,
+                            text: dest
+                        }));
                     });
 
-                    $dest.prop('disabled', false);
-                }).fail(function () {
+                    $dest.prop('disabled', false).trigger('change').trigger('combobox:refresh');
+                }).fail(function() {
                     $loading.hide();
-                    $dest.html('<option value="">Error loading routes</option>');
+                    $dest.html('<option value="">Error loading routes</option>').trigger('change');
                 });
             });
 
             // City Swapper - swap source <-> destination and reload destinations
-            $('#swapCities').on('click', function () {
+            $('#swapCities').on('click', function() {
                 var srcVal = $('#source').val();
                 var destVal = $('#destination').val();
 
@@ -1049,8 +1070,8 @@ require_once __DIR__ . '/includes/header.php';
 
                 // After AJAX loads, set destination to old source value
                 // Use a small delay to wait for AJAX
-                setTimeout(function () {
-                    $('#destination').val(srcVal);
+                setTimeout(function() {
+                    $('#destination').val(srcVal).trigger('change');
                 }, 600);
             });
         });

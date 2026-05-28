@@ -295,7 +295,7 @@ try {
 <div class="modal fade" id="addRouteModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content glass-card text-white border-secondary border-opacity-30"
-            style="background:#131a2e; border-radius: 20px;">
+            style="background:#111111; border-radius: 20px;">
             <div class="modal-header border-secondary border-opacity-20 p-4">
                 <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-route me-2 text-indigo"></i>Setup Route
                     Layout</h5>
@@ -385,7 +385,7 @@ try {
 <div class="modal fade" id="editRouteModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content glass-card text-white border-secondary border-opacity-30"
-            style="background:#131a2e; border-radius: 20px;">
+            style="background:#111111; border-radius: 20px;">
             <div class="modal-header border-secondary border-opacity-20 p-4">
                 <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-route me-2 text-indigo"></i>Modify
                     Route</h5>
@@ -467,7 +467,7 @@ try {
 <div class="modal fade" id="deleteRouteModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content glass-card text-white border-secondary border-opacity-30"
-            style="background:#131a2e; border-radius: 20px;">
+            style="background:#111111; border-radius: 20px;">
             <form action="" method="POST">
                 <div class="modal-body p-4 text-center">
                     <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">

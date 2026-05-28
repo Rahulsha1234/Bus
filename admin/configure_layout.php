@@ -431,7 +431,7 @@ $templates = $templates_stmt->fetchAll();
     --grid-cell-border: rgba(92, 92, 92, 0.45);
 }
 [data-theme="dark"] {
-    --grid-canvas-bg: rgba(0, 0, 0, 0.25);
+    --grid-canvas-bg: rgba(0, 0, 0, 0.35);
     --grid-cell-border: rgba(255, 255, 255, 0.18);
 }
 

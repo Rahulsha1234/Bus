@@ -626,7 +626,7 @@ require_once __DIR__ . '/includes/header.php';
 <!-- MOCK RAZORPAY GATEWAY OVERLAY MODAL -->
 <div class="modal fade" id="razorpayModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content glass-card border-secondary text-white shadow-2xl" style="border-radius: 24px; background: #121829;">
+        <div class="modal-content glass-card border-secondary text-white shadow-2xl" style="border-radius: 24px; background: #111111;">
             <!-- Modal Header -->
             <div class="modal-header border-secondary p-4 d-flex justify-content-between align-items-center">
                 <div class="d-flex align-items-center gap-2">

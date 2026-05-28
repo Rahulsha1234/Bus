@@ -27,26 +27,26 @@
 
 /* DARK MODE OVERRIDES */
 [data-theme="dark"] {
-    --bg-primary: #0b0f19;
-    --bg-secondary: #131a2e;
-    --card-bg: #1c253c;
-    --accent-primary: #0F5132;
+    --bg-primary: #000000;
+    --bg-secondary: #080808;
+    --card-bg: #111111;
+    --accent-primary: #198754;
     --accent-secondary: #146C43;
-    --text-primary: #f8fafc;
-    --text-secondary: #94a3b8;
-    --border-color: #2a354f;
+    --text-primary: #FFFFFF;
+    --text-secondary: #A0A2A6;
+    --border-color: #1f1f1f;
 
     /* System States */
-    --success: #146C43;
-    --warning: #D4AF37;
-    --danger: #DC3545;
-    --indigo: #0F5132;
-    --indigo-rgb: 15, 81, 50;
-    --accent-gold: #D4AF37;
+    --success: #198754;
+    --warning: #EAB308;
+    --danger: #EF4444;
+    --indigo: #198754;
+    --indigo-rgb: 25, 135, 84;
+    --accent-gold: #EAB308;
 
     /* Layout Constants */
     --border-glass: rgba(255, 255, 255, 0.08);
-    --shadow-diffusion: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+    --shadow-diffusion: 0 10px 30px -10px rgba(0, 0, 0, 0.6);
 }
 
 body {

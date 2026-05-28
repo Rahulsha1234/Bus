@@ -107,5 +107,14 @@
 
     <!-- Bootstrap 5 Bundle JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Searchable Combobox JS -->
+    <script src="<?= BASE_URL ?>/assets/js/combobox.js"></script>
+    <script>
+        $(document).ready(function() {
+            convertToSearchableCombobox('source', 'Select Origin...');
+            convertToSearchableCombobox('destination', 'Select Destination...');
+        });
+    </script>
 </body>
 </html>

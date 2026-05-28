@@ -214,7 +214,7 @@ try {
 <!-- ADD BUS MODAL -->
 <div class="modal fade" id="addBusModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content glass-card text-white border-secondary border-opacity-30" style="background:#131a2e; border-radius: 20px;">
+        <div class="modal-content glass-card text-white border-secondary border-opacity-30" style="background:#111111; border-radius: 20px;">
             <div class="modal-header border-secondary border-opacity-20 p-4">
                 <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-bus me-2 text-indigo"></i>Register Fleet</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -258,7 +258,7 @@ try {
 <!-- EDIT BUS MODAL -->
 <div class="modal fade" id="editBusModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content glass-card text-white border-secondary border-opacity-30" style="background:#131a2e; border-radius: 20px;">
+        <div class="modal-content glass-card text-white border-secondary border-opacity-30" style="background:#111111; border-radius: 20px;">
             <div class="modal-header border-secondary border-opacity-20 p-4">
                 <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-pen-to-square me-2 text-indigo"></i>Modify Vehicle Settings</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -303,7 +303,7 @@ try {
 <!-- DELETE CONFIRMATION MODAL -->
 <div class="modal fade" id="deleteBusModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content glass-card text-white border-secondary border-opacity-30" style="background:#131a2e; border-radius: 20px;">
+        <div class="modal-content glass-card text-white border-secondary border-opacity-30" style="background:#111111; border-radius: 20px;">
             <form action="" method="POST">
                 <div class="modal-body p-4 text-center">
                     <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
@@ -326,7 +326,7 @@ try {
 <!-- OPERATOR DETAILS MODAL -->
 <div class="modal fade" id="operatorModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content glass-card text-white border-secondary border-opacity-30" style="background:#131a2e; border-radius: 20px;">
+        <div class="modal-content glass-card text-white border-secondary border-opacity-30" style="background:#111111; border-radius: 20px;">
             <div class="modal-header border-secondary border-opacity-20 p-4">
                 <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-headset me-2 text-indigo"></i>Operator Contact Info</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>

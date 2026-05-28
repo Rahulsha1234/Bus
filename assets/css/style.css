@@ -41,6 +41,7 @@
     --btn-close-filter: invert(0) grayscale(1) brightness(0);
 }
 
+
 [data-theme="dark"] {
     --bg-card: var(--card-bg);
     --text-main: var(--text-primary);
@@ -48,23 +49,23 @@
     --border-glass: var(--border-color);
 
     --accent-gold-gradient: linear-gradient(135deg, #198754 0%, var(--accent-primary) 100%);
-    --bg-glass: rgba(30, 30, 30, 0.95);
+    --bg-glass: rgba(18, 18, 18, 0.95);
 
     /* Seat colors */
-    --seat-available: #FFFDF8;
-    --seat-selected: #0F5132;
-    --seat-booked: #9CA3AF;
-    --seat-hold: #EAB308;
-    --seat-female: #F472B6;
-    --seat-female-border: #EC4899;
-    --seat-disabled: #343A40;
+    --seat-available: #1a1a1a;
+    --seat-selected: #198754;
+    --seat-booked: #4b5563;
+    --seat-hold: #CA8A04;
+    --seat-female: #DB2777;
+    --seat-female-border: #BE185D;
+    --seat-disabled: #2a2a2a;
 
     /* Theme mapping compatibility */
     --accent-indigo: var(--accent-primary);
     --accent-violet: #146C43;
     --accent-pink: var(--accent-secondary);
 
-    --shadow-main: 0 10px 30px -10px rgba(0, 0, 0, 0.4);
+    --shadow-main: 0 10px 30px -10px rgba(0, 0, 0, 0.6);
     --shadow-hover: 0 15px 35px -5px rgba(25, 135, 84, 0.25);
     --input-bg: var(--card-bg);
     --text-white-fixed: #FFFFFF;
@@ -1187,15 +1188,15 @@ body {
 
 /* Dark theme overrides for footer */
 [data-theme="dark"] .footer-swift {
-    background: #151515 !important;
+    background: #080808 !important;
     color: #adb5bd !important;
     border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
-    box-shadow: 0 -15px 30px rgba(0, 0, 0, 0.15) !important;
+    box-shadow: 0 -15px 30px rgba(0, 0, 0, 0.5) !important;
 }
 
 [data-theme="dark"] .footer-swift h5 .text-dark,
 [data-theme="dark"] .footer-swift h6 {
-    color: #f8f9fa !important;
+    color: #ffffff !important;
 }
 
 [data-theme="dark"] .footer-swift p,

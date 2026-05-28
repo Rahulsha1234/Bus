@@ -36,13 +36,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $error = "Security token validation failed.";
     } else {
         $apply_target = $_POST['apply_target'] ?? 'selected'; // 'selected' or 'entire_bus'
-        $base_price = floatval($_POST['base_price'] ?? 0.00);
-        $current_price = floatval($_POST['current_price'] ?? 0.00);
-        $offer_price = floatval($_POST['offer_price'] ?? 0.00);
+        $seat_price = floatval($_POST['seat_price'] ?? 0.00);
         $target_seats = $_POST['target_seats'] ?? ''; // Comma separated list
 
-        if ($base_price <= 0 || $current_price <= 0 || $offer_price <= 0) {
-            $error = "Prices must be positive numeric values.";
+        if ($seat_price <= 0) {
+            $error = "Price must be a positive numeric value.";
         } else {
             try {
                 $pdo->beginTransaction();
@@ -67,11 +65,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     $all_seats = $seats_stmt->fetchAll(PDO::FETCH_COLUMN);
 
                     foreach ($all_seats as $seat_num) {
-                        $upsert->execute([$trip_id, $seat_num, $base_price, $current_price, $offer_price]);
-                        $upsert_override->execute([$trip_id, $seat_num, $current_price, $_SESSION['user_id']]);
+                        $upsert->execute([$trip_id, $seat_num, $seat_price, $seat_price, $seat_price]);
+                        $upsert_override->execute([$trip_id, $seat_num, $seat_price, $_SESSION['user_id']]);
                     }
                     
-                    log_activity($pdo, $_SESSION['user_id'], 'PRICE_CHANGE_BULK', "Updated pricing for all seats on Trip ID: $trip_id. Base: $base_price, Current: $current_price, Offer: $offer_price");
+                    log_activity($pdo, $_SESSION['user_id'], 'PRICE_CHANGE_BULK', "Updated pricing for all seats on Trip ID: $trip_id to ₹$seat_price");
                     $success = "Pricing applied to all seats on the bus successfully!";
                 } else {
                     // Apply to selected seats
@@ -80,11 +78,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         $error = "No target seats selected for pricing modification.";
                     } else {
                         foreach ($seats_array as $seat_num) {
-                            $upsert->execute([$trip_id, $seat_num, $base_price, $current_price, $offer_price]);
-                            $upsert_override->execute([$trip_id, $seat_num, $current_price, $_SESSION['user_id']]);
+                            $upsert->execute([$trip_id, $seat_num, $seat_price, $seat_price, $seat_price]);
+                            $upsert_override->execute([$trip_id, $seat_num, $seat_price, $_SESSION['user_id']]);
                         }
                         
-                        log_activity($pdo, $_SESSION['user_id'], 'PRICE_CHANGE_SINGLE', "Updated pricing for seats (" . implode(',', $seats_array) . ") on Trip ID: $trip_id. Base: $base_price, Current: $current_price, Offer: $offer_price");
+                        log_activity($pdo, $_SESSION['user_id'], 'PRICE_CHANGE_SINGLE', "Updated pricing for seats (" . implode(',', $seats_array) . ") on Trip ID: $trip_id to ₹$seat_price");
                         $success = "Pricing applied to selected seats (" . implode(', ', $seats_array) . ") successfully!";
                     }
                 }
@@ -159,7 +157,7 @@ foreach ($db_seats as $s) {
 
 <div class="row g-4">
     <!-- Pricing Config Form Panel -->
-    <div class="col-md-5">
+    <div class="col-md-4">
         <div class="glass-card p-4">
             <h5 class="fw-bold mb-3"><i class="fa-solid fa-tags text-indigo me-2"></i>Configure Seat Fare</h5>
             
@@ -183,19 +181,9 @@ foreach ($db_seats as $s) {
                     </div>
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label text-secondary small fw-semibold">Base Price (₹)</label>
-                    <input type="number" name="base_price" id="base_price" class="form-control form-control-swift" value="<?= htmlspecialchars($trip['base_fare']) ?>" min="50" step="10" required>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label text-secondary small fw-semibold">Current Price (₹)</label>
-                    <input type="number" name="current_price" id="current_price" class="form-control form-control-swift" value="<?= htmlspecialchars($trip['base_fare']) ?>" min="50" step="10" required>
-                </div>
-
                 <div class="mb-4">
-                    <label class="form-label text-secondary small fw-semibold">Offer Price (Discounted) (₹)</label>
-                    <input type="number" name="offer_price" id="offer_price" class="form-control form-control-swift" value="<?= htmlspecialchars($trip['base_fare']) ?>" min="50" step="10" required>
+                    <label class="form-label text-secondary small fw-semibold">Seat Price (₹)</label>
+                    <input type="number" name="seat_price" id="seat_price" class="form-control form-control-swift" value="<?= htmlspecialchars($trip['base_fare']) ?>" min="50" step="10" required>
                 </div>
 
                 <button type="submit" id="btnApplyPricing" class="btn btn-primary-gradient w-100 py-3 font-semibold">
@@ -208,14 +196,17 @@ foreach ($db_seats as $s) {
     </div>
 
     <!-- Visual Interactive Grid -->
-    <div class="col-md-7">
+    <div class="col-md-8">
         <div class="glass-card p-4">
-            <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom border-secondary border-opacity-20">
+            <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom border-secondary border-opacity-20 flex-wrap gap-2">
                 <div>
                     <h4 class="fw-bold text-white mb-0"><?= htmlspecialchars($trip['bus_name']) ?></h4>
                     <span class="text-secondary small"><?= htmlspecialchars($trip['source']) ?> to <?= htmlspecialchars($trip['destination']) ?></span>
                 </div>
-                <div class="legend-item"><span class="legend-dot" style="background: var(--accent-indigo);"></span><span class="small text-secondary">Selected</span></div>
+                <div class="d-flex gap-1">
+                    <button type="button" id="btnSelectAll" class="btn btn-secondary-glass py-1 px-2 small">Select All</button>
+                    <button type="button" id="btnSelectNone" class="btn btn-secondary-glass py-1 px-2 small">Clear Selection</button>
+                </div>
             </div>
 
             <div class="text-center overflow-auto py-3">
@@ -227,8 +218,8 @@ foreach ($db_seats as $s) {
 
 <style>
 .grid-cell {
-    width: 65px;
-    height: 65px;
+    width: 60px;
+    height: 60px;
     border-radius: 8px;
     display: flex;
     align-items: center;
@@ -246,6 +237,8 @@ foreach ($db_seats as $s) {
     align-items: center;
     justify-content: center;
     cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 700;
     transition: all 0.2s ease;
 }
 .pricing-seat-box:hover {
@@ -256,15 +249,22 @@ foreach ($db_seats as $s) {
     background: var(--accent-gold-gradient);
     border-color: var(--accent-primary);
     color: var(--text-white-fixed);
+    outline: 2px solid var(--accent-primary) !important;
+    outline-offset: 2px;
 }
 .pricing-seat-box .seat-num {
     font-size: 0.8rem;
     font-weight: 700;
 }
 .pricing-seat-box .seat-price {
-    font-size: 0.6rem;
+    font-size: 0.55rem;
     font-weight: 500;
     opacity: 0.85;
+}
+.pricing-seat-box.sleeper-berth {
+    height: 130px;
+    position: relative;
+    z-index: 10;
 }
 </style>
 
@@ -279,19 +279,60 @@ $(document).ready(function() {
         var canvas = $('#grid-canvas');
         canvas.empty();
         canvas.css({
-            'grid-template-rows': 'repeat(' + rows + ', 65px)',
-            'grid-template-columns': 'repeat(' + cols + ', 65px)'
+            'grid-template-rows': 'repeat(' + rows + ', 60px)',
+            'grid-template-columns': 'repeat(' + (cols + 1) + ', 60px)'
+        });
+
+        // Map occupied cells due to row-spanning sleepers
+        var occupied = {};
+        seats.forEach(function(s) {
+            var isSleeper = s.type.toLowerCase().indexOf('sleeper') !== -1 && s.type.toLowerCase().indexOf('semi') === -1;
+            if (isSleeper) {
+                occupied[(s.row + 1) + ',' + s.col] = true;
+            }
         });
 
         for (var r = 0; r < rows; r++) {
+            var rowHeaderCell = $('<div class="grid-cell" style="cursor: pointer; font-size: 0.7rem; color: var(--text-muted);" data-row-header="' + r + '">Row ' + (r + 1) + '</div>');
+            rowHeaderCell.css({
+                'grid-row': (r + 1),
+                'grid-column': 1
+            });
+            rowHeaderCell.click(handleRowHeaderClick(r));
+            canvas.append(rowHeaderCell);
+
             for (var c = 0; c < cols; c++) {
+                if (occupied[r + ',' + c]) {
+                    var spacer = $('<div class="grid-cell spacer-cell"></div>');
+                    spacer.css({
+                        'grid-row': (r + 1),
+                        'grid-column': (c + 2),
+                        'visibility': 'hidden',
+                        'pointer-events': 'none'
+                    });
+                    canvas.append(spacer);
+                    continue;
+                }
+
                 var seat = seats.find(s => s.row === r && s.col === c);
                 var cell = $('<div class="grid-cell"></div>');
+                cell.css({
+                    'grid-row': (r + 1),
+                    'grid-column': (c + 2)
+                });
 
                 if (seat) {
                     var isSelected = selectedSeats.includes(seat.number) ? ' selected' : '';
                     var typeClass = ' type-' + seat.type.toLowerCase().replace(/ /g, '-');
-                    var box = $('<div class="pricing-seat-box' + isSelected + typeClass + '" data-seat="' + seat.number + '">' +
+                    var isSleeper = seat.type.toLowerCase().indexOf('sleeper') !== -1 && seat.type.toLowerCase().indexOf('semi') === -1;
+                    if (isSleeper) {
+                        cell.css({
+                            'grid-row': (r + 1) + ' / span 2',
+                            'height': '130px'
+                        });
+                    }
+                    var sleeperClass = isSleeper ? ' sleeper-berth' : '';
+                    var box = $('<div class="pricing-seat-box' + isSelected + typeClass + sleeperClass + '" data-seat="' + seat.number + '">' +
                         '<span class="seat-num">' + seat.number + '</span>' +
                         '<span class="seat-price">₹' + seat.current_price.toFixed(0) + '</span>' +
                         '</div>');
@@ -317,6 +358,26 @@ $(document).ready(function() {
         };
     }
 
+    function handleRowHeaderClick(rowIdx) {
+        return function() {
+            var rowSeats = seats.filter(s => s.row === rowIdx);
+            var rowSeatNums = rowSeats.map(s => s.number);
+            
+            var allSelected = rowSeatNums.every(num => selectedSeats.includes(num));
+            if (allSelected) {
+                selectedSeats = selectedSeats.filter(num => !rowSeatNums.includes(num));
+            } else {
+                rowSeatNums.forEach(num => {
+                    if (!selectedSeats.includes(num)) {
+                        selectedSeats.push(num);
+                    }
+                });
+            }
+            renderGrid();
+            updateSelectedPreview();
+        };
+    }
+
     function updateSelectedPreview() {
         var badgesContainer = $('#selected_seats_badges');
         badgesContainer.empty();
@@ -333,16 +394,24 @@ $(document).ready(function() {
 
         $('#form_target_seats').val(selectedSeats.join(','));
 
-        // Prepopulate fields with the first selected seat values for convenience
         var firstSeat = seats.find(s => s.number === selectedSeats[0]);
         if (firstSeat) {
-            $('#base_price').val(firstSeat.base_price);
-            $('#current_price').val(firstSeat.current_price);
-            $('#offer_price').val(firstSeat.offer_price);
+            $('#seat_price').val(firstSeat.current_price);
         }
     }
 
-    // Apply target select change handler
+    $('#btnSelectAll').click(function() {
+        selectedSeats = seats.map(s => s.number);
+        renderGrid();
+        updateSelectedPreview();
+    });
+
+    $('#btnSelectNone').click(function() {
+        selectedSeats = [];
+        renderGrid();
+        updateSelectedPreview();
+    });
+
     $('#apply_target').change(function() {
         if ($(this).val() === 'entire_bus') {
             $('#selected_seats_preview_block').hide();

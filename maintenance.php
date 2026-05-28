@@ -33,7 +33,7 @@ try {
     <style>
         body {
             font-family: 'Outfit', sans-serif;
-            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #311042 100%);
+            background: linear-gradient(135deg, #000000 0%, #0a0a0a 50%, #111111 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;

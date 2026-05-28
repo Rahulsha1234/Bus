@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Bus Search Results
  */
@@ -22,7 +23,12 @@ try {
             t.id AS trip_id,
             t.departure_time,
             t.arrival_time,
-            t.base_fare,
+            COALESCE(
+                (SELECT MIN(custom_price) FROM seat_price_overrides WHERE trip_id = t.id AND custom_price > 0),
+                (SELECT MIN(current_price) FROM seat_pricing WHERE trip_id = t.id AND current_price > 0),
+                (SELECT MIN(base_price) FROM bus_seats bs WHERE bs.bus_id = b.id AND bs.base_price > 0 AND bs.is_active = 1),
+                t.base_fare
+            ) AS base_fare,
             b.bus_name,
             b.bus_number,
             b.bus_type,
@@ -45,11 +51,10 @@ try {
         ':date' => $date
     ]);
     $trips = $stmt->fetchAll();
-    
+
     // Fetch unique sources from active routes only for the modify search panel
     $sources_stmt = $pdo->query("SELECT DISTINCT source FROM routes WHERE status = 'active' ORDER BY source ASC");
     $sources = $sources_stmt->fetchAll(PDO::FETCH_COLUMN);
-
 } catch (PDOException $e) {
     die("Database search failed: " . $e->getMessage());
 }
@@ -69,8 +74,8 @@ require_once __DIR__ . '/includes/header.php';
         </button>
     </div>
 
-    <!-- Collapsible Inline Search Form -->
-    <div class="collapse mt-4 pt-3 border-top border-secondary border-opacity-20" id="modifySearchCollapse">
+    <!-- Collapsible Inline Search Form (Shown by default) -->
+    <div class="collapse show mt-4 pt-3 border-top border-secondary border-opacity-20" id="modifySearchCollapse">
         <form action="<?= BASE_URL ?>/search.php" method="GET" class="row g-3 align-items-end">
             <!-- Source dropdown -->
             <div class="col-md-3">
@@ -139,13 +144,13 @@ require_once __DIR__ . '/includes/header.php';
 <?php else: ?>
     <div class="row">
         <div class="col-lg-12">
-            <?php foreach ($trips as $trip): 
+            <?php foreach ($trips as $trip):
                 $dep_time = new DateTime($trip['departure_time']);
                 $arr_time = new DateTime($trip['arrival_time']);
                 $duration = $dep_time->diff($arr_time);
                 $total_hours = ($duration->days * 24) + $duration->h;
                 $duration_str = $total_hours . ' hrs ' . $duration->i . ' mins';
-                
+
                 $pickups = json_decode($trip['pickup_points'], true) ?? [];
                 $drops = json_decode($trip['drop_points'], true) ?? [];
                 $trip_dep_fmt = $dep_time->format('H:i');
@@ -154,7 +159,7 @@ require_once __DIR__ . '/includes/header.php';
                 <!-- Individual Bus Card -->
                 <div class="bg-white text-dark p-4 mb-4 border rounded-4 shadow-sm" style="background: var(--card-bg) !important; border: 1px solid var(--border-color) !important;">
                     <div class="row align-items-center g-3">
-                        
+
                         <!-- Bus Name & Type Info -->
                         <div class="col-md-3">
                             <h5 class="fw-bold text-dark mb-1" style="font-family: 'Plus Jakarta Sans', sans-serif; color: var(--text-primary) !important;"><?= htmlspecialchars($trip['bus_name']) ?></h5>
@@ -202,7 +207,9 @@ require_once __DIR__ . '/includes/header.php';
                                             <span class="text-white ms-3"><?= $display_time ?></span>
                                         </li>
                                     <?php endforeach; ?>
-                                    <li><hr class="dropdown-divider border-secondary my-2"></li>
+                                    <li>
+                                        <hr class="dropdown-divider border-secondary my-2">
+                                    </li>
                                     <h6 class="text-success small fw-bold mb-2" style="color: var(--accent-secondary) !important;">Drops (<?= htmlspecialchars($destination) ?>)</h6>
                                     <?php foreach ($drops as $d):
                                         $dt = $d['time'] ?? '';
@@ -224,7 +231,7 @@ require_once __DIR__ . '/includes/header.php';
                                 <span class="text-secondary small">Starting at </span>
                                 <span class="fs-4 fw-bold text-success" style="color: var(--accent-primary) !important;"><?= CURRENCY ?><?= number_format($trip['base_fare'], 2) ?></span>
                             </div>
-                            
+
                             <!-- Seat badge indicator -->
                             <div class="mb-3">
                                 <?php if ($trip['available_seats'] > 10): ?>
@@ -253,71 +260,78 @@ require_once __DIR__ . '/includes/header.php';
 <?php endif; ?>
 
 <script>
-$(document).ready(function() {
-    // Dynamic destination loading on source change
-    $('#source').on('change', function() {
-        var source = $(this).val();
-        var $dest = $('#destination');
-        var $loading = $('#dest-loading');
+    $(document).ready(function() {
+        // Dynamic destination loading on source change
+        $('#source').on('change', function() {
+            var source = $(this).val();
+            var $dest = $('#destination');
+            var $loading = $('#dest-loading');
 
-        $dest.prop('disabled', true).html('<option value="">Select Destination...</option>');
-        $loading.hide();
+            $dest.prop('disabled', true).html('<option value="">Select Destination...</option>').trigger('change');
+            $loading.hide();
 
-        if (!source) {
-            return;
+            if (!source) {
+                return;
+            }
+
+            $loading.show();
+
+            $.getJSON('<?= BASE_URL ?>/ajax/get_destinations.php', {
+                source: source
+            }, function(data) {
+                $loading.hide();
+                $dest.html('<option value="">Select Destination...</option>');
+
+                $.each(data, function(i, dest) {
+                    $dest.append($('<option>', {
+                        value: dest,
+                        text: dest
+                    }));
+                });
+
+                $dest.prop('disabled', false).trigger('change').trigger('combobox:refresh');
+            }).fail(function() {
+                $loading.hide();
+                $dest.html('<option value="">Error loading routes</option>').trigger('change');
+            });
+        });
+
+        // Swapper functionality
+        $('#swapCities').on('click', function() {
+            var srcVal = $('#source').val();
+            var destVal = $('#destination').val();
+
+            if (!destVal) return;
+
+            $('#source').val(destVal).trigger('change');
+
+            setTimeout(function() {
+                $('#destination').val(srcVal).trigger('change');
+            }, 500);
+        });
+
+        // Automatically trigger a source change on page load to sync the available destinations dropdown
+        // only if a source is currently selected
+        if ($('#source').val()) {
+            var currentDest = '<?= htmlspecialchars($destination) ?>';
+            var source = $('#source').val();
+            var $dest = $('#destination');
+
+            $.getJSON('<?= BASE_URL ?>/ajax/get_destinations.php', {
+                source: source
+            }, function(data) {
+                $dest.html('<option value="">Select Destination...</option>');
+                $.each(data, function(i, dest) {
+                    $dest.append($('<option>', {
+                        value: dest,
+                        text: dest,
+                        selected: (dest === currentDest)
+                    }));
+                });
+                $dest.prop('disabled', false).trigger('change').trigger('combobox:refresh');
+            });
         }
-
-        $loading.show();
-
-        $.getJSON('<?= BASE_URL ?>/ajax/get_destinations.php', { source: source }, function(data) {
-            $loading.hide();
-            $dest.html('<option value="">Select Destination...</option>');
-
-            $.each(data, function(i, dest) {
-                $dest.append($('<option>', { value: dest, text: dest }));
-            });
-
-            $dest.prop('disabled', false);
-        }).fail(function() {
-            $loading.hide();
-            $dest.html('<option value="">Error loading routes</option>');
-        });
     });
-
-    // Swapper functionality
-    $('#swapCities').on('click', function() {
-        var srcVal = $('#source').val();
-        var destVal = $('#destination').val();
-
-        if (!destVal) return;
-
-        $('#source').val(destVal).trigger('change');
-
-        setTimeout(function() {
-            $('#destination').val(srcVal);
-        }, 500);
-    });
-
-    // Automatically trigger a source change on page load to sync the available destinations dropdown
-    // only if a source is currently selected
-    if ($('#source').val()) {
-        var currentDest = '<?= htmlspecialchars($destination) ?>';
-        var source = $('#source').val();
-        var $dest = $('#destination');
-        
-        $.getJSON('<?= BASE_URL ?>/ajax/get_destinations.php', { source: source }, function(data) {
-            $dest.html('<option value="">Select Destination...</option>');
-            $.each(data, function(i, dest) {
-                $dest.append($('<option>', { 
-                    value: dest, 
-                    text: dest,
-                    selected: (dest === currentDest)
-                }));
-            });
-            $dest.prop('disabled', false);
-        });
-    }
-});
 </script>
 
 <?php
