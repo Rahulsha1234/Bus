@@ -88,6 +88,9 @@ $user = get_logged_user();
                 <a href="<?= BASE_URL ?>/super_admin/agents.php" class="sidebar-link <?= ($cur === 'agents.php') ? 'active' : '' ?>">
                     <i class="fa-solid fa-users-gear"></i>Manage Agents
                 </a>
+                <a href="<?= BASE_URL ?>/super_admin/operations.php" class="sidebar-link <?= ($cur === 'operations.php') ? 'active' : '' ?>">
+                    <i class="fa-solid fa-wrench"></i>Manage Operations
+                </a>
                 <a href="<?= BASE_URL ?>/super_admin/bookings.php" class="sidebar-link <?= ($cur === 'bookings.php') ? 'active' : '' ?>">
                     <i class="fa-solid fa-ticket"></i>All Bookings
                 </a>
@@ -124,6 +127,7 @@ $user = get_logged_user();
                         <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/super_admin/dashboard.php">Admin Home</a></li>
                         <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/super_admin/operators.php">Operators</a></li>
                         <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/super_admin/agents.php">Agents</a></li>
+                        <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/super_admin/operations.php">Manage Operations</a></li>
                         <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/super_admin/bookings.php">Bookings</a></li>
                         <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/super_admin/settlements.php">Settlements</a></li>
                         <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/super_admin/owner_control.php">Owner Controls</a></li>

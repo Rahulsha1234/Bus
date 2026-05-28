@@ -37,10 +37,10 @@ if ($is_local) {
     define('DB_PASS', '');
     define('DB_NAME', 'bus_booking');
 } else {
-    define('DB_HOST', 'sql105.byethost10.com');
-    define('DB_USER', 'b10_40049115');
-    define('DB_PASS', 'Khubaib@04');
-    define('DB_NAME', 'b10_40049115_bus'); // Using your new database
+    define('DB_HOST', 'sql311.byethost22.com');
+    define('DB_USER', 'b22_42038100');
+    define('DB_PASS', '123456789');
+    define('DB_NAME', 'b22_42038100_bus');
 }
 
 // System Settings
