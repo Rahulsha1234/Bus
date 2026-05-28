@@ -47,20 +47,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             try {
                 $pdo->beginTransaction();
 
+                // Prepare queries for both tables to keep them synchronized
+                $upsert = $pdo->prepare("
+                    INSERT INTO seat_pricing (trip_id, seat_number, base_price, current_price, offer_price)
+                    VALUES (?, ?, ?, ?, ?)
+                    ON DUPLICATE KEY UPDATE base_price = VALUES(base_price), current_price = VALUES(current_price), offer_price = VALUES(offer_price)
+                ");
+
+                $upsert_override = $pdo->prepare("
+                    INSERT INTO seat_price_overrides (trip_id, seat_number, custom_price, updated_by)
+                    VALUES (?, ?, ?, ?)
+                    ON DUPLICATE KEY UPDATE custom_price = VALUES(custom_price), updated_by = VALUES(updated_by)
+                ");
+
                 if ($apply_target === 'entire_bus') {
-                    // Update pricing for all seats in this trip
-                    // First get all active seat numbers for this trip
-                    $seats_stmt = $pdo->prepare("SELECT seat_number FROM trip_seats WHERE trip_id = ?");
-                    $seats_stmt->execute([$trip_id]);
+                    // Update pricing for all active seats of this bus
+                    $seats_stmt = $pdo->prepare("SELECT seat_number FROM bus_seats WHERE bus_id = ? AND is_active = 1");
+                    $seats_stmt->execute([$trip['bus_id']]);
                     $all_seats = $seats_stmt->fetchAll(PDO::FETCH_COLUMN);
 
-                    $upsert = $pdo->prepare("
-                        INSERT INTO seat_pricing (trip_id, seat_number, base_price, current_price, offer_price)
-                        VALUES (?, ?, ?, ?, ?)
-                        ON DUPLICATE KEY UPDATE base_price = VALUES(base_price), current_price = VALUES(current_price), offer_price = VALUES(offer_price)
-                    ");
                     foreach ($all_seats as $seat_num) {
                         $upsert->execute([$trip_id, $seat_num, $base_price, $current_price, $offer_price]);
+                        $upsert_override->execute([$trip_id, $seat_num, $current_price, $_SESSION['user_id']]);
                     }
                     
                     log_activity($pdo, $_SESSION['user_id'], 'PRICE_CHANGE_BULK', "Updated pricing for all seats on Trip ID: $trip_id. Base: $base_price, Current: $current_price, Offer: $offer_price");
@@ -71,13 +79,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     if (empty($seats_array)) {
                         $error = "No target seats selected for pricing modification.";
                     } else {
-                        $upsert = $pdo->prepare("
-                            INSERT INTO seat_pricing (trip_id, seat_number, base_price, current_price, offer_price)
-                            VALUES (?, ?, ?, ?, ?)
-                            ON DUPLICATE KEY UPDATE base_price = VALUES(base_price), current_price = VALUES(current_price), offer_price = VALUES(offer_price)
-                        ");
                         foreach ($seats_array as $seat_num) {
                             $upsert->execute([$trip_id, $seat_num, $base_price, $current_price, $offer_price]);
+                            $upsert_override->execute([$trip_id, $seat_num, $current_price, $_SESSION['user_id']]);
                         }
                         
                         log_activity($pdo, $_SESSION['user_id'], 'PRICE_CHANGE_SINGLE', "Updated pricing for seats (" . implode(',', $seats_array) . ") on Trip ID: $trip_id. Base: $base_price, Current: $current_price, Offer: $offer_price");
@@ -108,14 +112,18 @@ $layout = $layout_stmt->fetch();
 $rows_count = $layout ? intval($layout['rows_count']) : 10;
 $cols_count = $layout ? intval($layout['cols_count']) : 5;
 
-// Fetch configured seats
+// Fetch configured seats joining both pricing tables
 $seats_stmt = $pdo->prepare("
-    SELECT s.*, p.base_price AS trip_base, p.current_price AS trip_current, p.offer_price AS trip_offer
+    SELECT s.*, 
+           p.base_price AS trip_base, 
+           COALESCE(spo.custom_price, p.current_price) AS trip_current, 
+           p.offer_price AS trip_offer
     FROM bus_seats s
     LEFT JOIN seat_pricing p ON s.seat_number = p.seat_number AND p.trip_id = ?
+    LEFT JOIN seat_price_overrides spo ON s.seat_number = spo.seat_number AND spo.trip_id = ?
     WHERE s.bus_id = ? AND s.is_active = 1
 ");
-$seats_stmt->execute([$trip_id, $trip['bus_id']]);
+$seats_stmt->execute([$trip_id, $trip_id, $trip['bus_id']]);
 $db_seats = $seats_stmt->fetchAll();
 
 // Map layout seats
