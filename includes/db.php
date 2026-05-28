@@ -12,7 +12,16 @@ try {
         PDO::ATTR_EMULATE_PREPARES => false
     ]);
 } catch (PDOException $e) {
-    die("Database connection failed. Please check your credentials in config/config.php and ensure MySQL is running: " . $e->getMessage());
+    error_log("Database connection failed securely: " . $e->getMessage());
+    $host_header = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $is_local = (in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1']) 
+        || $host_header === 'localhost' 
+        || strpos($host_header, '127.0.0.1') !== false);
+    if ($is_local) {
+        die("Database connection failed. Please check your credentials in config/config.php and ensure MySQL is running: " . htmlspecialchars($e->getMessage()));
+    } else {
+        die("Database connection failed. Please contact the administrator. The error has been logged securely.");
+    }
 }
 
 // Auto-check and add operator_code column if missing

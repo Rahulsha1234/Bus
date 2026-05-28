@@ -13,9 +13,22 @@ $page_title = "Ticket Invoice - $ref";
 
 // Fetch Booking details
 try {
+    // 0. Ensure user is logged in
+    if (session_status() == PHP_SESSION_NONE) {
+        session_start();
+    }
+    if (!isset($_SESSION['user_id'])) {
+        $_SESSION['redirect_url'] = $_SERVER['REQUEST_URI'];
+        $_SESSION['login_error'] = "Please log in to view this ticket receipt.";
+        header("Location: " . BASE_URL . "/login.php");
+        exit();
+    }
+    $curr_user_id = intval($_SESSION['user_id']);
+    $curr_user_role = $_SESSION['user_role'] ?? 'customer';
     $stmt = $pdo->prepare("
         SELECT 
             b.id AS booking_id,
+            b.customer_id,
             b.booking_reference,
             b.customer_name,
             b.customer_email,
@@ -48,6 +61,11 @@ try {
 
     if (!$booking) {
         die("Ticket Reference not found.");
+    }
+
+    // 0.5. Verify ownership for customers
+    if ($curr_user_role === 'customer' && intval($booking['customer_id']) !== $curr_user_id) {
+        die("Access Denied: You do not have permission to view this ticket receipt.");
     }
 
     // Fetch Seats/Passengers
