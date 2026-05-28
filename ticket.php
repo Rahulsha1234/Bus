@@ -25,6 +25,12 @@ try {
     }
     $curr_user_id = intval($_SESSION['user_id']);
     $curr_user_role = $_SESSION['user_role'] ?? 'customer';
+
+    $is_customer_copy = false;
+    if ((isset($_GET['view']) && $_GET['view'] === 'customer') || $curr_user_role === 'customer') {
+        $is_customer_copy = true;
+    }
+
     $stmt = $pdo->prepare("
         SELECT 
             b.id AS booking_id,
@@ -35,6 +41,7 @@ try {
             b.customer_phone,
             b.total_amount,
             b.discount_amount,
+            b.original_fare,
             b.promo_code,
             b.payment_status,
             b.created_at,
@@ -137,9 +144,18 @@ require_once __DIR__ . '/includes/header.php';
                 : BASE_URL . '/index.php';
             $book_another_label = $is_agent_booking ? 'Search Another Trip' : 'Book Another';
         ?>
-        <div class="d-flex justify-content-between align-items-center mb-4 no-print">
+        <div class="d-flex justify-content-between align-items-center mb-4 no-print flex-wrap gap-2">
             <a href="<?= $book_another_url ?>" class="btn btn-secondary-glass py-2 px-3 small"><i class="fa-solid fa-<?= $is_agent_booking ? 'arrow-left' : 'house' ?> me-2"></i><?= $book_another_label ?></a>
-            <a href="<?= BASE_URL ?>/ticket_pdf.php?ref=<?= urlencode($ref) ?>" target="_blank" class="btn btn-primary-gradient py-2 px-4 fw-bold"><i class="fa-solid fa-file-pdf me-2"></i>Download E-Ticket PDF</a>
+            <div class="d-flex gap-2">
+                <?php if ($curr_user_role !== 'customer'): ?>
+                    <?php if ($is_customer_copy): ?>
+                        <a href="?ref=<?= urlencode($ref) ?>" class="btn btn-secondary-glass py-2 px-3 small"><i class="fa-solid fa-user-secret me-2"></i>Agent Copy</a>
+                    <?php else: ?>
+                        <a href="?ref=<?= urlencode($ref) ?>&view=customer" class="btn btn-secondary-glass py-2 px-3 small"><i class="fa-solid fa-users me-2"></i>Customer Copy (Original Price)</a>
+                    <?php endif; ?>
+                <?php endif; ?>
+                <a href="<?= BASE_URL ?>/ticket_pdf.php?ref=<?= urlencode($ref) ?><?= $is_customer_copy ? '&view=customer' : '' ?>" target="_blank" class="btn btn-primary-gradient py-2 px-4 fw-bold"><i class="fa-solid fa-file-pdf me-2"></i>Download E-Ticket PDF</a>
+            </div>
         </div>
 
         <!-- STUNNING INVOICE TICKET CONTAINER -->
@@ -252,14 +268,14 @@ require_once __DIR__ . '/includes/header.php';
                     <div>Emergency: <span class="text-danger fw-bold"><?= htmlspecialchars($operator['emergency_number']) ?></span></div>
                 </div>
                 <div class="col-md-6 col-sm-6 text-md-end">
-                    <?php if ($booking['discount_amount'] > 0): ?>
+                    <?php if (!$is_customer_copy && $booking['discount_amount'] > 0): ?>
                         <div class="mb-2">
-                            <span class="text-secondary small d-block">PROMO DISCOUNT (<?= htmlspecialchars($booking['promo_code']) ?>)</span>
+                            <span class="text-secondary small d-block">PROMO DISCOUNT (<?= htmlspecialchars($booking['promo_code'] ?? 'Agent Discount') ?>)</span>
                             <span class="text-success fw-bold">-₹<?= number_format($booking['discount_amount'], 2) ?></span>
                         </div>
                     <?php endif; ?>
                     <span class="text-secondary small d-block">TOTAL FARE PAID</span>
-                    <span class="fs-2 fw-bold text-indigo" style="color:#818cf8;">₹<?= number_format($booking['total_amount'], 2) ?></span>
+                    <span class="fs-2 fw-bold text-indigo" style="color:#818cf8;">₹<?= number_format($is_customer_copy ? (floatval($booking['original_fare']) > 0 ? floatval($booking['original_fare']) : floatval($booking['total_amount']) + floatval($booking['discount_amount'])) : floatval($booking['total_amount']), 2) ?></span>
                     <div class="text-secondary small" style="font-size:0.75rem;">Inclusive of Processing Taxes</div>
                 </div>
             </div>

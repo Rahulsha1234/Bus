@@ -22,6 +22,11 @@ try {
     $curr_user_id = intval($_SESSION['user_id']);
     $curr_user_role = $_SESSION['user_role'] ?? 'customer';
 
+    $is_customer_copy = false;
+    if ((isset($_GET['view']) && $_GET['view'] === 'customer') || $curr_user_role === 'customer') {
+        $is_customer_copy = true;
+    }
+
     // Fetch Booking details
     $stmt = $pdo->prepare("
         SELECT 
@@ -33,6 +38,7 @@ try {
             b.customer_phone,
             b.total_amount,
             b.discount_amount,
+            b.original_fare,
             b.promo_code,
             b.payment_status,
             b.created_at,
@@ -262,7 +268,16 @@ try {
 
     <div class="print-btn-bar">
         <a href="<?= BASE_URL ?>/index.php" class="btn-outline-warm"><i class="fa-solid fa-arrow-left me-2"></i>Back to Home</a>
-        <button onclick="window.print()" class="btn-gold"><i class="fa-solid fa-print me-2"></i>Print E-Ticket / Save PDF</button>
+        <div class="d-flex gap-2">
+            <?php if ($curr_user_role !== 'customer'): ?>
+                <?php if ($is_customer_copy): ?>
+                    <a href="?ref=<?= urlencode($booking['booking_reference']) ?>" class="btn-outline-warm"><i class="fa-solid fa-user-secret me-2"></i>Switch to Agent Copy</a>
+                <?php else: ?>
+                    <a href="?ref=<?= urlencode($booking['booking_reference']) ?>&view=customer" class="btn-outline-warm"><i class="fa-solid fa-users me-2"></i>Switch to Customer Copy</a>
+                <?php endif; ?>
+            <?php endif; ?>
+            <button onclick="window.print()" class="btn-gold"><i class="fa-solid fa-print me-2"></i>Print E-Ticket / Save PDF</button>
+        </div>
     </div>
 
     <div class="ticket-outer">
@@ -425,14 +440,16 @@ try {
                     <div class="small text-muted"><?= htmlspecialchars($booking['customer_email']) ?> | <?= htmlspecialchars($booking['customer_phone']) ?></div>
                 </div>
                 <div>
-                    <?php if ($booking['discount_amount'] > 0): ?>
+                    <?php if (!$is_customer_copy && $booking['discount_amount'] > 0): ?>
                         <div class="mb-2">
-                            <span class="info-label">Discount Applied (<?= htmlspecialchars($booking['promo_code']) ?>)</span>
+                            <span class="info-label">Discount Applied (<?= htmlspecialchars($booking['promo_code'] ?? 'Agent Discount') ?>)</span>
                             <span class="text-success fw-bold d-block">-₹<?= number_format($booking['discount_amount'], 2) ?></span>
                         </div>
                     <?php endif; ?>
                     <div class="info-label">Total Fare Paid</div>
-                    <div class="fs-2 fw-bold text-dark">₹<?= number_format($booking['total_amount'], 2) ?></div>
+                    <div class="fs-2 fw-bold text-dark">
+                        ₹<?= number_format($is_customer_copy ? (floatval($booking['original_fare']) > 0 ? floatval($booking['original_fare']) : floatval($booking['total_amount']) + floatval($booking['discount_amount'])) : floatval($booking['total_amount']), 2) ?>
+                    </div>
                     <div class="text-muted small" style="font-size:0.75rem;">Payment processed securely via Razorpay</div>
                 </div>
             </div>

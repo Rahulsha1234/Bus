@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Passenger Details & Payment Checkout Controller
  */
@@ -10,7 +11,7 @@ $page_title = "Checkout";
 if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
     header('Content-Type: application/json');
     $csrf_token = $_POST['csrf_token'] ?? '';
-    
+
     if (!verify_csrf_token($csrf_token)) {
         echo json_encode(['success' => false, 'message' => 'CSRF validation failed. Please refresh.']);
         exit();
@@ -47,13 +48,13 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
         // 1. Double check seat availability (holds or booked)
         $now = date('Y-m-d H:i:s');
         $seat_placeholders = implode(',', array_fill(0, count($seats), '?'));
-        
+
         $chk_stmt = $pdo->prepare("
             SELECT seat_number, status, hold_expires_at, locked_by_session 
             FROM trip_seats 
             WHERE trip_id = ? AND seat_number IN ($seat_placeholders)
         ");
-        
+
         $chk_params = array_merge([$trip_id], $seats);
         $chk_stmt->execute($chk_params);
         $db_seats = $chk_stmt->fetchAll();
@@ -61,7 +62,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
         foreach ($db_seats as $s) {
             $status = $s['status'];
             $is_held_by_others = ($status === 'hold' && strtotime($s['hold_expires_at']) >= strtotime($now) && $s['locked_by_session'] !== session_id());
-            
+
             if ($status === 'booked' || $is_held_by_others) {
                 $pdo->rollBack();
                 echo json_encode(['success' => false, 'message' => "Seat " . $s['seat_number'] . " is no longer available. Please select another seat."]);
@@ -78,7 +79,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
         ");
         $coords_stmt->execute([$trip_id]);
         $coords_db = $coords_stmt->fetchAll(PDO::FETCH_ASSOC);
-        
+
         $seat_coords = [];
         foreach ($coords_db as $c) {
             $seat_coords[$c['seat_number']] = [
@@ -88,19 +89,19 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
         }
 
         // Adjacency mapping helper
-        $get_adjacent_seats = function($seatNum) use ($seat_coords) {
+        $get_adjacent_seats = function ($seatNum) use ($seat_coords) {
             if (!isset($seat_coords[$seatNum])) return [];
             $myRow = $seat_coords[$seatNum]['row'];
             $myCol = $seat_coords[$seatNum]['col'];
-            
+
             $adj_col = -1;
             if ($myCol === 0) $adj_col = 1;
             elseif ($myCol === 1) $adj_col = 0;
             elseif ($myCol === 3) $adj_col = 4;
             elseif ($myCol === 4) $adj_col = 3;
-            
+
             if ($adj_col === -1) return [];
-            
+
             $adj = [];
             foreach ($seat_coords as $sNum => $coord) {
                 if ($coord['row'] === $myRow && $coord['col'] === $adj_col) {
@@ -130,7 +131,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
                         // Group Booking Exception applies in same transaction
                         continue;
                     }
-                    
+
                     // Check if adjacent seat is booked by Female in previous transaction
                     $prev_chk = $pdo->prepare("
                         SELECT COUNT(*) 
@@ -159,12 +160,36 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
         $trip_info = $trip_stmt->fetch();
         $base_fare = floatval($trip_info['base_fare']);
         $trip_admin_id = intval($trip_info['trip_admin_id']);
-        
-        // Recalculate dynamic fare using price overrides helper
+
+        // Recalculate dynamic fare using price overrides helper and track dynamic components
         $total_amount = 0;
         $seat_fares = [];
+        $total_occupancy_adjustment = 0.00;
+        $total_time_adjustment = 0.00;
+
         foreach ($seats as $seat) {
-            $fare = get_actual_seat_price($pdo, $trip_id, $seat, $base_fare);
+            $override_price = null;
+            try {
+                $stmt = $pdo->prepare("SELECT custom_price FROM seat_price_overrides WHERE trip_id = ? AND seat_number = ? LIMIT 1");
+                $stmt->execute([$trip_id, $seat]);
+                $override_price = $stmt->fetchColumn();
+
+                if ($override_price === false || $override_price === null) {
+                    $stmt = $pdo->prepare("SELECT current_price FROM seat_pricing WHERE trip_id = ? AND seat_number = ? LIMIT 1");
+                    $stmt->execute([$trip_id, $seat]);
+                    $override_price = $stmt->fetchColumn();
+                }
+            } catch (Exception $e) {
+            }
+
+            if ($override_price !== false && $override_price !== null) {
+                $fare = floatval($override_price);
+            } else {
+                $pricing = calculate_dynamic_pricing($pdo, $trip_id, $base_fare);
+                $fare = $pricing['final_price'];
+                $total_occupancy_adjustment += floatval($pricing['occupancy_adjustment']);
+                $total_time_adjustment += floatval($pricing['time_adjustment']);
+            }
             $seat_fares[$seat] = $fare;
             $total_amount += $fare;
         }
@@ -172,16 +197,16 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
         // Determine user details and source
         $current_user_id = $_SESSION['user_id'] ?? null;
         $current_role = $_SESSION['user_role'] ?? 'customer';
-        
+
         $booking_source = 'customer';
         $agent_id = null;
         $admin_id = $trip_admin_id; // Always belongs to trip's admin operator
         $calculated_discount = 0.00;
-        
+
         if ($current_role === 'agent') {
             $booking_source = 'agent';
             $agent_id = $current_user_id;
-            
+
             // Calculate agent partner discount based on bus config
             $discount_val = 0;
             if ($trip_info['discount_type'] === 'percentage') {
@@ -189,7 +214,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
             } elseif ($trip_info['discount_type'] === 'fixed') {
                 $discount_val = floatval($trip_info['fixed']);
             }
-            
+
             foreach ($seats as $seat) {
                 $seat_fare = $seat_fares[$seat];
                 $applied_discount = 0;
@@ -216,13 +241,13 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
                 } elseif ($code === 'FREE') {
                     $calculated_discount = $total_amount;
                 }
-                
+
                 if ($calculated_discount > $total_amount) {
                     $calculated_discount = $total_amount;
                 }
             }
         }
-        
+
         $calculated_discount = round($calculated_discount, 2);
         $final_total = max(0.00, $total_amount - $calculated_discount);
 
@@ -239,18 +264,37 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
             INSERT INTO bookings (
                 booking_reference, trip_id, customer_id, admin_id, agent_id, customer_name, customer_email, customer_phone, 
                 total_amount, admin_commission, agent_net_earning, payment_status, payment_gateway, transaction_id,
-                boarding_point, dropping_point, status, discount_amount, promo_code, booking_source, original_fare, discount_applied, final_fare
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'paid', 'Razorpay', ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?)
+                boarding_point, dropping_point, status, discount_amount, promo_code, booking_source, original_fare, discount_applied, final_fare,
+                dynamic_occupancy_adjustment, dynamic_time_adjustment
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'paid', 'Razorpay', ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?)
         ");
-        
+
         $mock_tx_id = 'pay_mock_' . bin2hex(random_bytes(8));
         $applied_promo_code = ($booking_source === 'customer' && !empty($applied_promo)) ? $applied_promo : null;
-        
+
         $booking_stmt->execute([
-            $booking_ref, $trip_id, $customer_id, $admin_id, $agent_id, $cust_name, $cust_email, $cust_phone,
-            $final_total, $admin_commission, $agent_net_earning, $mock_tx_id,
-            $boarding_point, $dropping_point, $calculated_discount, $applied_promo_code, $booking_source,
-            $total_amount, $calculated_discount, $final_total
+            $booking_ref,
+            $trip_id,
+            $customer_id,
+            $admin_id,
+            $agent_id,
+            $cust_name,
+            $cust_email,
+            $cust_phone,
+            $final_total,
+            $admin_commission,
+            $agent_net_earning,
+            $mock_tx_id,
+            $boarding_point,
+            $dropping_point,
+            $calculated_discount,
+            $applied_promo_code,
+            $booking_source,
+            $total_amount,
+            $calculated_discount,
+            $final_total,
+            $total_occupancy_adjustment,
+            $total_time_adjustment
         ]);
         $booking_id = $pdo->lastInsertId();
 
@@ -259,7 +303,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
             INSERT INTO booking_seats (booking_id, seat_number, passenger_name, passenger_age, passenger_gender, price)
             VALUES (?, ?, ?, ?, ?, ?)
         ");
-        
+
         $update_seat_stmt = $pdo->prepare("
             UPDATE trip_seats 
             SET status = 'booked', hold_expires_at = NULL, locked_by_session = NULL, locked_at = NULL 
@@ -291,7 +335,6 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
         $pdo->commit();
         echo json_encode(['success' => true, 'booking_ref' => $booking_ref]);
         exit();
-
     } catch (Exception $e) {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
@@ -382,7 +425,6 @@ try {
     }
 
     $pdo->commit();
-
 } catch (Exception $e) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
@@ -431,7 +473,7 @@ if (!empty($applied_promo)) {
     } elseif ($code === 'FREE') {
         $calculated_discount = $total_fare;
     }
-    
+
     if ($calculated_discount > $total_fare) {
         $calculated_discount = $total_fare;
     }
@@ -480,13 +522,13 @@ foreach ($seats as $seat) {
     if (isset($seat_coords[$seat])) {
         $myRow = $seat_coords[$seat]['row'];
         $myCol = $seat_coords[$seat]['col'];
-        
+
         $adj_col = -1;
         if ($myCol === 0) $adj_col = 1;
         elseif ($myCol === 1) $adj_col = 0;
         elseif ($myCol === 3) $adj_col = 4;
         elseif ($myCol === 4) $adj_col = 3;
-        
+
         if ($adj_col !== -1) {
             foreach ($seat_coords as $sNum => $coord) {
                 if ($coord['row'] === $myRow && $coord['col'] === $adj_col) {
@@ -508,7 +550,7 @@ require_once __DIR__ . '/includes/header.php';
     <div class="col-lg-8">
         <div class="glass-card p-5" style="border-radius: 20px;">
             <h4 class="fw-bold text-white mb-4"><i class="fa-solid fa-users text-indigo me-2"></i>Passenger Details</h4>
-            
+
             <form id="paymentCheckForm" autocomplete="off">
                 <!-- CSRF Token -->
                 <input type="hidden" name="csrf_token" id="payment_csrf_token" value="<?= get_csrf_token() ?>">
@@ -535,7 +577,7 @@ require_once __DIR__ . '/includes/header.php';
                                 <label class="form-label text-secondary small fw-semibold">Age</label>
                                 <input type="number" name="passenger_age[]" class="form-control form-control-swift" placeholder="Age" min="5" max="100" required>
                             </div>
-                             <div class="col-md-4 mb-3">
+                            <div class="col-md-4 mb-3">
                                 <label class="form-label text-secondary small fw-semibold">Gender</label>
                                 <select name="passenger_gender[]" class="form-select form-control-swift" required>
                                     <?php if ($is_adjacent_to_female[$seat]): ?>
@@ -593,7 +635,7 @@ require_once __DIR__ . '/includes/header.php';
                 <span class="text-secondary small d-block">Voyage Operators</span>
                 <span class="text-white fw-bold"><?= htmlspecialchars($trip['bus_name']) ?></span>
             </div>
-            
+
             <div class="mb-4">
                 <span class="text-secondary small d-block">Stations Route</span>
                 <span class="text-white fw-semibold"><?= htmlspecialchars($trip['source']) ?> to <?= htmlspecialchars($trip['destination']) ?></span>
@@ -638,7 +680,7 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            
+
             <!-- Modal Body -->
             <div class="modal-body p-4">
                 <div class="text-center mb-4">
@@ -676,66 +718,66 @@ require_once __DIR__ . '/includes/header.php';
 </div>
 
 <script>
-$(document).ready(function() {
-    
-    // Initiate secure checkout trigger
-    $('#btnInitiatePayment').click(function() {
-        // Validate form input elements first
-        var form = $('#paymentCheckForm')[0];
-        if (!form.checkValidity()) {
-            form.reportValidity();
-            return;
-        }
+    $(document).ready(function() {
 
-        // Fill modal details
-        var email = $('input[name="contact_email"]').val();
-        $('#modal-email-fill').text(email);
+        // Initiate secure checkout trigger
+        $('#btnInitiatePayment').click(function() {
+            // Validate form input elements first
+            var form = $('#paymentCheckForm')[0];
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
 
-        // Show Razorpay modal
-        $('#razorpayModal').modal('show');
-    });
+            // Fill modal details
+            var email = $('input[name="contact_email"]').val();
+            $('#modal-email-fill').text(email);
 
-    // Handle Payment Selection Simulation
-    $('.select-payment-opt').click(function() {
-        var status = $(this).data('status');
-        
-        if (status === 'failed') {
-            alert("Mock Payment Failed: You simulated a failed transaction. Please choose card simulation for success.");
+            // Show Razorpay modal
+            $('#razorpayModal').modal('show');
+        });
+
+        // Handle Payment Selection Simulation
+        $('.select-payment-opt').click(function() {
+            var status = $(this).data('status');
+
+            if (status === 'failed') {
+                alert("Mock Payment Failed: You simulated a failed transaction. Please choose card simulation for success.");
+                $('#razorpayModal').modal('hide');
+                return;
+            }
+
+            // Payment approved - Trigger AJAX execution
             $('#razorpayModal').modal('hide');
-            return;
-        }
 
-        // Payment approved - Trigger AJAX execution
-        $('#razorpayModal').modal('hide');
-        
-        // Show interactive processing indicator
-        var originalBtnText = $('#btnInitiatePayment').html();
-        $('#btnInitiatePayment').html('<i class="fa-solid fa-spinner fa-spin me-2"></i>Processing Secure Transaction...').addClass('disabled');
+            // Show interactive processing indicator
+            var originalBtnText = $('#btnInitiatePayment').html();
+            $('#btnInitiatePayment').html('<i class="fa-solid fa-spinner fa-spin me-2"></i>Processing Secure Transaction...').addClass('disabled');
 
-        // Compile payload
-        var formData = $('#paymentCheckForm').serialize();
+            // Compile payload
+            var formData = $('#paymentCheckForm').serialize();
 
-        $.ajax({
-            url: '<?= BASE_URL ?>/checkout.php?action=process_payment',
-            type: 'POST',
-            data: formData,
-            dataType: 'json',
-            success: function(response) {
-                if (response.success) {
-                    alert("Mock Payment Successful! Generating your ticket...");
-                    window.location.href = '<?= BASE_URL ?>/ticket.php?ref=' + response.booking_ref;
-                } else {
-                    alert("Booking Error: " + response.message);
+            $.ajax({
+                url: '<?= BASE_URL ?>/checkout.php?action=process_payment',
+                type: 'POST',
+                data: formData,
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        alert("Mock Payment Successful! Generating your ticket...");
+                        window.location.href = '<?= BASE_URL ?>/ticket.php?ref=' + response.booking_ref;
+                    } else {
+                        alert("Booking Error: " + response.message);
+                        $('#btnInitiatePayment').html(originalBtnText).removeClass('disabled');
+                    }
+                },
+                error: function() {
+                    alert("CRITICAL ERROR: Failed to communicate with payment processor. Please check connection.");
                     $('#btnInitiatePayment').html(originalBtnText).removeClass('disabled');
                 }
-            },
-            error: function() {
-                alert("CRITICAL ERROR: Failed to communicate with payment processor. Please check connection.");
-                $('#btnInitiatePayment').html(originalBtnText).removeClass('disabled');
-            }
+            });
         });
     });
-});
 </script>
 
 <?php

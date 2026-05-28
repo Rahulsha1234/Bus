@@ -139,6 +139,10 @@ $user = get_logged_user();
                         class="sidebar-link <?= ($cur_nav === 'manage_cancellations.php') ? 'active' : '' ?>">
                         <i class="fa-solid fa-ban"></i>Cancellations
                     </a>
+                    <a href="<?= BASE_URL ?>/admin/pricing.php"
+                        class="sidebar-link <?= ($cur_nav === 'pricing.php') ? 'active' : '' ?>">
+                        <i class="fa-solid fa-tags"></i>Pricing Engine
+                    </a>
                     <a href="<?= BASE_URL ?>/admin/settlements.php"
                         class="sidebar-link <?= ($cur_nav === 'settlements.php') ? 'active' : '' ?>">
                         <i class="fa-solid fa-wallet"></i>Settlements
@@ -182,6 +186,8 @@ $user = get_logged_user();
                                     href="<?= BASE_URL ?>/admin/manage_cancellations.php">Cancellations</a></li>
                             <li><a class="dropdown-item py-2"
                                     href="<?= BASE_URL ?>/admin/settlements.php">Settlements</a></li>
+                            <li><a class="dropdown-item py-2"
+                                    href="<?= BASE_URL ?>/admin/pricing.php">Pricing Engine</a></li>
                             <li><a class="dropdown-item py-2"
                                     href="<?= BASE_URL ?>/admin/agents.php">Agents</a></li>
                             <li>
