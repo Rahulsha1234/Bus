@@ -315,7 +315,7 @@ if ($selected_trip_id > 0) {
                 <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom border-secondary border-opacity-20 flex-wrap gap-2">
                     <div>
                         <h5 class="fw-bold mb-0 text-white">Seat Selection Layout</h5>
-                        <span class="text-secondary small">Hold Shift to select ranges / click cells to toggle.</span>
+                        <span class="text-secondary small">Click cells to select one / Hold Ctrl + click to select multiple.</span>
                     </div>
                     <div class="d-flex gap-1">
                         <button type="button" id="btnSelectAll" class="btn btn-secondary-glass py-1 px-2 small">Select All</button>
@@ -464,15 +464,28 @@ $(document).ready(function() {
     }
 
     function handleSeatToggle(seat) {
-        return function() {
+        return function(e) {
             if (seat.status === 'booked' || seat.status === 'female_booked') {
                 alert("Booked seats cannot be modified.");
                 return;
             }
-            if (selectedSeats.includes(seat.number)) {
-                selectedSeats = selectedSeats.filter(num => num !== seat.number);
+            
+            // Check if Ctrl or Cmd key is pressed for multi-selection
+            var isMulti = e.ctrlKey || e.metaKey;
+            
+            if (isMulti) {
+                if (selectedSeats.includes(seat.number)) {
+                    selectedSeats = selectedSeats.filter(num => num !== seat.number);
+                } else {
+                    selectedSeats.push(seat.number);
+                }
             } else {
-                selectedSeats.push(seat.number);
+                // Default single select
+                if (selectedSeats.includes(seat.number) && selectedSeats.length === 1) {
+                    selectedSeats = [];
+                } else {
+                    selectedSeats = [seat.number];
+                }
             }
             renderConsoleGrid();
             updateSelectionPreview();

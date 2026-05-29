@@ -34,6 +34,111 @@ $user = get_logged_user();
     <script src="<?= BASE_URL ?>/assets/js/theme.js" defer></script>
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <!-- Select2 & DataTables CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.13.5/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css" rel="stylesheet">
+    
+    <style>
+        /* Select2 theme override for dark and light modes */
+        .select2-container--default .select2-selection--single {
+            background-color: var(--bg-swift-input, #ffffff);
+            border: 1px solid var(--border-swift-input, #dee2e6);
+            border-radius: 12px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            padding-left: 8px;
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        }
+        [data-theme="dark"] .select2-container--default .select2-selection--single {
+            background-color: #1a2035 !important;
+            border-color: rgba(255, 255, 255, 0.12) !important;
+            color: #ffffff !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: var(--text-swift-main, #212529);
+            font-family: inherit;
+        }
+        [data-theme="dark"] .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: #f8fafc !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 46px;
+        }
+        .select2-dropdown {
+            background-color: var(--bg-swift-dropdown, #ffffff);
+            border: 1px solid var(--border-swift-dropdown, #dee2e6);
+            border-radius: 12px;
+            z-index: 9999;
+        }
+        [data-theme="dark"] .select2-dropdown {
+            background-color: #131a30 !important;
+            border-color: rgba(255, 255, 255, 0.15) !important;
+            color: #ffffff !important;
+        }
+        .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background-color: #198754 !important;
+            color: white !important;
+        }
+        .select2-container--default .select2-search--dropdown .select2-search__field {
+            border: 1px solid var(--border-swift-input, #dee2e6);
+            border-radius: 8px;
+            background-color: var(--bg-swift-input, #ffffff);
+            color: var(--text-swift-main, #212529);
+            padding: 8px;
+        }
+        [data-theme="dark"] .select2-container--default .select2-search--dropdown .select2-search__field {
+            background-color: #1a2035 !important;
+            border-color: rgba(255, 255, 255, 0.12) !important;
+            color: #ffffff !important;
+        }
+        .select2-container--default .select2-results__option {
+            padding: 10px 14px;
+        }
+        [data-theme="dark"] .select2-container--default .select2-results__option[aria-selected="true"] {
+            background-color: rgba(25, 135, 84, 0.2) !important;
+            color: #ffffff !important;
+        }
+        [data-theme="dark"] .select2-container--default .select2-results__option {
+            color: #e2e8f0;
+        }
+        /* DataTables Custom theme styling to match clean modern UI */
+        .dataTables_wrapper .dataTables_paginate .paginate_button {
+            padding: 0.3em 0.8em !important;
+            border-radius: 8px !important;
+        }
+        .dataTables_wrapper .dataTables_filter input {
+            border-radius: 8px !important;
+            padding: 5px 10px !important;
+        }
+        [data-theme="dark"] .dataTables_wrapper {
+            color: #f8fafc !important;
+        }
+        [data-theme="dark"] table.dataTable {
+            border-color: rgba(255, 255, 255, 0.08) !important;
+        }
+        /* Input group support for Select2 */
+        .input-group > .select2-container--default {
+            flex: 1 1 auto;
+            width: 1% !important;
+            display: flex !important;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .input-group > .select2-container--default .select2-selection--single {
+            border-top-left-radius: 0 !important;
+            border-bottom-left-radius: 0 !important;
+            border-top-right-radius: 12px !important;
+            border-bottom-right-radius: 12px !important;
+            border-left: 0 !important;
+            height: 48px !important;
+            width: 100%;
+        }
+        .input-group > .input-group-text {
+            height: 48px !important;
+        }
+    </style>
 
     <style>
         .sidebar-agent {

@@ -6,7 +6,7 @@ require_once __DIR__ . '/header.php';
 
 $admin_id = $_SESSION['user_id'];
 $error = '';
-$success = '';
+$success = trim($_GET['success'] ?? '');
 
 // Handle Actions (Add, Edit, Delete)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // ADD BUS
         if ($action === 'add') {
             $name = trim($_POST['bus_name'] ?? '');
-            $number = preg_replace('/[^A-Z0-9]/', '', strtoupper(trim($_POST['bus_number'] ?? '')));
+            $number = strtoupper(trim($_POST['bus_number'] ?? ''));
             $type = $_POST['bus_type'] ?? '';
             $total_seats = intval($_POST['total_seats'] ?? 30);
             
@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if (empty($name) || empty($number) || empty($type)) {
                 $error = "Please fill in all fields.";
-            } elseif (!preg_match('/^[A-Z0-9]{6,15}$/', $number)) {
+            } elseif (!preg_match('/^[A-Z0-9]+$/', $number)) {
                 $error = "Invalid License Plate Number. Alphanumeric characters only, no spaces or special characters (e.g., DL01CA1234).";
             } else {
                 // Check if bus number already registered
@@ -60,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         elseif ($action === 'edit') {
             $bus_id = intval($_POST['bus_id'] ?? 0);
             $name = trim($_POST['bus_name'] ?? '');
-            $number = preg_replace('/[^A-Z0-9]/', '', strtoupper(trim($_POST['bus_number'] ?? '')));
+            $number = strtoupper(trim($_POST['bus_number'] ?? ''));
             $type = $_POST['bus_type'] ?? '';
             
             $layout = (strpos($type, 'Sleeper') !== false) ? '2x1_sleeper' : '2x2_seater';
@@ -68,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if (empty($name) || empty($number) || empty($type) || $bus_id === 0) {
                 $error = "Please fill in all fields.";
-            } elseif (!preg_match('/^[A-Z0-9]{6,15}$/', $number)) {
+            } elseif (!preg_match('/^[A-Z0-9]+$/', $number)) {
                 $error = "Invalid License Plate Number. Alphanumeric characters only, no spaces or special characters (e.g., DL01CA1234).";
             } else {
                 // Verify ownership & bus number availability
@@ -174,7 +174,7 @@ try {
         </div>
     <?php else: ?>
         <div class="table-responsive">
-            <table class="table table-swift table-dark table-hover table-borderless align-middle">
+            <table class="table table-swift table-dark table-hover table-borderless align-middle datatable-swift">
                 <thead>
                     <tr>
                         <th>Bus Name</th>
@@ -226,21 +226,20 @@ try {
                     
                     <div class="mb-3">
                         <label class="form-label text-secondary small fw-semibold">Bus Name / Brand</label>
-                        <input type="text" name="bus_name" class="form-control form-control-swift" placeholder="e.g. Scania Multiaxle Premium" required>
+                        <input type="text" name="bus_name" class="form-control form-control-swift" placeholder="e.g. SCANIA MULTIAXLE PREMIUM" oninput="this.value = this.value.toUpperCase()" required>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label text-secondary small fw-semibold">License Plate Number</label>
-                        <input type="text" name="bus_number" class="form-control form-control-swift" placeholder="e.g. KA01F1234" pattern="^[A-Za-z0-9]{6,15}$" title="Alphanumeric characters only, no spaces or special characters (e.g. KA01F1234)" required>
+                        <input type="text" name="bus_number" class="form-control form-control-swift" placeholder="e.g. KA01F1234" pattern="^[A-Za-z0-9]+$" title="Alphanumeric characters only, no spaces or special characters (e.g. KA01F1234)" oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '')" required>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label text-secondary small fw-semibold">Vehicle Classification</label>
                         <select name="bus_type" class="form-select form-control-swift" required>
-                            <option value="AC Sleeper">AC Sleeper (30 Seats Layout)</option>
-                            <option value="Non-AC Sleeper">Non-AC Sleeper (30 Seats Layout)</option>
-                            <option value="AC Seater">AC Seater (40 Seats Layout)</option>
-                            <option value="Non-AC Seater">Non-AC Seater (40 Seats Layout)</option>
+                            <?php foreach (get_vehicle_classifications() as $val => $info): ?>
+                                <option value="<?= htmlspecialchars($val) ?>"><?= htmlspecialchars($info['display']) ?></option>
+                            <?php endforeach; ?>
                         </select>
                     </div>
 
@@ -271,21 +270,20 @@ try {
                     
                     <div class="mb-3">
                         <label class="form-label text-secondary small fw-semibold">Bus Name / Brand</label>
-                        <input type="text" name="bus_name" id="edit_bus_name" class="form-control form-control-swift" required>
+                        <input type="text" name="bus_name" id="edit_bus_name" class="form-control form-control-swift" oninput="this.value = this.value.toUpperCase()" required>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label text-secondary small fw-semibold">License Plate Number</label>
-                        <input type="text" name="bus_number" id="edit_bus_number" class="form-control form-control-swift" pattern="^[A-Za-z0-9]{6,15}$" title="Alphanumeric characters only, no spaces or special characters (e.g. KA01F1234)" required>
+                        <input type="text" name="bus_number" id="edit_bus_number" class="form-control form-control-swift" pattern="^[A-Za-z0-9]+$" title="Alphanumeric characters only, no spaces or special characters (e.g. KA01F1234)" oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '')" required>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label text-secondary small fw-semibold">Vehicle Classification</label>
                         <select name="bus_type" id="edit_bus_type" class="form-select form-control-swift" required>
-                            <option value="AC Sleeper">AC Sleeper (30 Seats Layout)</option>
-                            <option value="Non-AC Sleeper">Non-AC Sleeper (30 Seats Layout)</option>
-                            <option value="AC Seater">AC Seater (40 Seats Layout)</option>
-                            <option value="Non-AC Seater">Non-AC Seater (40 Seats Layout)</option>
+                            <?php foreach (get_vehicle_classifications() as $val => $info): ?>
+                                <option value="<?= htmlspecialchars($val) ?>"><?= htmlspecialchars($info['display']) ?></option>
+                            <?php endforeach; ?>
                         </select>
                     </div>
 
@@ -339,27 +337,27 @@ try {
                     
                     <div class="mb-3">
                         <label class="form-label text-secondary small fw-semibold">Operator Name / Company</label>
-                        <input type="text" name="operator_name" id="op_operator_name" class="form-control form-control-swift" placeholder="e.g. Royal Travels" required>
+                        <input type="text" name="operator_name" id="op_operator_name" class="form-control form-control-swift" placeholder="E.G. ROYAL TRAVELS" oninput="this.value = this.value.toUpperCase()" required>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label text-secondary small fw-semibold">Support Contact Number</label>
-                        <input type="text" name="contact_number" id="op_contact_number" class="form-control form-control-swift" placeholder="e.g. +91 9876543210" required>
+                        <input type="text" name="contact_number" id="op_contact_number" class="form-control form-control-swift" placeholder="E.G. +91 9876543210" oninput="this.value = this.value.toUpperCase()" required>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label text-secondary small fw-semibold">WhatsApp Number</label>
-                        <input type="text" name="whatsapp_number" id="op_whatsapp_number" class="form-control form-control-swift" placeholder="e.g. +91 9876543210" required>
+                        <input type="text" name="whatsapp_number" id="op_whatsapp_number" class="form-control form-control-swift" placeholder="E.G. +91 9876543210" oninput="this.value = this.value.toUpperCase()" required>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label text-secondary small fw-semibold">Emergency Helpline Number</label>
-                        <input type="text" name="emergency_number" id="op_emergency_number" class="form-control form-control-swift" placeholder="e.g. 1800-XXX-XXXX" required>
+                        <input type="text" name="emergency_number" id="op_emergency_number" class="form-control form-control-swift" placeholder="E.G. 1800-XXX-XXXX" oninput="this.value = this.value.toUpperCase()" required>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label text-secondary small fw-semibold">Support Email Address</label>
-                        <input type="email" name="support_email" id="op_support_email" class="form-control form-control-swift" placeholder="e.g. support@royaltravels.com" required>
+                        <input type="email" name="support_email" id="op_support_email" class="form-control form-control-swift" placeholder="E.G. SUPPORT@ROYALTRAVELS.COM" oninput="this.value = this.value.toUpperCase()" required>
                     </div>
                 </div>
                 <div class="modal-footer border-secondary border-opacity-20 p-4">

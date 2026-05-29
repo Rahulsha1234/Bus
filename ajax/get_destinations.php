@@ -17,16 +17,20 @@ try {
     $admin_id = intval($_GET['admin_id'] ?? 0);
     if ($admin_id > 0) {
         $stmt = $pdo->prepare(
-            "SELECT DISTINCT destination FROM routes 
-             WHERE source = ? AND status = 'active' AND admin_id = ? 
-             ORDER BY destination ASC"
+            "SELECT DISTINCT r.destination 
+             FROM routes r 
+             JOIN trips t ON r.id = t.route_id 
+             WHERE r.source = ? AND r.status = 'active' AND t.status = 'active' AND t.departure_time >= NOW() AND r.admin_id = ? 
+             ORDER BY r.destination ASC"
         );
         $stmt->execute([$source, $admin_id]);
     } else {
         $stmt = $pdo->prepare(
-            "SELECT DISTINCT destination FROM routes 
-             WHERE source = ? AND status = 'active' 
-             ORDER BY destination ASC"
+            "SELECT DISTINCT r.destination 
+             FROM routes r 
+             JOIN trips t ON r.id = t.route_id 
+             WHERE r.source = ? AND r.status = 'active' AND t.status = 'active' AND t.departure_time >= NOW() 
+             ORDER BY r.destination ASC"
         );
         $stmt->execute([$source]);
     }

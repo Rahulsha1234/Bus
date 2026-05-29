@@ -198,7 +198,7 @@ foreach ($seats as $seat) {
 
                 <div class="d-grid mt-4">
                     <button type="button" id="btnInitiatePayment" class="btn btn-primary-gradient py-3 text-uppercase fw-bold" style="border-radius: 12px; letter-spacing: 0.5px;">
-                        <i class="fa-solid fa-lock me-2"></i>Pay &amp; Issue Ticket &mdash; &#8377;<?= number_format($final_fare, 2) ?>
+                        <i class="fa-solid fa-lock me-2"></i>Pay &amp; Issue Ticket &mdash; &#8377;<?= number_format($total_fare, 2) ?>
                     </button>
                 </div>
             </form>
@@ -208,7 +208,12 @@ foreach ($seats as $seat) {
     <!-- Summary Panel -->
     <div class="col-lg-4">
         <div class="glass-card p-4 shadow-lg" style="border-radius: 20px; position: sticky; top: 100px;">
-            <h4 class="fw-bold text-white mb-4"><i class="fa-solid fa-receipt text-pink me-2"></i>Fare Details</h4>
+            <div class="d-flex align-items-center justify-content-between mb-4">
+                <h4 class="fw-bold text-white mb-0"><i class="fa-solid fa-receipt text-pink me-2"></i>Fare Details</h4>
+                <button type="button" id="btnAgentTooltip" class="btn btn-secondary-glass py-1 px-2 rounded-3 small" style="font-size: 0.8rem;" title="View Agent Pricing Breakdown">
+                    <i class="fa-solid fa-circle-info text-warning me-1"></i> Agent Info
+                </button>
+            </div>
             <div class="mb-4">
                 <span class="text-secondary small d-block">Voyage Class</span>
                 <span class="text-white fw-bold"><?= htmlspecialchars($trip['bus_name']) ?></span>
@@ -225,18 +230,18 @@ foreach ($seats as $seat) {
                     <span class="text-white fw-semibold"><?= htmlspecialchars($selected_seats) ?></span>
                 </div>
                 <div class="d-flex justify-content-between text-secondary small mb-3">
-                    <span>Original Gross Fare</span>
+                    <span>Base Ticket Fare</span>
                     <span>₹<?= number_format($total_fare, 2) ?></span>
                 </div>
-                <?php if ($total_discount > 0): ?>
+                <?php if (false && $total_discount > 0): ?>
                     <div class="d-flex justify-content-between text-secondary small mb-3">
                         <span>Agent Direct Discount</span>
                         <span class="text-success">-₹<?= number_format($total_discount, 2) ?></span>
                     </div>
                 <?php endif; ?>
                 <div class="d-flex justify-content-between text-white fw-bold fs-5 pt-3 border-top border-secondary border-opacity-30">
-                    <span>Total Paid</span>
-                    <span class="text-indigo">₹<?= number_format($final_fare, 2) ?></span>
+                    <span>Total Amount</span>
+                    <span class="text-indigo">₹<?= number_format($total_fare, 2) ?></span>
                 </div>
             </div>
         </div>
@@ -259,9 +264,9 @@ foreach ($seats as $seat) {
             </div>
             <div class="modal-body p-4">
                 <div class="text-center mb-4">
-                    <span class="text-secondary small d-block">AMOUNT TO PAY (AGENT FARE)</span>
+                    <span class="text-secondary small d-block">AMOUNT TO PAY</span>
                     <h2 class="fw-bold" style="font-size: 2.5rem; color:#0F5132;">&#8377;<?= number_format($final_fare, 2) ?></h2>
-                    <?php if ($total_discount > 0): ?>
+                    <?php if (false && $total_discount > 0): ?>
                         <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-1 mt-1">Agent Discount: -&#8377;<?= number_format($total_discount, 2) ?></span>
                     <?php endif; ?>
                 </div>
@@ -334,8 +339,46 @@ $(document).ready(function() {
             }
         });
     });
+
+    $('#btnAgentTooltip').click(function() {
+        $('#agentInfoModal').modal('show');
+    });
 });
 </script>
+
+<!-- AGENT INFO MODAL -->
+<div class="modal fade" id="agentInfoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-card border-secondary text-white shadow-2xl" style="border-radius: 20px; background: #121829;">
+            <div class="modal-header border-secondary p-4">
+                <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-user-secret text-warning me-2"></i>Agent Pricing Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="d-flex justify-content-between mb-2 text-secondary small">
+                    <span>Seats Selected:</span>
+                    <span class="text-white fw-bold font-monospace"><?= htmlspecialchars($selected_seats) ?></span>
+                </div>
+                <div class="d-flex justify-content-between mb-2 text-secondary small">
+                    <span>Public Gross Fare:</span>
+                    <span class="text-white">₹<?= number_format($total_fare, 2) ?></span>
+                </div>
+                <div class="d-flex justify-content-between mb-2 text-warning small">
+                    <span>Agent Discount:</span>
+                    <span class="fw-bold">₹<?= number_format($total_discount, 2) ?></span>
+                </div>
+                <hr class="border-secondary border-opacity-30 my-3">
+                <div class="d-flex justify-content-between align-items-center text-white fw-bold fs-5">
+                    <span>Net Payable (Agent):</span>
+                    <span class="text-success">₹<?= number_format($final_fare, 2) ?></span>
+                </div>
+            </div>
+            <div class="modal-footer border-0 p-3 bg-dark bg-opacity-20 text-center text-secondary small" style="border-radius: 0 0 20px 20px; justify-content: center;">
+                <span><i class="fa-solid fa-shield-halved me-1"></i> Customer will only see public fare on checkout.</span>
+            </div>
+        </div>
+    </div>
+</div>
 
 <?php
 require_once __DIR__ . '/footer.php';

@@ -346,3 +346,19 @@ if (!function_exists('is_seat_blocked')) {
         return false;
     }
 }
+
+// Single source of truth for vehicle classifications
+if (!function_exists('get_vehicle_classifications')) {
+    function get_vehicle_classifications() {
+        return [
+            'Sleeper' => [
+                'display' => 'Full Sleeper Layout',
+                'layout' => 'Sleeper'
+            ],
+            'Seater' => [
+                'display' => 'Full Seater Layout',
+                'layout' => 'Seater'
+            ]
+        ];
+    }
+}

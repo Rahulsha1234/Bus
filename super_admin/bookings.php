@@ -75,7 +75,7 @@ try {
         <div class="text-center py-5 text-secondary small">No system-wide bookings found matching filters.</div>
     <?php else: ?>
         <div class="table-responsive">
-            <table class="table table-swift table-dark table-hover table-borderless align-middle">
+            <table class="table table-swift table-dark table-hover table-borderless align-middle datatable-swift">
                 <thead>
                     <tr>
                         <th>Booking Ref</th>

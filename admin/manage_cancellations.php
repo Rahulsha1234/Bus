@@ -168,7 +168,7 @@ require_once __DIR__ . '/header.php';
         </div>
     <?php else: ?>
         <div class="table-responsive">
-            <table class="table table-swift table-dark table-hover align-middle" style="background: transparent;">
+            <table class="table table-swift table-dark table-hover align-middle datatable-swift" style="background: transparent;">
                 <thead>
                     <tr class="border-bottom border-secondary border-opacity-25 text-secondary small">
                         <th>Request ID</th>

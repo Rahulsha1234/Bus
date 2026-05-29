@@ -378,9 +378,16 @@ require_once __DIR__ . '/includes/header.php';
                 $is_dynamic_active = ($pricing['occupancy_increase_pct'] > 0 || $pricing['time_increase_pct'] > 0);
             ?>
 
+            <?php 
+                $show_dynamic_details = (
+                    (isset($_SESSION['user_role']) && ($_SESSION['user_role'] === 'admin' || $_SESSION['user_role'] === 'super_admin')) ||
+                    (isset($_SESSION['role']) && ($_SESSION['role'] === 'admin' || $_SESSION['role'] === 'super_admin'))
+                );
+            ?>
+
             <div class="mb-4 p-3 rounded-4 bg-dark bg-opacity-20 border border-secondary border-opacity-10">
                 <div class="d-flex flex-wrap gap-2 mb-2">
-                    <?php if ($is_dynamic_active): ?>
+                    <?php if ($is_dynamic_active && $show_dynamic_details): ?>
                         <span class="badge bg-warning text-dark d-flex align-items-center gap-1" style="font-size: 0.75rem;">
                             <i class="fa-solid fa-chart-line"></i> Dynamic Pricing Active
                         </span>
@@ -406,23 +413,27 @@ require_once __DIR__ . '/includes/header.php';
                             <span>Fare may increase as seats fill. Book now to lock this price.</span>
                         </div>
                     <?php endif; ?>
-                    <div class="d-flex justify-content-between pt-2 border-top border-secondary border-opacity-10">
-                        <span>Base Fare:</span>
-                        <span class="text-white">₹<?= number_format($trip['base_fare'], 2) ?></span>
-                    </div>
-                    <?php if ($pricing['occupancy_increase_pct'] > 0): ?>
-                        <div class="d-flex justify-content-between text-warning">
-                            <span>High Occupancy (+<?= $pricing['occupancy_increase_pct'] ?>%):</span>
-                            <span>+₹<?= number_format($pricing['occupancy_adjustment'], 2) ?></span>
+                    
+                    <?php if ($show_dynamic_details): ?>
+                        <div class="d-flex justify-content-between pt-2 border-top border-secondary border-opacity-10">
+                            <span>Base Fare:</span>
+                            <span class="text-white">₹<?= number_format($trip['base_fare'], 2) ?></span>
                         </div>
+                        <?php if ($pricing['occupancy_increase_pct'] > 0): ?>
+                            <div class="d-flex justify-content-between text-warning">
+                                <span>High Occupancy (+<?= $pricing['occupancy_increase_pct'] ?>%):</span>
+                                <span>+₹<?= number_format($pricing['occupancy_adjustment'], 2) ?></span>
+                            </div>
+                        <?php endif; ?>
+                        <?php if ($pricing['time_increase_pct'] > 0): ?>
+                            <div class="d-flex justify-content-between text-warning">
+                                <span>Last-minute Departure (+<?= $pricing['time_increase_pct'] ?>%):</span>
+                                <span>+₹<?= number_format($pricing['time_adjustment'], 2) ?></span>
+                            </div>
+                        <?php endif; ?>
                     <?php endif; ?>
-                    <?php if ($pricing['time_increase_pct'] > 0): ?>
-                        <div class="d-flex justify-content-between text-warning">
-                            <span>Last-minute Departure (+<?= $pricing['time_increase_pct'] ?>%):</span>
-                            <span>+₹<?= number_format($pricing['time_adjustment'], 2) ?></span>
-                        </div>
-                    <?php endif; ?>
-                    <div class="d-flex justify-content-between fw-bold text-white fs-6 mt-1 pt-1 border-t border-secondary border-opacity-10">
+                    
+                    <div class="d-flex justify-content-between fw-bold text-white fs-6 mt-1 pt-1 <?= $show_dynamic_details ? 'border-top border-secondary border-opacity-10' : '' ?>">
                         <span>Current Fare:</span>
                         <span class="text-success font-monospace">₹<?= number_format($pricing['final_price'], 2) ?></span>
                     </div>

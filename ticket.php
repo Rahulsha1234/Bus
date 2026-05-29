@@ -25,10 +25,9 @@ try {
     }
     $curr_user_id = intval($_SESSION['user_id']);
     $curr_user_role = $_SESSION['user_role'] ?? 'customer';
-
-    $is_customer_copy = false;
-    if ((isset($_GET['view']) && $_GET['view'] === 'customer') || $curr_user_role === 'customer') {
-        $is_customer_copy = true;
+    $is_customer_copy = true; // Default to Customer Copy
+    if (isset($_GET['view']) && $_GET['view'] === 'agent' && $curr_user_role !== 'customer') {
+        $is_customer_copy = false;
     }
 
     $stmt = $pdo->prepare("
@@ -149,9 +148,9 @@ require_once __DIR__ . '/includes/header.php';
             <div class="d-flex gap-2">
                 <?php if ($curr_user_role !== 'customer'): ?>
                     <?php if ($is_customer_copy): ?>
-                        <a href="?ref=<?= urlencode($ref) ?>" class="btn btn-secondary-glass py-2 px-3 small"><i class="fa-solid fa-user-secret me-2"></i>Agent Copy</a>
+                        <a href="?ref=<?= urlencode($ref) ?>&view=agent" class="btn btn-secondary-glass py-2 px-3 small"><i class="fa-solid fa-user-secret me-2"></i>Agent Copy</a>
                     <?php else: ?>
-                        <a href="?ref=<?= urlencode($ref) ?>&view=customer" class="btn btn-secondary-glass py-2 px-3 small"><i class="fa-solid fa-users me-2"></i>Customer Copy (Original Price)</a>
+                        <a href="?ref=<?= urlencode($ref) ?>&view=customer" class="btn btn-secondary-glass py-2 px-3 small"><i class="fa-solid fa-users me-2"></i>Customer Copy</a>
                     <?php endif; ?>
                 <?php endif; ?>
                 <a href="<?= BASE_URL ?>/ticket_pdf.php?ref=<?= urlencode($ref) ?><?= $is_customer_copy ? '&view=customer' : '' ?>" target="_blank" class="btn btn-primary-gradient py-2 px-4 fw-bold"><i class="fa-solid fa-file-pdf me-2"></i>Download E-Ticket PDF</a>

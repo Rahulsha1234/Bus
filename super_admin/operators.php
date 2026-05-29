@@ -95,7 +95,7 @@ try {
         <div class="text-center py-5 text-secondary small">No bus operators registered on the platform yet.</div>
     <?php else: ?>
         <div class="table-responsive">
-            <table class="table table-swift table-dark table-hover table-borderless align-middle">
+            <table class="table table-swift table-dark table-hover table-borderless align-middle datatable-swift">
                 <thead>
                     <tr>
                         <th>Username</th>

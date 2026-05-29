@@ -1,12 +1,12 @@
 <?php
+
 /**
  * Route Scheduler CRUD (Full CRUD Support)
  */
 require_once __DIR__ . '/header.php';
 ?>
-<!-- Flatpickr CSS & Dark Theme for 24-hour time selector -->
+<!-- Flatpickr CSS for 24-hour time selector -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <?php
 
@@ -227,7 +227,7 @@ try {
         </div>
     <?php else: ?>
         <div class="table-responsive">
-            <table class="table table-swift table-dark table-hover table-borderless align-middle">
+            <table class="table table-swift table-dark table-hover table-borderless align-middle datatable-swift">
                 <thead>
                     <tr>
                         <th>Origin City</th>
@@ -242,7 +242,7 @@ try {
                     <?php foreach ($routes as $route):
                         $pickups = json_decode($route['pickup_points'], true) ?? [];
                         $drops = json_decode($route['drop_points'], true) ?? [];
-                        ?>
+                    ?>
                         <tr>
                             <td><span class="fw-semibold text-white fs-6"><?= strtoupper(htmlspecialchars($route['source'])) ?></span></td>
                             <td><span class="fw-semibold text-white fs-6"><?= strtoupper(htmlspecialchars($route['destination'])) ?></span>
@@ -308,7 +308,7 @@ try {
 
                     <div class="row">
                         <div class="col-md-3 mb-3">
-                            <label class="form-label text-secondary small fw-semibold">Leaving From (Source)</label>
+                            <label class="form-label text-secondary small fw-semibold">Origin (Strating Point)</label>
                             <input type="text" name="source" class="form-control form-control-swift"
                                 placeholder="e.g. Bangalore" required>
                         </div>
@@ -489,7 +489,7 @@ try {
 </div>
 
 <script>
-    $(document).ready(function () {
+    $(document).ready(function() {
         // Helper to initialize flatpickr for 24-hour time picking
         function initTimePicker(element) {
             flatpickr(element, {
@@ -506,12 +506,12 @@ try {
         initTimePicker('.time-picker-24h');
 
         // Fill delete values
-        $('.delete-route-btn').click(function () {
+        $('.delete-route-btn').click(function() {
             $('#delete_route_id').val($(this).data('id'));
         });
 
         // Handle Edit trigger
-        $('.edit-route-btn').click(function () {
+        $('.edit-route-btn').click(function() {
             $('#edit_route_id').val($(this).data('id'));
             $('#edit_source').val($(this).data('source'));
             $('#edit_destination').val($(this).data('destination'));
@@ -524,7 +524,7 @@ try {
 
             var pickupsContainer = $('#editPickupRowsContainer');
             pickupsContainer.empty();
-            pickups.forEach(function (p) {
+            pickups.forEach(function(p) {
                 var $row = $('<div class="row g-2 mb-2 alignment-row">' +
                     '<div class="col-11"><input type="text" name="pickup_name[]" class="form-control form-control-swift py-1" value="' + p.name + '" required><input type="hidden" name="pickup_time[]" value="00:00"></div>' +
                     '<div class="col-1 d-flex align-items-center"><button type="button" class="btn btn-link text-danger p-0 delete-row-btn"><i class="fa-solid fa-trash-can"></i></button></div>' +
@@ -534,7 +534,7 @@ try {
 
             var dropsContainer = $('#editDropRowsContainer');
             dropsContainer.empty();
-            drops.forEach(function (d) {
+            drops.forEach(function(d) {
                 var $row = $('<div class="row g-2 mb-2 alignment-row">' +
                     '<div class="col-11"><input type="text" name="drop_name[]" class="form-control form-control-swift py-1" value="' + d.name + '" required><input type="hidden" name="drop_time[]" value="00:00"></div>' +
                     '<div class="col-1 d-flex align-items-center"><button type="button" class="btn btn-link text-danger p-0 delete-row-btn"><i class="fa-solid fa-trash-can"></i></button></div>' +
@@ -544,7 +544,7 @@ try {
         });
 
         // Dynamic row addition for Pickups (ADD)
-        $('#addPickupRowBtn').click(function () {
+        $('#addPickupRowBtn').click(function() {
             var $row = $('<div class="row g-2 mb-2 alignment-row">' +
                 '<div class="col-11"><input type="text" name="pickup_name[]" class="form-control form-control-swift py-1" placeholder="Station name" required><input type="hidden" name="pickup_time[]" value="00:00"></div>' +
                 '<div class="col-1 d-flex align-items-center"><button type="button" class="btn btn-link text-danger p-0 delete-row-btn"><i class="fa-solid fa-trash-can"></i></button></div>' +
@@ -553,7 +553,7 @@ try {
         });
 
         // Dynamic row addition for Drops (ADD)
-        $('#addDropRowBtn').click(function () {
+        $('#addDropRowBtn').click(function() {
             var $row = $('<div class="row g-2 mb-2 alignment-row">' +
                 '<div class="col-11"><input type="text" name="drop_name[]" class="form-control form-control-swift py-1" placeholder="Station name" required><input type="hidden" name="drop_time[]" value="00:00"></div>' +
                 '<div class="col-1 d-flex align-items-center"><button type="button" class="btn btn-link text-danger p-0 delete-row-btn"><i class="fa-solid fa-trash-can"></i></button></div>' +
@@ -562,7 +562,7 @@ try {
         });
 
         // Dynamic row addition for Pickups (EDIT)
-        $('#editAddPickupRowBtn').click(function () {
+        $('#editAddPickupRowBtn').click(function() {
             var $row = $('<div class="row g-2 mb-2 alignment-row">' +
                 '<div class="col-11"><input type="text" name="pickup_name[]" class="form-control form-control-swift py-1" placeholder="Station name" required><input type="hidden" name="pickup_time[]" value="00:00"></div>' +
                 '<div class="col-1 d-flex align-items-center"><button type="button" class="btn btn-link text-danger p-0 delete-row-btn"><i class="fa-solid fa-trash-can"></i></button></div>' +
@@ -571,7 +571,7 @@ try {
         });
 
         // Dynamic row addition for Drops (EDIT)
-        $('#editAddDropRowBtn').click(function () {
+        $('#editAddDropRowBtn').click(function() {
             var $row = $('<div class="row g-2 mb-2 alignment-row">' +
                 '<div class="col-11"><input type="text" name="drop_name[]" class="form-control form-control-swift py-1" placeholder="Station name" required><input type="hidden" name="drop_time[]" value="00:00"></div>' +
                 '<div class="col-1 d-flex align-items-center"><button type="button" class="btn btn-link text-danger p-0 delete-row-btn"><i class="fa-solid fa-trash-can"></i></button></div>' +
@@ -580,8 +580,13 @@ try {
         });
 
         // Handle dynamically added row removal
-        $(document).on('click', '.delete-row-btn', function () {
+        $(document).on('click', '.delete-row-btn', function() {
             $(this).closest('.alignment-row').remove();
+        });
+
+        // Automatically convert route setup input values to uppercase as user types
+        $(document).on('input', 'input[name="source"], input[name="destination"], input[name="duration"], input[name="pickup_name[]"], input[name="drop_name[]"]', function() {
+            this.value = this.value.toUpperCase();
         });
     });
 </script>

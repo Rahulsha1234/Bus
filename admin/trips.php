@@ -4,9 +4,8 @@
  */
 require_once __DIR__ . '/header.php';
 ?>
-<!-- Flatpickr CSS & Dark Theme for 24-hour time selector -->
+<!-- Flatpickr CSS for 24-hour time selector -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <?php
 
@@ -234,7 +233,7 @@ try {
         </div>
     <?php else: ?>
         <div class="table-responsive">
-            <table class="table table-swift table-dark table-hover table-borderless align-middle">
+            <table class="table table-swift table-dark table-hover table-borderless align-middle datatable-swift">
                 <thead>
                     <tr>
                         <th>Bus details</th>
@@ -346,17 +345,17 @@ try {
                         <h6 class="text-white fw-bold mb-3 small text-uppercase">Agent Partner Discount</h6>
                         <div class="col-md-4 mb-3">
                             <label class="form-label text-secondary small fw-semibold">Discount Type</label>
-                            <select name="discount_type" class="form-select form-control-swift">
+                            <select name="discount_type" id="add_discount_type" class="form-select form-control-swift">
                                 <option value="none">None</option>
                                 <option value="percentage">Percentage (%)</option>
                                 <option value="fixed">Fixed (₹)</option>
                             </select>
                         </div>
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-4 mb-3" id="add_percentage_wrapper">
                             <label class="form-label text-secondary small fw-semibold">Percentage (%)</label>
                             <input type="number" name="percentage" class="form-control form-control-swift" min="0" max="100" step="0.01" value="0.00">
                         </div>
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-4 mb-3" id="add_fixed_wrapper">
                             <label class="form-label text-secondary small fw-semibold">Fixed (₹)</label>
                             <input type="number" name="fixed" class="form-control form-control-swift" min="0" step="0.01" value="0.00">
                         </div>
@@ -427,11 +426,11 @@ try {
                                 <option value="fixed">Fixed (₹)</option>
                             </select>
                         </div>
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-4 mb-3" id="edit_percentage_wrapper">
                             <label class="form-label text-secondary small fw-semibold">Percentage (%)</label>
                             <input type="number" name="percentage" id="edit_percentage" class="form-control form-control-swift" min="0" max="100" step="0.01">
                         </div>
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-4 mb-3" id="edit_fixed_wrapper">
                             <label class="form-label text-secondary small fw-semibold">Fixed (₹)</label>
                             <input type="number" name="fixed" id="edit_fixed" class="form-control form-control-swift" min="0" step="0.01">
                         </div>
@@ -485,8 +484,35 @@ $(document).ready(function() {
         dateFormat: "Y-m-d H:i",
         time_24hr: true,
         disableMobile: true,
-        allowInput: true
+        allowInput: true,
+        minDate: "today"
     });
+
+    function toggleDiscountFields(prefix) {
+        var type = $('#' + prefix + '_discount_type').val();
+        if (type === 'percentage') {
+            $('#' + prefix + '_percentage_wrapper').show();
+            $('#' + prefix + '_fixed_wrapper').hide();
+        } else if (type === 'fixed') {
+            $('#' + prefix + '_percentage_wrapper').hide();
+            $('#' + prefix + '_fixed_wrapper').show();
+        } else {
+            $('#' + prefix + '_percentage_wrapper').hide();
+            $('#' + prefix + '_fixed_wrapper').hide();
+        }
+    }
+
+    // Bind change events
+    $('#add_discount_type').change(function() {
+        toggleDiscountFields('add');
+    });
+    $('#edit_discount_type').change(function() {
+        toggleDiscountFields('edit');
+    });
+
+    // Run on load
+    toggleDiscountFields('add');
+    toggleDiscountFields('edit');
 
     $('.delete-trip-btn').click(function() {
         $('#delete_trip_id').val($(this).data('id'));
@@ -511,6 +537,9 @@ $(document).ready(function() {
         $('#edit_percentage').val($(this).data('percentage'));
         $('#edit_fixed').val($(this).data('fixed'));
         $('#edit_status').val($(this).data('status'));
+
+        // Trigger dynamic fields check on edit load
+        toggleDiscountFields('edit');
     });
 });
 </script>

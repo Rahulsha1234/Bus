@@ -183,7 +183,7 @@ foreach ($db_seats as $s) {
 
                 <div class="mb-4">
                     <label class="form-label text-secondary small fw-semibold">Seat Price (₹)</label>
-                    <input type="number" name="seat_price" id="seat_price" class="form-control form-control-swift" value="<?= htmlspecialchars($trip['base_fare']) ?>" min="50" step="10" required>
+                    <input type="number" name="seat_price" id="seat_price" class="form-control form-control-swift" value="<?= htmlspecialchars($trip['base_fare']) ?>" min="50" step="any" required>
                 </div>
 
                 <button type="submit" id="btnApplyPricing" class="btn btn-primary-gradient w-100 py-3 font-semibold">

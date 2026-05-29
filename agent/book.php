@@ -252,7 +252,12 @@ try {
     <!-- Booking Summary & Parameters Side Panel -->
     <div class="col-lg-5">
         <div class="glass-card p-4 shadow-lg">
-            <h4 class="fw-bold text-white mb-4"><i class="fa-solid fa-receipt text-indigo me-2"></i>Reservation Details</h4>
+            <div class="d-flex align-items-center justify-content-between mb-4">
+                <h4 class="fw-bold text-white mb-0"><i class="fa-solid fa-receipt text-indigo me-2"></i>Reservation Details</h4>
+                <button type="button" id="btnAgentTooltip" class="btn btn-secondary-glass py-1 px-2 rounded-3 small" style="font-size: 0.8rem;" title="View Agent Pricing Breakdown">
+                    <i class="fa-solid fa-circle-info text-warning me-1"></i> Agent Info
+                </button>
+            </div>
             
             <div class="p-3 mb-4 rounded-4 bg-dark bg-opacity-30 border border-secondary border-opacity-15 small text-secondary">
                 <div class="d-flex justify-content-between mb-2"><span>Voyage Class</span><span class="text-white fw-bold"><?= htmlspecialchars($trip['bus_name']) ?></span></div>
@@ -298,10 +303,10 @@ try {
 
                 <div class="p-3 mb-4 rounded-4 bg-dark bg-opacity-20 border border-secondary border-opacity-15" id="agent_seats_preview" style="display: none;">
                     <div class="d-flex justify-content-between text-secondary small mb-2"><span>Seats Selected</span><span class="text-white fw-bold font-monospace" id="lblSeatsList">--</span></div>
-                    <div class="d-flex justify-content-between text-secondary small mb-2"><span>Fare Price (Gross)</span><span class="text-white" id="lblGrossFare">₹0.00</span></div>
-                    <div class="d-flex justify-content-between text-secondary small mb-2"><span>Agent Discount</span><span class="text-warning fw-bold" id="lblDiscount">₹0.00</span></div>
+                    <div class="d-flex justify-content-between text-secondary small mb-2"><span>Base Ticket Fare</span><span class="text-white" id="lblGrossFare">₹0.00</span></div>
+                    <div class="d-flex justify-content-between text-secondary small mb-2" style="display: none !important;"><span>Agent Discount</span><span class="text-warning fw-bold" id="lblDiscount">₹0.00</span></div>
                     <div class="d-flex justify-content-between text-white fw-bold fs-5 pt-3 border-top border-secondary border-opacity-20">
-                        <span>Total Paid Fare</span>
+                        <span>Total Amount</span>
                         <span class="text-success" id="lblFinalFare">₹0.00</span>
                     </div>
                 </div>
@@ -389,7 +394,7 @@ $(document).ready(function() {
                     var box = $('<div class="console-seat-box ' + seat.status + isSelected + typeClass + '" data-seat="' + seat.number + '">' +
                         (isSleeper ? '<div style="width:28px;height:6px;background:currentColor;border-radius:3px;opacity:0.5;margin-bottom:4px;"></div>' : '') +
                         '<span>' + seat.number + '</span>' +
-                        '<span class="price-lbl">₹' + seat.price.toFixed(0) + '</span>' +
+                        '<span class="price-lbl">₹' + seat.original_price.toFixed(0) + '</span>' +
                         '</div>');
 
                     box.click(handleSeatClick(seat));
@@ -465,16 +470,64 @@ $(document).ready(function() {
         $('#lblSeatsList').text(selectedSeats.join(', '));
         $('#lblGrossFare').text('₹' + gross.toFixed(2));
         $('#lblDiscount').text('₹' + discount.toFixed(2));
-        $('#lblFinalFare').text('₹' + finalFare.toFixed(2));
+        $('#lblFinalFare').text('₹' + gross.toFixed(2));
+
+        // Update Agent Info Modal
+        $('#modalSeats').text(selectedSeats.join(', '));
+        $('#modalGross').text('₹' + gross.toFixed(2));
+        $('#modalDiscount').text('₹' + discount.toFixed(2));
+        $('#modalNet').text('₹' + finalFare.toFixed(2));
 
         $('#post_seats_value').val(selectedSeats.join(','));
         $('#agent_seats_preview').show();
         $('#btnGoCheckout').removeClass('disabled');
     }
 
+    $('#btnAgentTooltip').click(function() {
+        if (selectedSeats.length === 0) {
+            alert("Please select at least one seat first.");
+            return;
+        }
+        $('#agentInfoModal').modal('show');
+    });
+
     renderGrid();
 });
 </script>
+
+<!-- AGENT INFO MODAL -->
+<div class="modal fade" id="agentInfoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-card border-secondary text-white shadow-2xl" style="border-radius: 20px; background: #121829;">
+            <div class="modal-header border-secondary p-4">
+                <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-user-secret text-warning me-2"></i>Agent Pricing Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="d-flex justify-content-between mb-2 text-secondary small">
+                    <span>Seats Selected:</span>
+                    <span class="text-white fw-bold font-monospace" id="modalSeats">--</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2 text-secondary small">
+                    <span>Public Gross Fare:</span>
+                    <span class="text-white" id="modalGross">₹0.00</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2 text-warning small">
+                    <span>Agent Discount:</span>
+                    <span class="fw-bold" id="modalDiscount">₹0.00</span>
+                </div>
+                <hr class="border-secondary border-opacity-30 my-3">
+                <div class="d-flex justify-content-between align-items-center text-white fw-bold fs-5">
+                    <span>Net Payable (Agent):</span>
+                    <span class="text-success" id="modalNet">₹0.00</span>
+                </div>
+            </div>
+            <div class="modal-footer border-0 p-3 bg-dark bg-opacity-20 text-center text-secondary small" style="border-radius: 0 0 20px 20px; justify-content: center;">
+                <span><i class="fa-solid fa-shield-halved me-1"></i> Customer will only see public fare on checkout.</span>
+            </div>
+        </div>
+    </div>
+</div>
 
 <?php
 require_once __DIR__ . '/footer.php';

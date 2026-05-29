@@ -53,7 +53,13 @@ try {
     $trips = $stmt->fetchAll();
 
     // Fetch unique sources from active routes only for the modify search panel
-    $sources_stmt = $pdo->query("SELECT DISTINCT source FROM routes WHERE status = 'active' ORDER BY source ASC");
+    $sources_stmt = $pdo->query("
+        SELECT DISTINCT r.source 
+        FROM routes r 
+        JOIN trips t ON r.id = t.route_id 
+        WHERE r.status = 'active' AND t.status = 'active' AND t.departure_time >= NOW() 
+        ORDER BY r.source ASC
+    ");
     $sources = $sources_stmt->fetchAll(PDO::FETCH_COLUMN);
 } catch (PDOException $e) {
     die("Database search failed: " . $e->getMessage());
@@ -82,7 +88,7 @@ require_once __DIR__ . '/includes/header.php';
                 <label for="source" class="form-label text-secondary small fw-semibold">Leaving From</label>
                 <div class="input-group">
                     <span class="input-group-text bg-dark border-secondary border-end-0 text-secondary" style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-location-dot"></i></span>
-                    <select name="source" id="source" class="form-select form-control-swift border-start-0" style="border-radius: 0 12px 12px 0;" required>
+                    <select name="source" id="source" class="form-select form-control-swift border-start-0 select2-searchable" style="border-radius: 0 12px 12px 0;" required>
                         <option value="">Select Origin...</option>
                         <?php foreach ($sources as $src): ?>
                             <option value="<?= htmlspecialchars($src) ?>" <?= $src === $source ? 'selected' : '' ?>><?= htmlspecialchars($src) ?></option>
@@ -103,7 +109,7 @@ require_once __DIR__ . '/includes/header.php';
                 <label for="destination" class="form-label text-secondary small fw-semibold">Going To</label>
                 <div class="input-group">
                     <span class="input-group-text bg-dark border-secondary border-end-0 text-secondary" style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-location-crosshairs"></i></span>
-                    <select name="destination" id="destination" class="form-select form-control-swift border-start-0" style="border-radius: 0 12px 12px 0;" required>
+                    <select name="destination" id="destination" class="form-select form-control-swift border-start-0 select2-searchable" style="border-radius: 0 12px 12px 0;" required>
                         <option value="">Select Destination...</option>
                         <option value="<?= htmlspecialchars($destination) ?>" selected><?= htmlspecialchars($destination) ?></option>
                     </select>

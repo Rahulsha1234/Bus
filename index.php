@@ -9,7 +9,13 @@ $page_title = "Book Bus Tickets";
 
 // Fetch unique sources from active routes only
 try {
-    $sources_stmt = $pdo->query("SELECT DISTINCT source FROM routes WHERE status = 'active' ORDER BY source ASC");
+    $sources_stmt = $pdo->query("
+        SELECT DISTINCT r.source 
+        FROM routes r 
+        JOIN trips t ON r.id = t.route_id 
+        WHERE r.status = 'active' AND t.status = 'active' AND t.departure_time >= NOW() 
+        ORDER BY r.source ASC
+    ");
     $sources = $sources_stmt->fetchAll(PDO::FETCH_COLUMN);
 
     // Fetch active schedules (trips) with route details and bus details
@@ -102,7 +108,7 @@ require_once __DIR__ . '/includes/header.php';
                     <div class="input-group">
                         <span class="input-group-text bg-light border-end-0 text-secondary"
                             style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-location-dot"></i></span>
-                        <select name="source" id="source" class="form-select border-start-0 bg-light"
+                        <select name="source" id="source" class="form-select border-start-0 bg-light select2-searchable"
                             style="border-radius: 0 12px 12px 0; padding: 0.75rem;" required>
                             <option value="">Select Origin...</option>
                             <?php foreach ($sources as $src): ?>
@@ -126,7 +132,7 @@ require_once __DIR__ . '/includes/header.php';
                     <div class="input-group">
                         <span class="input-group-text bg-light border-end-0 text-secondary"
                             style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-location-crosshairs"></i></span>
-                        <select name="destination" id="destination" class="form-select border-start-0 bg-light"
+                        <select name="destination" id="destination" class="form-select border-start-0 bg-light select2-searchable"
                             style="border-radius: 0 12px 12px 0; padding: 0.75rem;" required>
                             <option value="">Select Destination...</option>
                         </select>

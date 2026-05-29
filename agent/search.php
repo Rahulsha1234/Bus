@@ -13,7 +13,8 @@ try {
     $sources_stmt = $pdo->prepare("
         SELECT DISTINCT r.source 
         FROM routes r 
-        WHERE r.admin_id = ? AND r.status = 'active' 
+        JOIN trips t ON r.id = t.route_id
+        WHERE r.admin_id = ? AND r.status = 'active' AND t.status = 'active' AND t.departure_time >= NOW()
         ORDER BY r.source ASC
     ");
     $sources_stmt->execute([$parent_admin_id]);
@@ -27,7 +28,12 @@ try {
                 t.id AS trip_id,
                 t.departure_time,
                 t.arrival_time,
-                t.base_fare,
+                COALESCE(
+                    (SELECT MIN(custom_price) FROM seat_price_overrides WHERE trip_id = t.id AND custom_price > 0),
+                    (SELECT MIN(current_price) FROM seat_pricing WHERE trip_id = t.id AND current_price > 0),
+                    (SELECT MIN(base_price) FROM bus_seats bs WHERE bs.bus_id = b.id AND bs.base_price > 0 AND bs.is_active = 1),
+                    t.base_fare
+                ) AS base_fare,
                 t.discount_type,
                 t.percentage,
                 t.fixed,
@@ -70,7 +76,7 @@ try {
             <label for="source" class="form-label text-secondary small fw-semibold">Leaving From</label>
             <div class="input-group">
                 <span class="input-group-text bg-dark border-secondary border-end-0 text-secondary" style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-location-dot"></i></span>
-                <select name="source" id="source" class="form-select form-control-swift border-start-0" style="border-radius: 0 12px 12px 0;" required>
+                <select name="source" id="source" class="form-select form-control-swift border-start-0 select2-searchable" style="border-radius: 0 12px 12px 0;" required>
                     <option value="">Select Origin...</option>
                     <?php foreach ($sources as $src): ?>
                         <option value="<?= htmlspecialchars($src) ?>" <?= $src === $source ? 'selected' : '' ?>><?= htmlspecialchars($src) ?></option>
@@ -91,7 +97,7 @@ try {
             <label for="destination" class="form-label text-secondary small fw-semibold">Going To</label>
             <div class="input-group">
                 <span class="input-group-text bg-dark border-secondary border-end-0 text-secondary" style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-location-crosshairs"></i></span>
-                <select name="destination" id="destination" class="form-select form-control-swift border-start-0" style="border-radius: 0 12px 12px 0;" required>
+                <select name="destination" id="destination" class="form-select form-control-swift border-start-0 select2-searchable" style="border-radius: 0 12px 12px 0;" required>
                     <option value="">Select Destination...</option>
                 </select>
             </div>
@@ -221,11 +227,18 @@ try {
                             <!-- Price & Seats Display -->
                             <div class="col-md-3 text-center text-md-end">
                                 <div class="mb-2">
-                                    <span class="text-secondary small d-block">Original: <del>₹<?= number_format($original, 2) ?></del></span>
-                                    <span class="text-secondary small">Agent Fare: </span>
-                                    <span class="fs-4 fw-bold text-success">₹<?= number_format($final, 2) ?></span>
-                                    <?php if ($discount > 0): ?>
-                                        <span class="badge bg-success bg-opacity-10 text-success ms-1 small" style="font-size:0.7rem;">Save ₹<?= number_format($discount) ?></span>
+                                    <span class="text-secondary small">Fare: </span>
+                                    <span class="fs-4 fw-bold text-success">₹<?= number_format($original, 2) ?></span>
+                                    <?php 
+                                        $pct_label = '';
+                                        if ($trip['discount_type'] === 'percentage' && floatval($trip['percentage']) > 0) {
+                                            $pct_label = floatval($trip['percentage']) . '% Comm';
+                                        } elseif ($trip['discount_type'] === 'fixed' && floatval($trip['fixed']) > 0 && $original > 0) {
+                                            $pct_label = round((floatval($trip['fixed']) / $original) * 100, 0) . '% Comm';
+                                        }
+                                    ?>
+                                    <?php if (!empty($pct_label)): ?>
+                                        <span class="badge bg-warning text-dark ms-1 small" style="font-size:0.7rem; font-weight:600;"><?= $pct_label ?></span>
                                     <?php endif; ?>
                                 </div>
                                 

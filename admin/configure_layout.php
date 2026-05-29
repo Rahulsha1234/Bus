@@ -172,6 +172,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
                 $pdo->commit();
                 $success = "Visual seating layout saved successfully!";
+                $js_redirect = "buses.php?success=" . urlencode($success);
             } catch (Exception $e) {
                 $pdo->rollBack();
                 $error = "Failed to save layout: " . $e->getMessage();
@@ -252,19 +253,20 @@ $templates = $templates_stmt->fetchAll();
         <div class="glass-card p-4">
             <h5 class="fw-bold mb-3"><i class="fa-solid fa-sliders text-indigo me-2"></i>Layout Dimensions</h5>
             <div class="mb-3">
+                <label class="form-label text-secondary small fw-semibold">Class Classification</label>
+                <select id="layout_type" class="form-select form-control-swift">
+                    <?php foreach (get_vehicle_classifications() as $val => $info): ?>
+                        <option value="<?= htmlspecialchars($val) ?>" <?= $layout_type === $val ? 'selected' : '' ?>><?= htmlspecialchars($info['display']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="mb-3">
                 <label class="form-label text-secondary small fw-semibold">Grid Rows</label>
-                <input type="number" id="grid_rows" class="form-control form-control-swift" value="<?= $rows_count ?>" min="1" max="15">
+                <select id="grid_rows" class="form-select form-control-swift"></select>
             </div>
             <div class="mb-3">
                 <label class="form-label text-secondary small fw-semibold">Grid Columns</label>
-                <input type="number" id="grid_cols" class="form-control form-control-swift" value="<?= $cols_count ?>" min="3" max="8">
-            </div>
-            <div class="mb-3">
-                <label class="form-label text-secondary small fw-semibold">Class Classification</label>
-                <select id="layout_type" class="form-select form-control-swift">
-                    <option value="Sleeper" <?= $layout_type === 'Sleeper' ? 'selected' : '' ?>>Full Sleeper Layout</option>
-                    <option value="Seater" <?= $layout_type === 'Seater' ? 'selected' : '' ?>>Full Seater Layout (2x2)</option>
-                </select>
+                <select id="grid_cols" class="form-select form-control-swift"></select>
             </div>
 
             <hr class="border-secondary mb-4">
@@ -489,8 +491,8 @@ $templates = $templates_stmt->fetchAll();
 <script>
 $(document).ready(function() {
     var seats = <?= json_encode($seats_json) ?>;
-    var rows = parseInt($('#grid_rows').val());
-    var cols = parseInt($('#grid_cols').val());
+    var rows = <?= $rows_count ?>;
+    var cols = <?= $cols_count ?>;
 
     // Render visual grid
     function renderGrid() {
@@ -747,12 +749,33 @@ $(document).ready(function() {
         };
     }
 
+    function updateDropdownOptions(type, current_row, current_col) {
+        var maxRows = type === 'Sleeper' ? 14 : 7;
+        var maxCols = 5;
+
+        // Populate rows
+        var rowSelect = $('#grid_rows');
+        rowSelect.empty();
+        for (var i = 1; i <= maxRows; i++) {
+            var selected = i === current_row ? ' selected' : '';
+            rowSelect.append('<option value="' + i + '"' + selected + '>' + i + ' Rows</option>');
+        }
+
+        // Populate columns
+        var colSelect = $('#grid_cols');
+        colSelect.empty();
+        for (var j = 1; j <= maxCols; j++) {
+            var selected = j === current_col ? ' selected' : '';
+            colSelect.append('<option value="' + j + '"' + selected + '>' + j + ' Columns</option>');
+        }
+    }
+
     // Grid resize update on input change at runtime instantly
     function updateGridDimensions() {
         var rVal = parseInt($('#grid_rows').val());
         var cVal = parseInt($('#grid_cols').val());
         if (isNaN(rVal) || rVal < 1) rVal = 1;
-        if (isNaN(cVal) || cVal < 3) cVal = 3;
+        if (isNaN(cVal) || cVal < 1) cVal = 1;
         rows = rVal;
         cols = cVal;
         // Clean seats outside the new range
@@ -760,20 +783,16 @@ $(document).ready(function() {
         renderGrid();
     }
 
-    // Trigger update immediately when user types or clicks arrows
-    $('#grid_rows, #grid_cols').on('input change', updateGridDimensions);
-    
-    // Keep button click fallback
-    $('#btnUpdateGrid').click(updateGridDimensions);
+    // Trigger update immediately when select dropdown changes
+    $('#grid_rows, #grid_cols').on('change', updateGridDimensions);
 
     // Apply pre-configured layout presets dynamically based on class selection
     function applyLayoutPreset(type) {
         seats = []; // Clear existing seats
         
         if (type === 'Sleeper') {
-            $('#grid_rows').val(16);
-            $('#grid_cols').val(5);
-            rows = 16;
+            updateDropdownOptions('Sleeper', 14, 5);
+            rows = 14;
             cols = 5;
             
             for (var r = 0; r < rows; r += 2) {
@@ -788,14 +807,13 @@ $(document).ready(function() {
             }
             
         } else if (type === 'Seater') {
-            $('#grid_rows').val(10);
-            $('#grid_cols').val(5);
-            rows = 10;
+            updateDropdownOptions('Seater', 7, 5);
+            rows = 7;
             cols = 5;
             
             for (var r = 0; r < rows; r++) {
                 var letter = String.fromCharCode(65 + r); // A, B, C...
-                if (r === 9) { // Last row has all 5 seats, no walkway
+                if (r === 6) { // Last row has all 5 seats, no walkway
                     seats.push({ number: letter + '1', row: r, col: 0, type: 'Normal', active: 1, price: 500.00 });
                     seats.push({ number: letter + '2', row: r, col: 1, type: 'Normal', active: 1, price: 500.00 });
                     seats.push({ number: letter + '3', row: r, col: 2, type: 'Normal', active: 1, price: 500.00 });
@@ -836,6 +854,8 @@ $(document).ready(function() {
     });
 
     // Load dynamic defaults on new setups
+    updateDropdownOptions($('#layout_type').val(), rows, cols);
+
     if (seats.length === 0) {
         applyLayoutPreset($('#layout_type').val());
     } else {
