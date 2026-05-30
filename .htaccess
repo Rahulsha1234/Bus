@@ -1,5 +1,0 @@
-# Redirect all non-existent pages/directories to login.php
-RewriteEngine On
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^(.*)$ /login.php [R=302,L]
