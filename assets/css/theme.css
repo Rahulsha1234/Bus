@@ -1,0 +1,56 @@
+/**
+ * Centralized Theme System - CSS Custom Properties
+ */
+:root {
+    /* DEFAULT LIGHT MODE VARIABLES */
+    --bg-primary: #FAF7F0;
+    --bg-secondary: #FAF7F0;
+    --card-bg: #FFFDF8;
+    --accent-primary: #0F5132;
+    --accent-secondary: #146C43;
+    --text-primary: #212529;
+    --text-secondary: #6C757D;
+    --border-color: #E6DFD3;
+
+    /* System States */
+    --success: #0F5132;
+    --warning: #D4AF37;
+    --danger: #DC3545;
+    --indigo: #0F5132;
+    --indigo-rgb: 15, 81, 50;
+    --accent-gold: #D4AF37;
+
+    /* Layout Constants */
+    --border-glass: rgba(212, 175, 55, 0.25);
+    --shadow-diffusion: 0 10px 30px -10px rgba(15, 81, 50, 0.08);
+}
+
+/* DARK MODE OVERRIDES */
+[data-theme="dark"] {
+    --bg-primary: #000000;
+    --bg-secondary: #080808;
+    --card-bg: #111111;
+    --accent-primary: #198754;
+    --accent-secondary: #146C43;
+    --text-primary: #FFFFFF;
+    --text-secondary: #A0A2A6;
+    --border-color: #1f1f1f;
+
+    /* System States */
+    --success: #198754;
+    --warning: #EAB308;
+    --danger: #EF4444;
+    --indigo: #198754;
+    --indigo-rgb: 25, 135, 84;
+    --accent-gold: #EAB308;
+
+    /* Layout Constants */
+    --border-glass: rgba(255, 255, 255, 0.08);
+    --shadow-diffusion: 0 10px 30px -10px rgba(0, 0, 0, 0.6);
+}
+
+body {
+    background-color: var(--bg-primary) !important;
+    color: var(--text-primary) !important;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
