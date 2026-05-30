@@ -61,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         // 2. Schedule Trip
                         $stmt = $pdo->prepare("
                             INSERT INTO trips (bus_id, route_id, admin_id, departure_time, arrival_time, base_fare, discount_type, percentage, fixed, status) 
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE')
                         ");
                         $stmt->execute([$bus_id, $route_id, $admin_id, $dep_time, $arr_time, $fare, $discount_type, $percentage, $fixed]);
                         $trip_id = $pdo->lastInsertId();
@@ -154,7 +154,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $dep_time = $_POST['departure_time'] ?? '';
             $arr_time = $_POST['arrival_time'] ?? '';
             $fare = floatval($_POST['base_fare'] ?? 0.00);
-            $status = $_POST['status'] ?? 'active';
+            $status = $_POST['status'] ?? 'ACTIVE';
             $discount_type = $_POST['discount_type'] ?? 'none';
             $percentage = floatval($_POST['percentage'] ?? 0.00);
             $fixed = floatval($_POST['fixed'] ?? 0.00);
@@ -206,7 +206,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             if ($chk->fetchColumn()) {
                 // Soft delete trip
-                $del = $pdo->prepare("UPDATE trips SET status = 'cancelled' WHERE id = ?");
+                $del = $pdo->prepare("UPDATE trips SET status = 'CANCELLED' WHERE id = ?");
                 $del->execute([$trip_id]);
                 
                 $success = "Trip cancelled and removed successfully!";
@@ -218,15 +218,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Fetch Agent's Scheduled Trips with Pagination
+// Fetch Agent's Scheduled Trips with Pagination and Filter Lifecycle System
 try {
+    $filter = $_GET['filter'] ?? 'upcoming';
+    $params = [$admin_id];
+
+    // Aggregated statistics counters query
+    $stats_stmt = $pdo->prepare("
+        SELECT 
+            SUM(CASE WHEN t.status IN ('ACTIVE', 'active') AND t.departure_time >= NOW() THEN 1 ELSE 0 END) AS upcoming_count,
+            SUM(CASE WHEN t.status IN ('COMPLETED', 'completed') THEN 1 ELSE 0 END) AS completed_count,
+            SUM(CASE WHEN t.status IN ('CANCELLED', 'cancelled') THEN 1 ELSE 0 END) AS cancelled_count
+        FROM trips t
+        JOIN buses b ON t.bus_id = b.id
+        WHERE b.admin_id = ?
+    ");
+    $stats_stmt->execute([$admin_id]);
+    $stats = $stats_stmt->fetch();
+    $upcoming_count = intval($stats['upcoming_count'] ?? 0);
+    $completed_count = intval($stats['completed_count'] ?? 0);
+    $cancelled_count = intval($stats['cancelled_count'] ?? 0);
+
+    // Build conditional where clause for filter
+    $where = "WHERE b.admin_id = ?";
+    if ($filter === 'upcoming') {
+        $where .= " AND t.status IN ('ACTIVE', 'active') AND t.departure_time >= NOW()";
+    } elseif ($filter === 'completed') {
+        $where .= " AND t.status IN ('COMPLETED', 'completed')";
+    } elseif ($filter === 'cancelled') {
+        $where .= " AND t.status IN ('CANCELLED', 'cancelled')";
+    }
+
     $count_stmt = $pdo->prepare("
         SELECT COUNT(*) 
         FROM trips t
         JOIN buses b ON t.bus_id = b.id
-        WHERE b.admin_id = ? AND t.status = 'active'
+        $where
     ");
-    $count_stmt->execute([$admin_id]);
+    $count_stmt->execute($params);
     $total_records = intval($count_stmt->fetchColumn());
 
     $limit = 10;
@@ -254,11 +283,11 @@ try {
         FROM trips t
         JOIN buses b ON t.bus_id = b.id
         JOIN routes r ON t.route_id = r.id
-        WHERE b.admin_id = ? AND t.status = 'active'
+        $where
         ORDER BY t.departure_time DESC
         LIMIT " . intval($limit) . " OFFSET " . intval($offset) . "
     ");
-    $stmt->execute([$admin_id]);
+    $stmt->execute($params);
     $trips = $stmt->fetchAll();
 
     // Fetch active buses and routes lists
@@ -274,6 +303,9 @@ try {
     $trips = [];
     $agent_buses = [];
     $agent_routes = [];
+    $upcoming_count = 0;
+    $completed_count = 0;
+    $cancelled_count = 0;
 }
 ?>
 
@@ -289,9 +321,36 @@ try {
     </div>
 <?php endif; ?>
 
-<!-- Actions Toolbar -->
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h4 class="text-white fw-bold mb-0">Active Schedules</h4>
+<!-- Trip Statistics Summary Cards -->
+<div class="row g-4 mb-4 text-center">
+    <div class="col-md-4">
+        <div class="glass-card p-3" style="border-top: 3px solid #198754;">
+            <span class="text-secondary small d-block mb-1">UPCOMING TRIPS</span>
+            <span class="fs-4 fw-bold text-success font-monospace"><?= $upcoming_count ?></span>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="glass-card p-3" style="border-top: 3px solid #fbbf24;">
+            <span class="text-secondary small d-block mb-1">COMPLETED TRIPS</span>
+            <span class="fs-4 fw-bold text-warning font-monospace"><?= $completed_count ?></span>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="glass-card p-3" style="border-top: 3px solid #ef4444;">
+            <span class="text-secondary small d-block mb-1">CANCELLED TRIPS</span>
+            <span class="fs-4 fw-bold text-danger font-monospace"><?= $cancelled_count ?></span>
+        </div>
+    </div>
+</div>
+
+<!-- Actions & Filter Toolbar -->
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+    <div class="d-flex flex-wrap gap-2">
+        <a href="?filter=upcoming" class="btn <?= $filter === 'upcoming' ? 'btn-primary-gradient' : 'btn-secondary-glass' ?> py-2 px-3 small">Upcoming</a>
+        <a href="?filter=completed" class="btn <?= $filter === 'completed' ? 'btn-primary-gradient' : 'btn-secondary-glass' ?> py-2 px-3 small">Completed</a>
+        <a href="?filter=cancelled" class="btn <?= $filter === 'cancelled' ? 'btn-primary-gradient' : 'btn-secondary-glass' ?> py-2 px-3 small">Cancelled</a>
+        <a href="?filter=all" class="btn <?= $filter === 'all' ? 'btn-primary-gradient' : 'btn-secondary-glass' ?> py-2 px-3 small">All Trips</a>
+    </div>
     <button class="btn btn-primary-gradient" data-bs-toggle="modal" data-bs-target="#scheduleTripModal"><i class="fa-solid fa-circle-plus me-2"></i>Schedule Trip</button>
 </div>
 
@@ -300,7 +359,7 @@ try {
     <?php if (count($trips) === 0): ?>
         <div class="text-center py-5 text-secondary small">
             <i class="fa-solid fa-calendar-xmark mb-3 d-block" style="font-size: 3rem; color: #475569;"></i>
-            No scheduled active trips. Put your registered buses on routes to accept customer ticket sales.
+            No scheduled trips found matching the selected filter.
         </div>
     <?php else: ?>
         <div class="table-responsive">
@@ -311,7 +370,8 @@ try {
                         <th>Route details</th>
                         <th>Departure Timing</th>
                         <th>Arrival Timing</th>
-                        <th>Agent Discount</th>
+                        <th>Discount</th>
+                        <th>Status</th>
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>
@@ -337,6 +397,21 @@ try {
                                         echo 'None';
                                     }
                                     ?>
+                                </span>
+                            </td>
+                            <td>
+                                <?php
+                                $status_badge = 'bg-secondary text-white';
+                                if (strcasecmp($trip['trip_status'], 'active') === 0) {
+                                    $status_badge = 'bg-success bg-opacity-10 text-success border border-success border-opacity-25';
+                                } elseif (strcasecmp($trip['trip_status'], 'completed') === 0) {
+                                    $status_badge = 'bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25';
+                                } elseif (strcasecmp($trip['trip_status'], 'cancelled') === 0) {
+                                    $status_badge = 'bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25';
+                                }
+                                ?>
+                                <span class="badge <?= $status_badge ?> text-uppercase" style="font-size: 0.75rem;">
+                                    <?= htmlspecialchars($trip['trip_status']) ?>
                                 </span>
                             </td>
                             <td class="text-end">
@@ -537,8 +612,9 @@ try {
                     <div class="mb-3">
                         <label class="form-label text-secondary small fw-semibold">Trip Status</label>
                         <select name="status" id="edit_status" class="form-select form-control-swift" required>
-                            <option value="active">Active (Available)</option>
-                            <option value="cancelled">Cancelled</option>
+                            <option value="ACTIVE">Active (Available)</option>
+                            <option value="COMPLETED">Completed</option>
+                            <option value="CANCELLED">Cancelled</option>
                         </select>
                     </div>
                 </div>

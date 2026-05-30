@@ -86,6 +86,7 @@ try {
         <div class="col-md-3">
             <div class="d-grid gap-2 d-md-flex">
                 <button type="submit" class="btn btn-primary-gradient py-2 w-100"><i class="fa-solid fa-filter me-2"></i>Filter</button>
+                <a href="<?= BASE_URL ?>/generate_report.php?type=booking" target="_blank" class="btn btn-secondary-glass py-2" title="Export PDF Report"><i class="fa-solid fa-file-pdf"></i></a>
                 <?php if (!empty($search)): ?>
                     <a href="<?= BASE_URL ?>/admin/bookings.php" class="btn btn-secondary-glass py-2"><i class="fa-solid fa-rotate-left"></i></a>
                 <?php endif; ?>

@@ -14,7 +14,7 @@ try {
         SELECT DISTINCT r.source 
         FROM routes r 
         JOIN trips t ON r.id = t.route_id
-        WHERE r.admin_id = ? AND r.status = 'active' AND t.status = 'active' AND t.departure_time >= NOW()
+        WHERE r.admin_id = ? AND r.status = 'active' AND t.status = 'ACTIVE' AND t.departure_time >= NOW()
         ORDER BY r.source ASC
     ");
     $sources_stmt->execute([$parent_admin_id]);
@@ -52,7 +52,8 @@ try {
               AND r.destination = :destination 
               AND DATE(t.departure_time) = :date
               AND t.admin_id = :parent_admin_id
-              AND t.status = 'active'
+              AND t.status = 'ACTIVE'
+              AND t.departure_time >= NOW()
             ORDER BY t.departure_time ASC
         ");
         $stmt->execute([

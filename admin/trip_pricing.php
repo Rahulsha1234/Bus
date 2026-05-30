@@ -16,7 +16,7 @@ $stmt = $pdo->prepare("
     FROM trips t
     JOIN buses b ON t.bus_id = b.id
     JOIN routes r ON t.route_id = r.id
-    WHERE t.id = ? AND b.admin_id = ? AND t.status = 'active'
+    WHERE t.id = ? AND b.admin_id = ? AND t.status = 'ACTIVE'
     LIMIT 1
 ");
 $stmt->execute([$trip_id, $_SESSION['user_id']]);

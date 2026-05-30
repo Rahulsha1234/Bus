@@ -36,10 +36,13 @@ try {
 ?>
 
 <div class="glass-card p-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
         <div>
             <h5 class="text-white fw-bold mb-1"><i class="fa-solid fa-wallet text-indigo me-2"></i>Payout Settlement Log</h5>
             <span class="text-secondary small">Weekly commission payout logs from the Super Admin</span>
+        </div>
+        <div>
+            <a href="<?= BASE_URL ?>/generate_report.php?type=settlement" target="_blank" class="btn btn-primary-gradient"><i class="fa-solid fa-file-pdf me-2"></i>Export PDF Report</a>
         </div>
     </div>
 

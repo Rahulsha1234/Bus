@@ -164,7 +164,7 @@ CREATE TABLE trips (
     percentage DECIMAL(5,2) NOT NULL DEFAULT 0.00,
     fixed DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     seat_prices TEXT NULL, -- JSON details if any seats have premium rates
-    status ENUM('active', 'cancelled') NOT NULL DEFAULT 'active',
+    status ENUM('ACTIVE', 'COMPLETED', 'CANCELLED') NOT NULL DEFAULT 'ACTIVE',
     FOREIGN KEY (bus_id) REFERENCES buses(id) ON DELETE CASCADE,
     FOREIGN KEY (route_id) REFERENCES routes(id) ON DELETE CASCADE,
     FOREIGN KEY (admin_id) REFERENCES users(id) ON DELETE CASCADE
@@ -297,6 +297,7 @@ CREATE TABLE system_notifications (
     user_role ENUM('admin', 'agent') NOT NULL,
     message VARCHAR(255) NOT NULL,
     is_read TINYINT NOT NULL DEFAULT 0,
+    read_at TIMESTAMP NULL DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

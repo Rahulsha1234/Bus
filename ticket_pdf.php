@@ -3,6 +3,7 @@
  * Premium E-Ticket PDF / Print Controller
  */
 require_once __DIR__ . '/includes/auth_middleware.php';
+require_once __DIR__ . '/includes/pdf_template.php';
 
 $ref = $_GET['ref'] ?? '';
 if (empty($ref)) {
@@ -93,372 +94,176 @@ try {
 } catch (PDOException $e) {
     die("Error retrieving ticket: " . $e->getMessage());
 }
-?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>E-Ticket: <?= htmlspecialchars($booking['booking_reference']) ?></title>
-    <!-- Google Fonts Inter & JetBrains Mono -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-    <!-- FontAwesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        :root {
-            --bg-cream: #F8F9FA;
-            --surface-ivory: #FFFFFF;
-            --accent-gold: #0F5132;
-            --text-dark: #212529;
-            --text-muted: #6C757D;
-            --border-warm: #DEE2E6;
-        }
-        body {
-            background-color: var(--bg-cream);
-            color: var(--text-dark);
-            font-family: 'Inter', sans-serif;
-            font-size: 0.95rem;
-            padding: 40px 20px;
-        }
-        .ticket-outer {
-            max-width: 800px;
-            margin: 0 auto;
-            background-color: var(--surface-ivory);
-            border: 1px solid var(--border-warm);
-            border-radius: 24px;
-            box-shadow: 0 20px 40px -15px rgba(0,0,0,0.05);
-            padding: 45px;
-            position: relative;
-        }
-        .ticket-header {
-            border-bottom: 2px dashed var(--border-warm);
-            padding-bottom: 30px;
-            margin-bottom: 30px;
-        }
-        .logo-title {
-            font-size: 1.8rem;
-            font-weight: 800;
-            letter-spacing: -0.5px;
-        }
-        .logo-title span {
-            color: var(--accent-gold);
-        }
-        .info-label {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
-        .info-value {
-            font-weight: 600;
-            color: var(--text-dark);
-        }
-        .info-value.mono {
-            font-family: 'JetBrains Mono', monospace;
-            color: var(--accent-gold);
-        }
-        .badge-status {
-            background-color: rgba(200, 169, 107, 0.1);
-            color: var(--accent-gold);
-            border: 1px solid rgba(200, 169, 107, 0.25);
-            font-size: 0.85rem;
-            padding: 6px 16px;
-            border-radius: 50px;
-            font-weight: 700;
-        }
-        .section-title {
-            font-size: 0.85rem;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--accent-gold);
-            border-bottom: 1px solid var(--border-warm);
-            padding-bottom: 8px;
-            margin-bottom: 15px;
-        }
-        .passenger-table th {
-            font-size: 0.8rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: var(--text-muted);
-            border-bottom: 1px solid var(--border-warm);
-            background: transparent;
-        }
-        .passenger-table td {
-            padding: 12px 8px;
-            border-bottom: 1px solid rgba(231, 225, 215, 0.5);
-            background: transparent;
-        }
-        .contact-box {
-            background-color: var(--bg-cream);
-            border: 1px solid var(--border-warm);
-            border-radius: 16px;
-            padding: 20px;
-        }
-        .qr-placeholder {
-            width: 130px;
-            height: 130px;
-            padding: 8px;
-            background: white;
-            border: 1px solid var(--border-warm);
-            border-radius: 12px;
-            display: inline-block;
-        }
-        .print-btn-bar {
-            max-width: 800px;
-            margin: 0 auto 20px auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .btn-gold {
-            background-color: var(--accent-gold);
-            color: white;
-            border: none;
-            padding: 10px 24px;
-            border-radius: 12px;
-            font-weight: 600;
-            transition: all 0.2s ease;
-        }
-        .btn-gold:hover {
-            background-color: #b5955a;
-            color: white;
-        }
-        .btn-outline-warm {
-            border: 1px solid var(--border-warm);
-            color: var(--text-muted);
-            background: white;
-            padding: 10px 24px;
-            border-radius: 12px;
-            font-weight: 600;
-            text-decoration: none;
-            transition: all 0.2s ease;
-        }
-        .btn-outline-warm:hover {
-            background-color: var(--bg-cream);
-            color: var(--text-dark);
-        }
-        @media print {
-            body {
-                background: white !important;
-                padding: 0 !important;
-            }
-            .ticket-outer {
-                border: none !important;
-                box-shadow: none !important;
-                padding: 0 !important;
-            }
-            .print-btn-bar {
-                display: none !important;
-            }
-            .contact-box {
-                background: white !important;
-                border: 1px solid #ccc !important;
-            }
-        }
-    </style>
-</head>
-<body>
 
-    <div class="print-btn-bar">
-        <a href="<?= BASE_URL ?>/index.php" class="btn-outline-warm"><i class="fa-solid fa-arrow-left me-2"></i>Back to Home</a>
-        <div class="d-flex gap-2">
-            <?php if ($curr_user_role !== 'customer'): ?>
-                <?php if ($is_customer_copy): ?>
-                    <a href="?ref=<?= urlencode($booking['booking_reference']) ?>&view=agent" class="btn-outline-warm"><i class="fa-solid fa-user-secret me-2"></i>Switch to Agent Copy</a>
-                <?php else: ?>
-                    <a href="?ref=<?= urlencode($booking['booking_reference']) ?>&view=customer" class="btn-outline-warm"><i class="fa-solid fa-users me-2"></i>Switch to Customer Copy</a>
-                <?php endif; ?>
-            <?php endif; ?>
-            <button onclick="window.print()" class="btn-gold"><i class="fa-solid fa-print me-2"></i>Print E-Ticket / Save PDF</button>
+// 1. Render Header Toolbar
+$additional_buttons = '';
+if ($curr_user_role !== 'customer') {
+    if ($is_customer_copy) {
+        $additional_buttons = '<a href="?ref=' . urlencode($booking['booking_reference']) . '&view=agent" class="btn-pdf-outline"><i class="fa-solid fa-user-secret me-2"></i>Agent Copy</a>';
+    } else {
+        $additional_buttons = '<a href="?ref=' . urlencode($booking['booking_reference']) . '&view=customer" class="btn-pdf-outline"><i class="fa-solid fa-users me-2"></i>Customer Copy</a>';
+    }
+}
+render_pdf_head("E-Ticket: " . $booking['booking_reference']);
+render_pdf_toolbar("ticket.php?ref=" . urlencode($booking['booking_reference']), $additional_buttons);
+?>
+
+<div class="pdf-container">
+    <?php 
+    // 2. Render Header Component
+    $header_title = $is_customer_copy ? "E-Ticket & Boarding Pass" : "Agent Invoice copy";
+    render_pdf_header($header_title, "Booking Reference", $booking['booking_reference']); 
+    ?>
+
+    <!-- Status Highlight Row -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-6">
+            <span class="info-label">Booking Status</span>
+            <div>
+                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-2 rounded-pill fw-bold">
+                    <i class="fa-solid fa-circle-check me-1"></i> CONFIRMED & PAID
+                </span>
+            </div>
+        </div>
+        <div class="col-md-6 text-md-end">
+            <div class="info-label">Booked Date</div>
+            <div class="info-value"><?= date('d M Y, H:i', strtotime($booking['created_at'])) ?></div>
         </div>
     </div>
 
-    <div class="ticket-outer">
-        <!-- Ticket Header -->
-        <div class="ticket-header d-flex flex-wrap justify-content-between align-items-center g-3">
-            <div>
-                <div class="logo-title mb-1">Swift<span>Bus</span></div>
-                <div class="text-secondary small font-monospace">OFFICIAL E-TICKET & BOARDING PASS</div>
-            </div>
-            <div class="text-md-end">
-                <span class="badge-status">CONFIRMED & PAID</span>
-                <div class="text-muted small mt-2">Booked: <?= date('d M Y, H:i', strtotime($booking['created_at'])) ?></div>
-            </div>
-        </div>
-
-        <!-- Info row -->
-        <div class="row g-4 mb-5">
-            <div class="col-md-6 col-sm-6">
-                <div class="info-label">Ticket Reference</div>
-                <div class="fs-4 fw-bold mono"><?= htmlspecialchars($booking['booking_reference']) ?></div>
-            </div>
-            <div class="col-md-6 col-sm-6 text-md-end">
-                <!-- Inline dynamic mock QR Code using SVG -->
-                <div class="qr-placeholder">
-                    <svg viewBox="0 0 100 100" style="width:100%; height:100%;">
-                        <!-- Dynamic SVG QR Code Design -->
-                        <rect x="0" y="0" width="100" height="100" fill="#fff" />
-                        <!-- Corner Anchors -->
-                        <rect x="10" y="10" width="25" height="25" fill="#1f1f1f" />
-                        <rect x="13" y="13" width="19" height="19" fill="#fff" />
-                        <rect x="16" y="16" width="13" height="13" fill="#1f1f1f" />
-
-                        <rect x="65" y="10" width="25" height="25" fill="#1f1f1f" />
-                        <rect x="68" y="13" width="19" height="19" fill="#fff" />
-                        <rect x="71" y="16" width="13" height="13" fill="#1f1f1f" />
-
-                        <rect x="10" y="65" width="25" height="25" fill="#1f1f1f" />
-                        <rect x="13" y="68" width="19" height="19" fill="#fff" />
-                        <rect x="16" y="71" width="13" height="13" fill="#1f1f1f" />
-                        
-                        <!-- Mini alignment block -->
-                        <rect x="70" y="70" width="10" height="10" fill="#1f1f1f" />
-                        <rect x="72" y="72" width="6" height="6" fill="#fff" />
-                        <rect x="74" y="74" width="2" height="2" fill="#1f1f1f" />
-
-                        <!-- Random noise data blocks to make it look authentic -->
-                        <rect x="40" y="15" width="5" height="10" fill="#1f1f1f" />
-                        <rect x="48" y="10" width="10" height="5" fill="#1f1f1f" />
-                        <rect x="42" y="25" width="15" height="5" fill="#1f1f1f" />
-                        <rect x="15" y="42" width="10" height="5" fill="#1f1f1f" />
-                        <rect x="10" y="50" width="5" height="10" fill="#1f1f1f" />
-                        <rect x="25" y="48" width="5" height="15" fill="#1f1f1f" />
-                        
-                        <rect x="40" y="40" width="20" height="20" fill="#1f1f1f" />
-                        <rect x="45" y="45" width="10" height="10" fill="#fff" />
-                        <rect x="47" y="47" width="6" height="6" fill="#1f1f1f" />
-                        
-                        <rect x="68" y="40" width="12" height="5" fill="#1f1f1f" />
-                        <rect x="75" y="48" width="5" height="12" fill="#1f1f1f" />
-                        
-                        <rect x="40" y="68" width="15" height="5" fill="#1f1f1f" />
-                        <rect x="42" y="75" width="8" height="10" fill="#1f1f1f" />
-                        <rect x="55" y="80" width="10" height="5" fill="#1f1f1f" />
-                        
-                        <rect x="68" y="85" width="12" height="5" fill="#1f1f1f" />
-                    </svg>
-                </div>
-            </div>
-        </div>
-
-        <!-- Trip Details Section -->
-        <div class="section-title">Trip Information</div>
-        <div class="row g-4 mb-5">
-            <div class="col-md-6">
+    <!-- 3. Journey & Fleet Info Card Component -->
+    <?php render_pdf_section_title("Journey & Fleet Information", "fa-solid fa-route"); ?>
+    <div class="row g-4 mb-4">
+        <div class="col-md-6">
+            <div class="pdf-info-card">
                 <div class="mb-3">
                     <div class="info-label">Route Voyage</div>
-                    <div class="info-value fs-5"><?= htmlspecialchars($booking['source']) ?> <i class="fa-solid fa-arrow-right mx-1 text-muted" style="font-size:0.85rem;"></i> <?= htmlspecialchars($booking['destination']) ?></div>
+                    <div class="info-value fs-5 text-success">
+                        <?= htmlspecialchars($booking['source']) ?> 
+                        <i class="fa-solid fa-arrow-right mx-2 text-muted" style="font-size:0.9rem;"></i> 
+                        <?= htmlspecialchars($booking['destination']) ?>
+                    </div>
                 </div>
-                <div class="mb-3">
-                    <div class="info-label">Travel Date / Departure</div>
-                    <div class="info-value"><?= date('d M Y, H:i', strtotime($booking['departure_time'])) ?></div>
-                </div>
-                <div>
-                    <div class="info-label">Arrival Time (Est)</div>
-                    <div class="info-value"><?= date('d M Y, H:i', strtotime($booking['arrival_time'])) ?></div>
+                <div class="row">
+                    <div class="col-6">
+                        <div class="info-label">Departure</div>
+                        <div class="info-value small"><?= date('d M Y, H:i', strtotime($booking['departure_time'])) ?></div>
+                    </div>
+                    <div class="col-6">
+                        <div class="info-label">Arrival (Est)</div>
+                        <div class="info-value small"><?= date('d M Y, H:i', strtotime($booking['arrival_time'])) ?></div>
+                    </div>
                 </div>
             </div>
-            <div class="col-md-6">
+        </div>
+        <div class="col-md-6">
+            <div class="pdf-info-card">
                 <div class="mb-3">
-                    <div class="info-label">Bus operator / fleet</div>
-                    <div class="info-value"><?= htmlspecialchars($booking['bus_name']) ?></div>
+                    <div class="info-label">Fleet Operator</div>
+                    <div class="info-value fs-5"><?= htmlspecialchars($booking['bus_name']) ?></div>
                     <span class="badge bg-light border text-dark mt-1 font-monospace fs-7 text-uppercase"><?= htmlspecialchars($booking['bus_type']) ?></span>
                 </div>
-                <div class="mb-3">
-                    <div class="info-label">Bus registration no.</div>
+                <div>
+                    <div class="info-label">Bus Registration No.</div>
                     <div class="info-value font-monospace"><?= htmlspecialchars($booking['bus_number']) ?></div>
                 </div>
             </div>
         </div>
-
-        <!-- Boarding & Dropping milestones -->
-        <div class="section-title">Milestones / Stations Selected</div>
-        <div class="row g-4 mb-5">
-            <div class="col-md-6">
-                <div class="p-3 border rounded-3 bg-light bg-opacity-50">
-                    <div class="info-label text-success"><i class="fa-solid fa-circle-arrow-up me-1"></i>Boarding Point</div>
-                    <div class="info-value fs-6 mt-1"><?= htmlspecialchars($booking['boarding_point']) ?></div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="p-3 border rounded-3 bg-light bg-opacity-50">
-                    <div class="info-label text-danger"><i class="fa-solid fa-circle-arrow-down me-1"></i>Dropping Point</div>
-                    <div class="info-value fs-6 mt-1"><?= htmlspecialchars($booking['dropping_point']) ?></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Passenger Table -->
-        <div class="section-title">Passenger Information</div>
-        <div class="table-responsive mb-5">
-            <table class="table passenger-table">
-                <thead>
-                    <tr>
-                        <th>Seat No.</th>
-                        <th>Passenger Name</th>
-                        <th>Age / Gender</th>
-                        <th class="text-end">Fare Amount</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($passengers as $p): ?>
-                        <tr>
-                            <td class="font-monospace fw-bold text-dark"><?= htmlspecialchars($p['seat_number']) ?></td>
-                            <td class="fw-semibold"><?= htmlspecialchars($p['passenger_name']) ?></td>
-                            <td><?= htmlspecialchars($p['passenger_age']) ?> Yrs / <?= htmlspecialchars($p['passenger_gender']) ?></td>
-                            <td class="text-end fw-semibold">₹<?= number_format($p['price'], 2) ?></td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Primary Contact & Operator support details -->
-        <div class="row g-4">
-            <div class="col-md-6">
-                <div class="contact-box">
-                    <h6 class="fw-bold mb-3"><i class="fa-solid fa-headset text-gold me-2"></i>Bus Operator Support</h6>
-                    <div class="small">
-                        <div class="mb-2"><strong>Operator:</strong> <?= htmlspecialchars($operator['operator_name']) ?></div>
-                        <div class="mb-2"><strong>Contact Number:</strong> <?= htmlspecialchars($operator['contact_number']) ?></div>
-                        <div class="mb-2"><strong>WhatsApp Contact:</strong> <?= htmlspecialchars($operator['whatsapp_number']) ?></div>
-                        <div class="mb-2"><strong>Emergency Hotline:</strong> <span class="text-danger fw-bold"><?= htmlspecialchars($operator['emergency_number']) ?></span></div>
-                        <div><strong>Support Email:</strong> <?= htmlspecialchars($operator['support_email']) ?></div>
-                    </div>
-                </div>
-            </div>
-                <div class="mb-3">
-                    <div class="info-label">Customer Contact Info</div>
-                    <div class="fw-semibold"><?= htmlspecialchars($booking['customer_name']) ?></div>
-                    <div class="small text-muted"><?= htmlspecialchars($booking['customer_email']) ?> | <?= htmlspecialchars($booking['customer_phone']) ?></div>
-                </div>
-                <div>
-                    <?php if (!$is_customer_copy && $booking['discount_amount'] > 0): ?>
-                        <div class="mb-2">
-                            <span class="info-label">Discount Applied (<?= htmlspecialchars($booking['promo_code'] ?? 'Agent Discount') ?>)</span>
-                            <span class="text-success fw-bold d-block">-₹<?= number_format($booking['discount_amount'], 2) ?></span>
-                        </div>
-                    <?php endif; ?>
-                    <div class="info-label">Total Fare Paid</div>
-                    <div class="fs-2 fw-bold text-dark">
-                        ₹<?= number_format($is_customer_copy ? (floatval($booking['original_fare']) > 0 ? floatval($booking['original_fare']) : floatval($booking['total_amount']) + floatval($booking['discount_amount'])) : floatval($booking['total_amount']), 2) ?>
-                    </div>
-                    <div class="text-muted small" style="font-size:0.75rem;">Payment processed securely via Razorpay</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="mt-5 p-3 text-center text-muted small border-top border-light">
-            <i class="fa-solid fa-circle-exclamation me-1"></i> Please carry a valid identity proof (Aadhaar Card, Passport, etc.) along with this E-Ticket copy during the travel.
-        </div>
-
     </div>
 
-</body>
-</html>
+    <!-- Boarding/Dropping Milestones -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-6">
+            <div class="pdf-info-card" style="border-left: 4px solid var(--pdf-primary);">
+                <div class="info-label text-success"><i class="fa-solid fa-circle-arrow-up me-1"></i>Boarding Point</div>
+                <div class="info-value mt-1"><?= htmlspecialchars($booking['boarding_point']) ?></div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="pdf-info-card" style="border-left: 4px solid var(--pdf-gold);">
+                <div class="info-label text-danger"><i class="fa-solid fa-circle-arrow-down me-1"></i>Dropping Point</div>
+                <div class="info-value mt-1"><?= htmlspecialchars($booking['dropping_point']) ?></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Passenger Information Table Component -->
+    <?php render_pdf_section_title("Passenger Details", "fa-solid fa-users"); ?>
+    <table class="pdf-table">
+        <thead>
+            <tr>
+                <th style="width: 15%;">Seat No.</th>
+                <th>Passenger Name</th>
+                <th style="width: 30%;">Age / Gender</th>
+                <th style="width: 25%; text-align: right;">Fare Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach ($passengers as $p): ?>
+                <tr>
+                    <td class="font-monospace fw-bold text-success"><?= htmlspecialchars($p['seat_number']) ?></td>
+                    <td class="fw-semibold"><?= htmlspecialchars($p['passenger_name']) ?></td>
+                    <td><?= htmlspecialchars($p['passenger_age']) ?> yrs / <?= htmlspecialchars($p['passenger_gender']) ?></td>
+                    <td class="text-end fw-semibold">₹<?= number_format($p['price'], 2) ?></td>
+                </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+
+    <!-- Contact & Fare Summary Row -->
+    <div class="row g-4 mb-4">
+        <!-- Support & Customer Info -->
+        <div class="col-md-6">
+            <div class="pdf-info-card">
+                <div class="mb-3">
+                    <div class="info-label"><i class="fa-solid fa-user me-1"></i>Primary Contact Details</div>
+                    <div class="fw-bold"><?= htmlspecialchars($booking['customer_name']) ?></div>
+                    <div class="small text-muted"><?= htmlspecialchars($booking['customer_email']) ?> | <?= htmlspecialchars($booking['customer_phone']) ?></div>
+                </div>
+                <hr style="margin: 10px 0; opacity: 0.15;">
+                <div>
+                    <div class="info-label"><i class="fa-solid fa-headset me-1"></i>Support Contact</div>
+                    <div class="small">
+                        <strong>Operator:</strong> <?= htmlspecialchars($operator['operator_name']) ?><br>
+                        <strong>Phone:</strong> <?= htmlspecialchars($operator['contact_number']) ?> | WhatsApp: <?= htmlspecialchars($operator['whatsapp_number']) ?><br>
+                        <strong>Emergency:</strong> <span class="text-danger fw-bold"><?= htmlspecialchars($operator['emergency_number']) ?></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- 5. Summary Component -->
+        <div class="col-md-6 text-md-end">
+            <div class="pdf-summary-box d-block ms-md-auto">
+                <h6 class="info-label text-start border-bottom pb-2 mb-3">Fare Breakdown</h6>
+                <?php
+                $orig_fare = floatval($booking['original_fare']) > 0 ? floatval($booking['original_fare']) : floatval($booking['total_amount']) + floatval($booking['discount_amount']);
+                $total_paid = $is_customer_copy ? $orig_fare : floatval($booking['total_amount']);
+                $discount = $is_customer_copy ? 0.00 : floatval($booking['discount_amount']);
+                ?>
+                <div class="pdf-summary-item">
+                    <span>Base Fare:</span>
+                    <strong>₹<?= number_format($orig_fare, 2) ?></strong>
+                </div>
+                <?php if ($discount > 0): ?>
+                    <div class="pdf-summary-item text-success">
+                        <span>Promo Code Applied:</span>
+                        <strong>-₹<?= number_format($discount, 2) ?></strong>
+                    </div>
+                <?php endif; ?>
+                <div class="pdf-summary-total">
+                    <span>Total Paid:</span>
+                    <span>₹<?= number_format($total_paid, 2) ?></span>
+                </div>
+                <div class="small text-muted text-start mt-2" style="font-size: 0.7rem;">*Inclusive of processing fees & booking taxes.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Guidelines -->
+    <div class="mt-4 p-3 rounded bg-light bg-opacity-50 small text-center text-muted border">
+        <i class="fa-solid fa-circle-exclamation me-1 text-success"></i> 
+        Please arrive at the boarding point at least 15 minutes before the departure time. Carry this ticket along with a valid ID proof.
+    </div>
+
+    <?php render_pdf_footer(); ?>
+</div>

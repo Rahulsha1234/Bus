@@ -26,10 +26,10 @@ if (!in_array($role, ['admin', 'agent'])) {
 
 try {
     if ($role === 'admin') {
-        $stmt = $pdo->prepare("UPDATE system_notifications SET is_read = 1 WHERE user_role = 'admin' AND user_id IS NULL");
+        $stmt = $pdo->prepare("UPDATE system_notifications SET is_read = 1, read_at = COALESCE(read_at, NOW()) WHERE user_role = 'admin' AND user_id IS NULL AND is_read = 0");
         $stmt->execute();
     } else {
-        $stmt = $pdo->prepare("UPDATE system_notifications SET is_read = 1 WHERE user_role = 'agent' AND user_id = ?");
+        $stmt = $pdo->prepare("UPDATE system_notifications SET is_read = 1, read_at = COALESCE(read_at, NOW()) WHERE user_role = 'agent' AND user_id = ? AND is_read = 0");
         $stmt->execute([$user_id]);
     }
 

@@ -49,11 +49,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     log_activity($pdo, $_SESSION['user_id'], 'SUPER_ADMIN_ROUTE_DELETE', "Hard deleted route: $route_info");
                 } 
                 elseif ($action === 'delete_trip') {
-                    $del = $pdo->prepare("DELETE FROM trips WHERE id = ?");
+                    $del = $pdo->prepare("UPDATE trips SET status = 'CANCELLED' WHERE id = ?");
                     $del->execute([$id]);
                     
-                    $_SESSION['success'] = "Trip ID $id deleted successfully!";
-                    log_activity($pdo, $_SESSION['user_id'], 'SUPER_ADMIN_TRIP_DELETE', "Hard deleted trip ID: $id");
+                    $_SESSION['success'] = "Trip ID $id cancelled successfully!";
+                    log_activity($pdo, $_SESSION['user_id'], 'SUPER_ADMIN_TRIP_CANCEL', "Cancelled trip ID: $id");
                 }
 
                 $pdo->exec("SET FOREIGN_KEY_CHECKS = 1");
@@ -279,20 +279,30 @@ $page_title = "Manage Operations";
                                 <td><span class="text-secondary small"><?= date('d M H:i', strtotime($trip['arrival_time'])) ?></span></td>
                                 <td><span class="font-monospace text-white"><?= CURRENCY ?><?= htmlspecialchars($trip['base_fare']) ?></span></td>
                                 <td>
-                                    <span class="badge <?= $trip['status'] === 'active' ? 'bg-success' : 'bg-danger' ?> bg-opacity-10 <?= $trip['status'] === 'active' ? 'text-success' : 'text-danger' ?>">
-                                        <?= strtoupper($trip['status']) ?>
+                                    <?php
+                                    $status_badge = 'bg-secondary text-white';
+                                    if (strcasecmp($trip['status'], 'active') === 0) {
+                                        $status_badge = 'bg-success bg-opacity-10 text-success border border-success border-opacity-25';
+                                    } elseif (strcasecmp($trip['status'], 'completed') === 0) {
+                                        $status_badge = 'bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25';
+                                    } elseif (strcasecmp($trip['status'], 'cancelled') === 0) {
+                                        $status_badge = 'bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25';
+                                    }
+                                    ?>
+                                    <span class="badge <?= $status_badge ?> text-uppercase" style="font-size: 0.75rem;">
+                                        <?= htmlspecialchars($trip['status']) ?>
                                     </span>
                                 </td>
                                 <td>
                                     <span class="small text-white"><i class="fa-solid fa-user-tie text-indigo me-1"></i><?= htmlspecialchars($trip['operator_name'] ?? 'System / Deleted') ?></span>
                                 </td>
                                 <td class="text-end">
-                                    <form action="?tab=trips" method="POST" onsubmit="return confirm('WARNING: Are you sure you want to PERMANENTLY delete this trip? This will delete all seat layouts and bookings for this trip.');" style="display:inline;">
+                                    <form action="?tab=trips" method="POST" onsubmit="return confirm('Are you sure you want to cancel this trip? This will preserve all historical bookings and mark the trip as CANCELLED.');" style="display:inline;">
                                         <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
                                         <input type="hidden" name="action" value="delete_trip">
                                         <input type="hidden" name="id" value="<?= $trip['id'] ?>">
                                         <button type="submit" class="btn btn-danger btn-sm px-3 rounded-pill">
-                                            <i class="fa-solid fa-trash-can me-1"></i>Delete
+                                            <i class="fa-solid fa-ban me-1"></i>Cancel
                                         </button>
                                     </form>
                                 </td>

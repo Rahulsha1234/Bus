@@ -43,6 +43,8 @@ try {
         WHERE r.source = :source 
           AND r.destination = :destination 
           AND DATE(t.departure_time) = :date
+          AND t.status = 'ACTIVE'
+          AND t.departure_time >= NOW()
         ORDER BY t.departure_time ASC
     ");
     $stmt->execute([
@@ -57,7 +59,7 @@ try {
         SELECT DISTINCT r.source 
         FROM routes r 
         JOIN trips t ON r.id = t.route_id 
-        WHERE r.status = 'active' AND t.status = 'active' AND t.departure_time >= NOW() 
+        WHERE r.status = 'active' AND t.status = 'ACTIVE'
         ORDER BY r.source ASC
     ");
     $sources = $sources_stmt->fetchAll(PDO::FETCH_COLUMN);
@@ -295,7 +297,7 @@ require_once __DIR__ . '/includes/header.php';
                     }));
                 });
 
-                $dest.prop('disabled', false).trigger('change').trigger('combobox:refresh');
+                $dest.prop('disabled', false).trigger('change');
             }).fail(function() {
                 $loading.hide();
                 $dest.html('<option value="">Error loading routes</option>').trigger('change');
@@ -334,7 +336,7 @@ require_once __DIR__ . '/includes/header.php';
                         selected: (dest === currentDest)
                     }));
                 });
-                $dest.prop('disabled', false).trigger('change').trigger('combobox:refresh');
+                $dest.prop('disabled', false).trigger('change');
             });
         }
     });

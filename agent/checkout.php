@@ -22,7 +22,7 @@ $trip_stmt = $pdo->prepare("
     FROM trips t 
     JOIN buses b ON t.bus_id = b.id
     JOIN routes r ON t.route_id = r.id
-    WHERE t.id = ? AND t.admin_id = ? AND t.status = 'active'
+    WHERE t.id = ? AND t.admin_id = ? AND t.status = 'ACTIVE'
     LIMIT 1
 ");
 $trip_stmt->execute([$trip_id, $parent_admin_id]);

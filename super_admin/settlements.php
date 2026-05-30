@@ -1,127 +1,151 @@
 <?php
 /**
  * Super Admin Weekly Settlement Processor
+ * POST handling MUST come before header.php (which outputs HTML).
  */
-require_once __DIR__ . '/header.php';
 
-$error = '';
-$success = '';
+// ------------------------------------------------------------------
+// Bootstrap: load config + auth WITHOUT outputting HTML yet
+// ------------------------------------------------------------------
+require_once __DIR__ . '/../includes/auth_middleware.php';
+require_role('super_admin');
 
-// Handle actions (Generate, Mark Paid)
+// ------------------------------------------------------------------
+// PRG: Handle all POST actions here, BEFORE any HTML is sent
+// ------------------------------------------------------------------
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $csrf_token = $_POST['csrf_token'] ?? '';
-    
+
     if (!verify_csrf_token($csrf_token)) {
-        $error = "Security token validation failed.";
-    } else {
-        $action = $_POST['action'] ?? '';
+        header("Location: " . $_SERVER['PHP_SELF'] . "?err=" . urlencode("Security token validation failed."));
+        exit;
+    }
 
-        // GENERATE PENDING WEEKLY SETTLEMENTS
-        if ($action === 'generate') {
-            try {
-                // Find all Bus Operators (Admins)
-                $admins_stmt = $pdo->query("SELECT id, username FROM users WHERE role = 'admin' AND status = 'approved'");
-                $approved_admins = $admins_stmt->fetchAll();
+    $action = $_POST['action'] ?? '';
 
-                $generated_count = 0;
-                $today_date = date('Y-m-d');
+    // ── GENERATE PENDING WEEKLY SETTLEMENTS ──────────────────────
+    if ($action === 'generate') {
+        try {
+            $admins_stmt = $pdo->query("SELECT id, username FROM users WHERE role = 'admin' AND status = 'approved'");
+            $approved_admins = $admins_stmt->fetchAll();
 
-                foreach ($approved_admins as $ad) {
-                    $admin_id = $ad['id'];
+            $generated_count = 0;
 
-                    // Find the date range of uncaptured bookings for this Admin (operator)
-                    // We look at bookings that are 'paid' but not associated with any week cycle yet.
-                    $range_stmt = $pdo->prepare("
-                        SELECT 
-                            MIN(DATE(b.created_at)) AS start_date,
-                            MAX(DATE(b.created_at)) AS end_date,
-                            SUM(b.total_amount) AS total_sales,
-                            SUM(b.admin_commission) AS total_comm
-                        FROM bookings b
-                        JOIN trips t ON b.trip_id = t.id
-                        JOIN buses bs ON t.bus_id = bs.id
-                        WHERE bs.admin_id = :admin_id
-                          AND b.payment_status = 'paid'
-                          AND NOT EXISTS (
-                              SELECT 1 FROM weekly_settlements ws 
-                              WHERE ws.agent_id = :admin_id 
-                                AND DATE(b.created_at) BETWEEN ws.week_start AND ws.week_end
-                          )
+            foreach ($approved_admins as $ad) {
+                $admin_id = $ad['id'];
+
+                $range_stmt = $pdo->prepare("
+                    SELECT
+                        MIN(DATE(b.created_at)) AS start_date,
+                        MAX(DATE(b.created_at)) AS end_date,
+                        SUM(b.total_amount)      AS total_sales,
+                        SUM(b.admin_commission)  AS total_comm
+                    FROM bookings b
+                    JOIN trips t  ON b.trip_id  = t.id
+                    JOIN buses bs ON t.bus_id   = bs.id
+                    WHERE bs.admin_id = :admin_id_1
+                      AND b.payment_status = 'paid'
+                      AND NOT EXISTS (
+                          SELECT 1 FROM weekly_settlements ws
+                          WHERE ws.agent_id = :admin_id_2
+                            AND DATE(b.created_at) BETWEEN ws.week_start AND ws.week_end
+                      )
+                ");
+                $range_stmt->execute([':admin_id_1' => $admin_id, ':admin_id_2' => $admin_id]);
+                $uncaptured = $range_stmt->fetch();
+
+                if ($uncaptured && !empty($uncaptured['start_date']) && floatval($uncaptured['total_sales']) > 0) {
+                    $ins = $pdo->prepare("
+                        INSERT INTO weekly_settlements
+                            (agent_id, week_start, week_end, total_sales, commission_payable, status)
+                        VALUES (?, ?, ?, ?, ?, 'pending')
                     ");
-                    $range_stmt->execute([':admin_id' => $admin_id]);
-                    $uncaptured = $range_stmt->fetch();
-
-                    if ($uncaptured && !empty($uncaptured['start_date']) && floatval($uncaptured['total_sales']) > 0) {
-                        // Insert new settlement record
-                        $ins = $pdo->prepare("
-                            INSERT INTO weekly_settlements (agent_id, week_start, week_end, total_sales, commission_payable, status)
-                            VALUES (?, ?, ?, ?, ?, 'pending')
-                        ");
-                        $ins->execute([
-                            $admin_id, 
-                            $uncaptured['start_date'], 
-                            $uncaptured['end_date'], 
-                            $uncaptured['total_sales'], 
-                            $uncaptured['total_comm']
-                        ]);
-                        $generated_count++;
-                    }
-                }
-
-                if ($generated_count > 0) {
-                    $success = "Weekly settlements generated successfully for $generated_count bus operators!";
-                    log_activity($pdo, $_SESSION['user_id'], 'SETTLEMENT_GENERATE', "Generated settlements for $generated_count operators.");
-                } else {
-                    $error = "All operator bookings are already accounted for in existing settlement cycles.";
-                }
-
-            } catch (Exception $e) {
-                $error = "Failed to run settlement engine: " . $e->getMessage();
-            }
-        }
-
-        // MARK SETTLEMENT AS PAID / COMMISSION RECEIVED
-        elseif ($action === 'mark_paid') {
-            $settlement_id = intval($_POST['settlement_id'] ?? 0);
-            $admin_user_id = $_SESSION['user_id'];
-
-            if ($settlement_id > 0) {
-                try {
-                    $stmt = $pdo->prepare("
-                        UPDATE weekly_settlements 
-                        SET status = 'paid', marked_paid_at = NOW(), marked_paid_by = ? 
-                        WHERE id = ? AND status = 'pending'
-                    ");
-                    $stmt->execute([$admin_user_id, $settlement_id]);
-
-                    if ($stmt->rowCount() > 0) {
-                        $success = "Settlement marked as PAID! Commission marked as received.";
-                        log_activity($pdo, $admin_user_id, 'SETTLEMENT_PAY_CONFIRM', "Confirmed commission payment received for Settlement ID: $settlement_id");
-                    } else {
-                        $error = "Settlement already processed or invalid ID.";
-                    }
-                } catch (PDOException $e) {
-                    $error = "Database write error: " . $e->getMessage();
+                    $ins->execute([
+                        $admin_id,
+                        $uncaptured['start_date'],
+                        $uncaptured['end_date'],
+                        $uncaptured['total_sales'],
+                        $uncaptured['total_comm'],
+                    ]);
+                    $generated_count++;
                 }
             }
+
+            if ($generated_count > 0) {
+                log_activity($pdo, $_SESSION['user_id'], 'SETTLEMENT_GENERATE', "Generated settlements for $generated_count operators.");
+                header("Location: " . $_SERVER['PHP_SELF'] . "?msg=" . urlencode("Weekly settlements generated for $generated_count bus operator(s)."));
+            } else {
+                header("Location: " . $_SERVER['PHP_SELF'] . "?err=" . urlencode("All operator bookings are already captured in existing settlement cycles."));
+            }
+            exit;
+
+        } catch (Exception $e) {
+            header("Location: " . $_SERVER['PHP_SELF'] . "?err=" . urlencode("Settlement engine error: " . $e->getMessage()));
+            exit;
         }
     }
+
+    // ── MARK SETTLEMENT AS PAID ───────────────────────────────────
+    if ($action === 'mark_paid') {
+        $settlement_id = intval($_POST['settlement_id'] ?? 0);
+
+        if ($settlement_id > 0) {
+            try {
+                $stmt = $pdo->prepare("
+                    UPDATE weekly_settlements
+                    SET status = 'paid', marked_paid_at = NOW(), marked_paid_by = ?
+                    WHERE id = ? AND status = 'pending'
+                ");
+                $stmt->execute([$_SESSION['user_id'], $settlement_id]);
+
+                if ($stmt->rowCount() > 0) {
+                    log_activity($pdo, $_SESSION['user_id'], 'SETTLEMENT_PAY_CONFIRM', "Commission confirmed for Settlement ID: $settlement_id");
+                    header("Location: " . $_SERVER['PHP_SELF'] . "?msg=" . urlencode("Settlement #$settlement_id marked as PAID. Commission confirmed received."));
+                } else {
+                    header("Location: " . $_SERVER['PHP_SELF'] . "?err=" . urlencode("Settlement already processed or invalid ID."));
+                }
+                exit;
+
+            } catch (PDOException $e) {
+                header("Location: " . $_SERVER['PHP_SELF'] . "?err=" . urlencode("Database error: " . $e->getMessage()));
+                exit;
+            }
+        }
+
+        header("Location: " . $_SERVER['PHP_SELF'] . "?err=" . urlencode("Invalid settlement ID."));
+        exit;
+    }
+
+    // Unknown action — redirect cleanly
+    header("Location: " . $_SERVER['PHP_SELF']);
+    exit;
 }
 
-// Fetch Settlements with Pagination
+// ------------------------------------------------------------------
+// GET: Read flash messages set by PRG redirects above
+// ------------------------------------------------------------------
+$success = !empty($_GET['msg']) ? htmlspecialchars($_GET['msg']) : '';
+$error   = !empty($_GET['err']) ? htmlspecialchars($_GET['err']) : '';
+
+// ------------------------------------------------------------------
+// NOW it's safe to include header.php (outputs HTML)
+// ------------------------------------------------------------------
+require_once __DIR__ . '/header.php';
+
+// ------------------------------------------------------------------
+// Fetch settlements with pagination
+// ------------------------------------------------------------------
 try {
-    $count_stmt = $pdo->query("SELECT COUNT(*) FROM weekly_settlements");
+    $count_stmt  = $pdo->query("SELECT COUNT(*) FROM weekly_settlements");
     $total_records = intval($count_stmt->fetchColumn());
 
-    $limit = 10;
-    $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
-    $offset = ($page - 1) * $limit;
+    $limit       = 10;
+    $page        = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+    $offset      = ($page - 1) * $limit;
     $total_pages = ceil($total_records / $limit);
 
     $stmt = $pdo->prepare("
-        SELECT 
-            ws.*,
-            op.username AS agency_name
+        SELECT ws.*, op.username AS agency_name
         FROM weekly_settlements ws
         JOIN users op ON ws.agent_id = op.id
         ORDER BY ws.status ASC, ws.week_end DESC
@@ -129,25 +153,26 @@ try {
     ");
     $stmt->execute();
     $settlements = $stmt->fetchAll();
+
 } catch (PDOException $e) {
-    $settlements = [];
+    $settlements   = [];
     $total_records = 0;
-    $total_pages = 0;
-    $page = 1;
-    $offset = 0;
-    $limit = 10;
+    $total_pages   = 0;
+    $page          = 1;
+    $offset        = 0;
+    $limit         = 10;
 }
 ?>
 
 <?php if (!empty($error)): ?>
     <div class="alert alert-danger border-0 bg-danger bg-opacity-10 text-danger rounded-3" role="alert">
-        <i class="fa-solid fa-triangle-exclamation me-2"></i><?= htmlspecialchars($error) ?>
+        <i class="fa-solid fa-triangle-exclamation me-2"></i><?= $error ?>
     </div>
 <?php endif; ?>
 
 <?php if (!empty($success)): ?>
     <div class="alert alert-success border-0 bg-success bg-opacity-10 text-success rounded-3" role="alert">
-        <i class="fa-solid fa-circle-check me-2"></i><?= htmlspecialchars($success) ?>
+        <i class="fa-solid fa-circle-check me-2"></i><?= $success ?>
     </div>
 <?php endif; ?>
 
@@ -157,15 +182,22 @@ try {
         <h4 class="text-white fw-bold mb-1">Weekly Settlements Desk</h4>
         <span class="text-secondary small">Tally weekly travel agency gross seat sales and process 2% admin fee collections</span>
     </div>
-    
-    <form action="<?= htmlspecialchars($_SERVER['PHP_SELF']) ?>" method="POST">
-        <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
-        <input type="hidden" name="action" value="generate">
-        <button type="submit" class="btn btn-primary-gradient"><i class="fa-solid fa-calculator me-2"></i>Execute Settlement Engine</button>
-    </form>
+
+    <div class="d-flex gap-2 align-items-center">
+        <a href="<?= BASE_URL ?>/generate_report.php?type=settlement" target="_blank" class="btn btn-secondary-glass">
+            <i class="fa-solid fa-file-pdf me-2"></i>Export PDF Report
+        </a>
+        <form action="<?= htmlspecialchars($_SERVER['PHP_SELF']) ?>" method="POST" class="m-0">
+            <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
+            <input type="hidden" name="action" value="generate">
+            <button type="submit" class="btn btn-primary-gradient">
+                <i class="fa-solid fa-calculator me-2"></i>Execute Settlement Engine
+            </button>
+        </form>
+    </div>
 </div>
 
-<!-- Settlements Grid Table -->
+<!-- Settlements Table -->
 <div class="glass-card p-4">
     <?php if (count($settlements) === 0): ?>
         <div class="text-center py-5 text-secondary small">
@@ -188,13 +220,16 @@ try {
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($settlements as $s): 
+                    <?php foreach ($settlements as $s):
                         $agent_net = floatval($s['total_sales']) - floatval($s['commission_payable']);
                     ?>
                         <tr>
                             <td>
                                 <span class="fw-semibold text-white d-block">Weekly Cycle</span>
-                                <span class="text-secondary small font-monospace"><?= date('d M Y', strtotime($s['week_start'])) ?> to <?= date('d M Y', strtotime($s['week_end'])) ?></span>
+                                <span class="text-secondary small font-monospace">
+                                    <?= date('d M Y', strtotime($s['week_start'])) ?> to
+                                    <?= date('d M Y', strtotime($s['week_end'])) ?>
+                                </span>
                             </td>
                             <td><span class="fw-semibold text-white"><?= htmlspecialchars($s['agency_name']) ?></span></td>
                             <td>₹<?= number_format($s['total_sales'], 2) ?></td>
@@ -216,7 +251,9 @@ try {
                                         <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
                                         <input type="hidden" name="action" value="mark_paid">
                                         <input type="hidden" name="settlement_id" value="<?= $s['id'] ?>">
-                                        <button type="submit" class="btn btn-success py-1 px-3 small font-monospace" style="font-size:0.75rem;"><i class="fa-solid fa-circle-dollar-to-slot me-1"></i>Confirm Paid</button>
+                                        <button type="submit" class="btn btn-success py-1 px-3 small font-monospace" style="font-size:0.75rem;">
+                                            <i class="fa-solid fa-circle-dollar-to-slot me-1"></i>Confirm Paid
+                                        </button>
                                     </form>
                                 <?php else: ?>
                                     <span class="text-secondary small"><i class="fa-solid fa-circle-check text-success me-1"></i>Settled</span>
@@ -227,7 +264,7 @@ try {
                 </tbody>
             </table>
         </div>
-        
+
         <?php if ($total_pages > 1): ?>
             <div class="d-flex justify-content-between align-items-center mt-4">
                 <div class="text-secondary small">

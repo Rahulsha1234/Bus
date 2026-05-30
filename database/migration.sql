@@ -86,7 +86,7 @@ ALTER TABLE bookings ADD COLUMN IF NOT EXISTS status ENUM('active', 'cancelled')
 
 -- Add status fields to route / trip / bus for Soft Deletion support
 ALTER TABLE routes ADD COLUMN IF NOT EXISTS status ENUM('active', 'inactive') NOT NULL DEFAULT 'active';
-ALTER TABLE trips ADD COLUMN IF NOT EXISTS status ENUM('active', 'cancelled') NOT NULL DEFAULT 'active';
+ALTER TABLE trips ADD COLUMN IF NOT EXISTS status ENUM('ACTIVE', 'COMPLETED', 'CANCELLED') NOT NULL DEFAULT 'ACTIVE';
 ALTER TABLE buses ADD COLUMN IF NOT EXISTS status ENUM('active', 'inactive') NOT NULL DEFAULT 'active';
 
 -- 9. Cancellation Requests Table
@@ -115,8 +115,11 @@ CREATE TABLE IF NOT EXISTS system_notifications (
     user_role ENUM('admin', 'agent') NOT NULL,
     message VARCHAR(255) NOT NULL,
     is_read TINYINT NOT NULL DEFAULT 0,
+    read_at TIMESTAMP NULL DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+ALTER TABLE system_notifications ADD COLUMN IF NOT EXISTS read_at TIMESTAMP NULL DEFAULT NULL;
 
 -- 12. Adjust trip_seats status and lock properties
 ALTER TABLE trip_seats MODIFY COLUMN status ENUM('available', 'selected', 'booked', 'hold', 'cancelled', 'blocked', 'reserved', 'temp_locked', 'female_booked', 'female_protected') DEFAULT 'available';

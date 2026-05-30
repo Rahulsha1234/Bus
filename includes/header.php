@@ -117,11 +117,8 @@ $user = get_logged_user();
         }
         /* Input group support for Select2 */
         .input-group > .select2-container--default {
-            flex: 1 1 auto;
-            width: 1% !important;
-            display: flex !important;
-            flex-direction: column;
-            justify-content: center;
+            flex: 1 1 auto !important;
+            min-width: 0 !important;
         }
         .input-group > .select2-container--default .select2-selection--single {
             border-top-left-radius: 0 !important;
@@ -130,10 +127,17 @@ $user = get_logged_user();
             border-bottom-right-radius: 12px !important;
             border-left: 0 !important;
             height: 48px !important;
-            width: 100%;
+            width: 100% !important;
+            display: flex !important;
+            align-items: center !important;
         }
         .input-group > .input-group-text {
             height: 48px !important;
+        }
+        #search-panel .input-group,
+        #modifySearchCollapse .input-group,
+        .modify-search-box .input-group {
+            flex-wrap: nowrap !important;
         }
     </style>
 </head>
@@ -173,6 +177,9 @@ $user = get_logged_user();
                         $notifs = [];
                         if (in_array($user['role'], ['admin', 'agent'])) {
                             try {
+                                // Auto delete notifications read more than 12 hours ago
+                                $pdo->exec("DELETE FROM system_notifications WHERE is_read = 1 AND read_at IS NOT NULL AND read_at < DATE_SUB(NOW(), INTERVAL 12 HOUR)");
+
                                 if ($user['role'] === 'admin') {
                                     $cnt_stmt = $pdo->prepare("SELECT COUNT(*) FROM system_notifications WHERE user_role = 'admin' AND user_id IS NULL AND is_read = 0");
                                     $cnt_stmt->execute();
@@ -210,10 +217,9 @@ $user = get_logged_user();
                                         </span>
                                     <?php endif; ?>
                                 </button>
-                                <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark glass-card mt-2 p-2 border-0"
-                                    aria-labelledby="notifMenuButton" style="width: 300px; font-size: 0.85rem;">
-                                    <li
-                                        class="dropdown-header text-white-50 border-bottom border-secondary border-opacity-10 pb-2 mb-2 d-flex justify-content-between align-items-center">
+                                <ul class="dropdown-menu dropdown-menu-end glass-card mt-2 p-2 border-0 shadow-lg"
+                                    aria-labelledby="notifMenuButton" style="width: 300px; font-size: 0.85rem; background: var(--bg-card); border: 1px solid var(--border-glass);">
+                                    <li class="dropdown-header border-bottom pb-2 mb-2 d-flex justify-content-between align-items-center" style="color: var(--text-muted); border-color: var(--border-glass) !important;">
                                         <span>Notifications</span>
                                         <?php if ($notif_count > 0): ?>
                                             <span class="badge bg-warning text-dark" style="font-size:0.65rem;">New</span>
@@ -223,11 +229,11 @@ $user = get_logged_user();
                                         <li class="text-center text-secondary py-3 small">No notifications found</li>
                                     <?php else: ?>
                                         <?php foreach ($notifs as $nt): ?>
-                                            <li class="px-3 py-2 rounded mb-1 <?= ($nt['is_read'] == 0) ? 'bg-dark bg-opacity-30 border-start border-3 border-indigo' : '' ?>"
-                                                style="white-space: normal;">
-                                                <div class="text-white-50" style="font-size:0.8rem;">
+                                            <li class="px-3 py-2 rounded mb-1"
+                                                style="white-space: normal; background: <?= ($nt['is_read'] == 0) ? 'rgba(25, 135, 84, 0.08)' : 'transparent' ?>; border-left: 3px solid <?= ($nt['is_read'] == 0) ? 'var(--accent-primary)' : 'transparent' ?>;">
+                                                <div style="color: var(--text-main); font-size:0.8rem; font-weight: 500;">
                                                     <?= htmlspecialchars($nt['message']) ?></div>
-                                                <div class="text-secondary" style="font-size:0.65rem;">
+                                                <div style="color: var(--text-muted); font-size:0.65rem; margin-top: 2px;">
                                                     <?= date('d M, H:i', strtotime($nt['created_at'])) ?></div>
                                             </li>
                                         <?php endforeach; ?>

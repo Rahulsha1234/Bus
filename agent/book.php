@@ -36,7 +36,7 @@ try {
         FROM trips t
         JOIN buses b ON t.bus_id = b.id
         JOIN routes r ON t.route_id = r.id
-        WHERE t.id = :trip_id AND t.admin_id = :parent_admin_id AND t.status = 'active'
+        WHERE t.id = :trip_id AND t.admin_id = :parent_admin_id AND t.status = 'ACTIVE'
         LIMIT 1
     ");
     $stmt->execute([

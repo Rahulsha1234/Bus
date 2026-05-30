@@ -1321,3 +1321,130 @@ body {
         padding: 1rem !important;
     }
 }
+
+/* =======================================================
+   MOBILE-FIRST RESPONSIVE AUDIT OVERRIDES (320px - 1440px)
+   ======================================================= */
+
+/* 1. Global Overflow Prevention */
+* {
+    max-width: 100%;
+}
+html, body {
+    overflow-x: hidden !important;
+    width: 100%;
+}
+.table-responsive {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+}
+
+/* Word breaks to prevent text/email/reference overflow */
+.text-break-all,
+.table td,
+.table th,
+.info-value,
+.profile-name,
+.passenger-table td,
+.passenger-table th {
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+}
+
+/* 2. Responsive Tables Custom Grid Fallback for Viewports < 768px */
+@media (max-width: 767.98px) {
+    .table-swift-mobile-cards {
+        display: block !important;
+        width: 100% !important;
+    }
+    .table-swift-mobile-cards thead {
+        display: none !important;
+    }
+    .table-swift-mobile-cards tbody,
+    .table-swift-mobile-cards tr,
+    .table-swift-mobile-cards td {
+        display: block !important;
+        width: 100% !important;
+    }
+    .table-swift-mobile-cards tr {
+        margin-bottom: 1rem !important;
+        background: var(--bg-card) !important;
+        border: 1px solid var(--border-glass) !important;
+        border-radius: 12px !important;
+        padding: 0.75rem !important;
+    }
+    .table-swift-mobile-cards td {
+        text-align: left !important;
+        padding: 0.5rem 0.25rem !important;
+        border: none !important;
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        border-bottom: 1px dashed var(--border-glass) !important;
+    }
+    .table-swift-mobile-cards td:last-child {
+        border-bottom: none !important;
+    }
+    .table-swift-mobile-cards td::before {
+        content: attr(data-label);
+        font-weight: 700;
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        margin-right: 15px;
+    }
+}
+
+/* 3. Seat Map Scaling for Small Devices */
+@media (max-width: 480px) {
+    .seat-map-container {
+        transform: scale(0.9);
+        transform-origin: top center;
+        margin-bottom: -10% !important;
+    }
+}
+@media (max-width: 375px) {
+    .seat-map-container {
+        transform: scale(0.82);
+        transform-origin: top center;
+        margin-bottom: -18% !important;
+    }
+}
+@media (max-width: 320px) {
+    .seat-map-container {
+        transform: scale(0.72);
+        transform-origin: top center;
+        margin-bottom: -28% !important;
+    }
+}
+
+/* 4. Floating Elements Z-Index and Placement Protection */
+.theme-toggle-btn {
+    bottom: 1rem !important;
+    right: 1rem !important;
+    width: 3rem !important;
+    height: 3rem !important;
+    font-size: 1rem !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+}
+
+/* 5. Fluid Typography Protection */
+@media (max-width: 575.98px) {
+    h1, .fs-1 { font-size: 2rem !important; }
+    h2, .fs-2 { font-size: 1.5rem !important; }
+    h3, .fs-3 { font-size: 1.3rem !important; }
+    h4, .fs-4 { font-size: 1.1rem !important; }
+    body, p, input, select, button {
+        font-size: 0.9rem !important;
+    }
+    .container {
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+    }
+}
+
+/* 6. Form elements optimization */
+input, select, textarea {
+    font-size: 16px !important; /* Prevents auto-zoom on iOS Safari */
+}

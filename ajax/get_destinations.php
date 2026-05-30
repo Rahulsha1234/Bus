@@ -20,7 +20,7 @@ try {
             "SELECT DISTINCT r.destination 
              FROM routes r 
              JOIN trips t ON r.id = t.route_id 
-             WHERE r.source = ? AND r.status = 'active' AND t.status = 'active' AND t.departure_time >= NOW() AND r.admin_id = ? 
+             WHERE r.source = ? AND r.status = 'active' AND t.status = 'ACTIVE' AND r.admin_id = ? 
              ORDER BY r.destination ASC"
         );
         $stmt->execute([$source, $admin_id]);
@@ -29,7 +29,7 @@ try {
             "SELECT DISTINCT r.destination 
              FROM routes r 
              JOIN trips t ON r.id = t.route_id 
-             WHERE r.source = ? AND r.status = 'active' AND t.status = 'active' AND t.departure_time >= NOW() 
+             WHERE r.source = ? AND r.status = 'active' AND t.status = 'ACTIVE'
              ORDER BY r.destination ASC"
         );
         $stmt->execute([$source]);

@@ -44,6 +44,16 @@ if (isset($_SESSION['user_id'])) {
     }
 }
 
+// Automatically mark completed trips based on arrival time and self-heal empty statuses
+try {
+    // 1. Convert any empty/NULL statuses of future trips to ACTIVE
+    $pdo->exec("UPDATE trips SET status = 'ACTIVE' WHERE (status IS NULL OR status = '' OR status = '-') AND arrival_time >= NOW()");
+    // 2. Mark past trips as COMPLETED (excluding CANCELLED)
+    $pdo->exec("UPDATE trips SET status = 'COMPLETED' WHERE (status IS NULL OR status = '' OR status = '-' OR status IN ('ACTIVE', 'active')) AND arrival_time < NOW()");
+} catch (PDOException $e) {
+    // Table 'trips' might not exist yet during initial setup
+}
+
 // Fetch general system settings
 $settings = [];
 try {
