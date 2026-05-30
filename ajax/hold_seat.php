@@ -49,8 +49,10 @@ try {
         exit();
     }
 
+    $pdo->beginTransaction();
+
     // 4. Check current seat status
-    $seat_stmt = $pdo->prepare("SELECT status, hold_expires_at FROM trip_seats WHERE trip_id = ? AND seat_number = ? LIMIT 1");
+    $seat_stmt = $pdo->prepare("SELECT status, hold_expires_at FROM trip_seats WHERE trip_id = ? AND seat_number = ? LIMIT 1 FOR UPDATE");
     $seat_stmt->execute([$trip_id, $seat]);
     $current_seat = $seat_stmt->fetch();
     
@@ -62,6 +64,7 @@ try {
         }
 
         if ($status !== 'available') {
+            $pdo->rollBack();
             echo json_encode(['success' => false, 'message' => 'This seat is already booked or held.']);
             exit();
         }
@@ -89,10 +92,14 @@ try {
     ]);
 
     log_activity($pdo, $agent_id, 'SEAT_HOLD_MANUAL', "Placed manual hold on Trip $trip_id, Seat $seat.");
+    $pdo->commit();
     echo json_encode(['success' => true]);
     exit();
 
 } catch (Exception $e) {
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
     echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
     exit();
 }

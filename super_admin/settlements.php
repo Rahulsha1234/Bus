@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                           AND b.payment_status = 'paid'
                           AND NOT EXISTS (
                               SELECT 1 FROM weekly_settlements ws 
-                              WHERE ws.admin_id = :admin_id 
+                              WHERE ws.agent_id = :admin_id 
                                 AND DATE(b.created_at) BETWEEN ws.week_start AND ws.week_end
                           )
                     ");
@@ -54,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if ($uncaptured && !empty($uncaptured['start_date']) && floatval($uncaptured['total_sales']) > 0) {
                         // Insert new settlement record
                         $ins = $pdo->prepare("
-                            INSERT INTO weekly_settlements (admin_id, week_start, week_end, total_sales, commission_payable, status)
+                            INSERT INTO weekly_settlements (agent_id, week_start, week_end, total_sales, commission_payable, status)
                             VALUES (?, ?, ?, ?, ?, 'pending')
                         ");
                         $ins->execute([
@@ -108,19 +108,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Fetch Settlements
+// Fetch Settlements with Pagination
 try {
-    $stmt = $pdo->query("
+    $count_stmt = $pdo->query("SELECT COUNT(*) FROM weekly_settlements");
+    $total_records = intval($count_stmt->fetchColumn());
+
+    $limit = 10;
+    $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+    $offset = ($page - 1) * $limit;
+    $total_pages = ceil($total_records / $limit);
+
+    $stmt = $pdo->prepare("
         SELECT 
             ws.*,
             op.username AS agency_name
         FROM weekly_settlements ws
-        JOIN users op ON ws.admin_id = op.id
+        JOIN users op ON ws.agent_id = op.id
         ORDER BY ws.status ASC, ws.week_end DESC
+        LIMIT " . intval($limit) . " OFFSET " . intval($offset) . "
     ");
+    $stmt->execute();
     $settlements = $stmt->fetchAll();
 } catch (PDOException $e) {
     $settlements = [];
+    $total_records = 0;
+    $total_pages = 0;
+    $page = 1;
+    $offset = 0;
+    $limit = 10;
 }
 ?>
 
@@ -212,6 +227,33 @@ try {
                 </tbody>
             </table>
         </div>
+        
+        <?php if ($total_pages > 1): ?>
+            <div class="d-flex justify-content-between align-items-center mt-4">
+                <div class="text-secondary small">
+                    Showing <?= $offset + 1 ?> to <?= min($total_records, $offset + $limit) ?> of <?= $total_records ?> entries
+                </div>
+                <nav aria-label="Page navigation">
+                    <ul class="pagination pagination-swift mb-0">
+                        <li class="page-item <?= ($page <= 1) ? 'disabled' : '' ?>">
+                            <a class="page-link" href="?<?= http_build_query(array_merge($_GET, ['page' => $page - 1])) ?>" aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                        <?php for ($p = 1; $p <= $total_pages; $p++): ?>
+                            <li class="page-item <?= ($p == $page) ? 'active' : '' ?>">
+                                <a class="page-link" href="?<?= http_build_query(array_merge($_GET, ['page' => $p])) ?>"><?= $p ?></a>
+                            </li>
+                        <?php endfor; ?>
+                        <li class="page-item <?= ($page >= $total_pages) ? 'disabled' : '' ?>">
+                            <a class="page-link" href="?<?= http_build_query(array_merge($_GET, ['page' => $page + 1])) ?>" aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        <?php endif; ?>
     <?php endif; ?>
 </div>
 

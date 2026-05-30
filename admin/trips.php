@@ -41,14 +41,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 try {
                     $pdo->beginTransaction();
 
-                    // 1. Fetch bus details
-                    $bus_stmt = $pdo->prepare("SELECT total_seats, seat_layout_type FROM buses WHERE id = ? AND admin_id = ? LIMIT 1");
-                    $bus_stmt->execute([$bus_id, $admin_id]);
-                    $bus = $bus_stmt->fetch();
+                    // Verify bus ownership
+                    $bus_chk = $pdo->prepare("SELECT id, seat_layout_type FROM buses WHERE id = ? AND admin_id = ? AND status = 'active' LIMIT 1");
+                    $bus_chk->execute([$bus_id, $admin_id]);
+                    $bus = $bus_chk->fetch();
+
+                    // Verify route ownership
+                    $route_chk = $pdo->prepare("SELECT 1 FROM routes WHERE id = ? AND admin_id = ? AND status = 'active' LIMIT 1");
+                    $route_chk->execute([$route_id, $admin_id]);
+                    $route_exists = $route_chk->fetchColumn();
 
                     if (!$bus) {
                         $pdo->rollBack();
                         $error = "Invalid bus selection or unauthorized ownership.";
+                    } elseif (!$route_exists) {
+                        $pdo->rollBack();
+                        $error = "Invalid route selection or unauthorized ownership.";
                     } else {
                         // 2. Schedule Trip
                         $stmt = $pdo->prepare("
@@ -58,35 +66,70 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $stmt->execute([$bus_id, $route_id, $admin_id, $dep_time, $arr_time, $fare, $discount_type, $percentage, $fixed]);
                         $trip_id = $pdo->lastInsertId();
 
-                        // 3. Initialize all seat records
+                        // 3. Initialize all seat records (Optimized Bulk Insert to eliminate N+1)
                         // Get custom seats from layout if configured
                         $layout_seats_stmt = $pdo->prepare("SELECT seat_number, base_price FROM bus_seats WHERE bus_id = ? AND is_active = 1");
                         $layout_seats_stmt->execute([$bus_id]);
                         $layout_seats = $layout_seats_stmt->fetchAll();
 
-                        $seatInsertStmt = $pdo->prepare("INSERT INTO trip_seats (trip_id, seat_number, status) VALUES (?, ?, 'available')");
-                        $priceInsertStmt = $pdo->prepare("INSERT INTO seat_pricing (trip_id, seat_number, base_price, current_price, offer_price) VALUES (?, ?, ?, ?, ?)");
-
                         if (count($layout_seats) > 0) {
+                            $seat_values = [];
+                            $seat_params = [];
+                            $price_values = [];
+                            $price_params = [];
                             foreach ($layout_seats as $ls) {
-                                $seatInsertStmt->execute([$trip_id, $ls['seat_number']]);
-                                $priceInsertStmt->execute([$trip_id, $ls['seat_number'], $ls['base_price'], $ls['base_price'], $ls['base_price']]);
+                                $seat_values[] = "(?, ?, 'available')";
+                                $seat_params[] = $trip_id;
+                                $seat_params[] = $ls['seat_number'];
+
+                                $price_values[] = "(?, ?, ?, ?, ?)";
+                                $price_params[] = $trip_id;
+                                $price_params[] = $ls['seat_number'];
+                                $price_params[] = $ls['base_price'];
+                                $price_params[] = $ls['base_price'];
+                                $price_params[] = $ls['base_price'];
                             }
+                            $pdo->prepare("INSERT INTO trip_seats (trip_id, seat_number, status) VALUES " . implode(',', $seat_values))->execute($seat_params);
+                            $pdo->prepare("INSERT INTO seat_pricing (trip_id, seat_number, base_price, current_price, offer_price) VALUES " . implode(',', $price_values))->execute($price_params);
                         } else {
+                            $seat_values = [];
+                            $seat_params = [];
+                            $price_values = [];
+                            $price_params = [];
                             // Standard layout fallback
                             if ($bus['seat_layout_type'] === '2x1_sleeper') {
                                 for ($i = 1; $i <= 15; $i++) {
-                                    $seatInsertStmt->execute([$trip_id, "L$i"]);
-                                    $priceInsertStmt->execute([$trip_id, "L$i", $fare, $fare, $fare]);
-                                    $seatInsertStmt->execute([$trip_id, "U$i"]);
-                                    $priceInsertStmt->execute([$trip_id, "U$i", $fare + 100, $fare + 100, $fare + 100]);
+                                    foreach (["L$i", "U$i"] as $snum) {
+                                        $sf = ($snum[0] === 'U') ? $fare + 100 : $fare;
+                                        $seat_values[] = "(?, ?, 'available')";
+                                        $seat_params[] = $trip_id;
+                                        $seat_params[] = $snum;
+
+                                        $price_values[] = "(?, ?, ?, ?, ?)";
+                                        $price_params[] = $trip_id;
+                                        $price_params[] = $snum;
+                                        $price_params[] = $sf;
+                                        $price_params[] = $sf;
+                                        $price_params[] = $sf;
+                                    }
                                 }
                             } else {
                                 for ($i = 1; $i <= 40; $i++) {
-                                    $seatInsertStmt->execute([$trip_id, strval($i)]);
-                                    $priceInsertStmt->execute([$trip_id, strval($i), $fare, $fare, $fare]);
+                                    $snum = strval($i);
+                                    $seat_values[] = "(?, ?, 'available')";
+                                    $seat_params[] = $trip_id;
+                                    $seat_params[] = $snum;
+
+                                    $price_values[] = "(?, ?, ?, ?, ?)";
+                                    $price_params[] = $trip_id;
+                                    $price_params[] = $snum;
+                                    $price_params[] = $fare;
+                                    $price_params[] = $fare;
+                                    $price_params[] = $fare;
                                 }
                             }
+                            $pdo->prepare("INSERT INTO trip_seats (trip_id, seat_number, status) VALUES " . implode(',', $seat_values))->execute($seat_params);
+                            $pdo->prepare("INSERT INTO seat_pricing (trip_id, seat_number, base_price, current_price, offer_price) VALUES " . implode(',', $price_values))->execute($price_params);
                         }
 
                         $pdo->commit();
@@ -121,11 +164,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif (strtotime($dep_time) >= strtotime($arr_time)) {
                 $error = "Departure date/time must be earlier than Arrival date/time.";
             } else {
-                // Verify trip ownership
-                $chk = $pdo->prepare("SELECT t.id FROM trips t JOIN buses b ON t.bus_id = b.id WHERE t.id = ? AND b.admin_id = ? LIMIT 1");
-                $chk->execute([$trip_id, $admin_id]);
+                // Verify target bus, route and trip ownership
+                $trip_chk = $pdo->prepare("SELECT 1 FROM trips WHERE id = ? AND admin_id = ? LIMIT 1");
+                $trip_chk->execute([$trip_id, $admin_id]);
+                $trip_exists = $trip_chk->fetchColumn();
 
-                if ($chk->fetchColumn()) {
+                $bus_chk = $pdo->prepare("SELECT 1 FROM buses WHERE id = ? AND admin_id = ? AND status = 'active' LIMIT 1");
+                $bus_chk->execute([$bus_id, $admin_id]);
+                $bus_exists = $bus_chk->fetchColumn();
+
+                $route_chk = $pdo->prepare("SELECT 1 FROM routes WHERE id = ? AND admin_id = ? AND status = 'active' LIMIT 1");
+                $route_chk->execute([$route_id, $admin_id]);
+                $route_exists = $route_chk->fetchColumn();
+
+                if (!$trip_exists) {
+                    $error = "Unauthorized trip update request.";
+                } elseif (!$bus_exists) {
+                    $error = "Invalid or unauthorized bus selection.";
+                } elseif (!$route_exists) {
+                    $error = "Invalid or unauthorized route selection.";
+                } else {
                     $stmt = $pdo->prepare("
                         UPDATE trips 
                         SET bus_id = ?, route_id = ?, departure_time = ?, arrival_time = ?, base_fare = ?, discount_type = ?, percentage = ?, fixed = ?, status = ?
@@ -134,8 +192,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $stmt->execute([$bus_id, $route_id, $dep_time, $arr_time, $fare, $discount_type, $percentage, $fixed, $status, $trip_id]);
                     $success = "Trip details updated successfully!";
                     log_activity($pdo, $admin_id, 'TRIP_EDIT', "Updated Trip ID: $trip_id");
-                } else {
-                    $error = "Unauthorized trip update request.";
                 }
             }
         }
@@ -162,8 +218,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Fetch Agent's Scheduled Trips
+// Fetch Agent's Scheduled Trips with Pagination
 try {
+    $count_stmt = $pdo->prepare("
+        SELECT COUNT(*) 
+        FROM trips t
+        JOIN buses b ON t.bus_id = b.id
+        WHERE b.admin_id = ? AND t.status = 'active'
+    ");
+    $count_stmt->execute([$admin_id]);
+    $total_records = intval($count_stmt->fetchColumn());
+
+    $limit = 10;
+    $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+    $offset = ($page - 1) * $limit;
+    $total_pages = ceil($total_records / $limit);
+
     $stmt = $pdo->prepare("
         SELECT 
             t.id AS trip_id,
@@ -186,6 +256,7 @@ try {
         JOIN routes r ON t.route_id = r.id
         WHERE b.admin_id = ? AND t.status = 'active'
         ORDER BY t.departure_time DESC
+        LIMIT " . intval($limit) . " OFFSET " . intval($offset) . "
     ");
     $stmt->execute([$admin_id]);
     $trips = $stmt->fetchAll();
@@ -291,6 +362,33 @@ try {
                 </tbody>
             </table>
         </div>
+        
+        <?php if ($total_pages > 1): ?>
+            <div class="d-flex justify-content-between align-items-center mt-4">
+                <div class="text-secondary small">
+                    Showing <?= $offset + 1 ?> to <?= min($total_records, $offset + $limit) ?> of <?= $total_records ?> entries
+                </div>
+                <nav aria-label="Page navigation">
+                    <ul class="pagination pagination-swift mb-0">
+                        <li class="page-item <?= ($page <= 1) ? 'disabled' : '' ?>">
+                            <a class="page-link" href="?<?= http_build_query(array_merge($_GET, ['page' => $page - 1])) ?>" aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                        <?php for ($p = 1; $p <= $total_pages; $p++): ?>
+                            <li class="page-item <?= ($p == $page) ? 'active' : '' ?>">
+                                <a class="page-link" href="?<?= http_build_query(array_merge($_GET, ['page' => $p])) ?>"><?= $p ?></a>
+                            </li>
+                        <?php endfor; ?>
+                        <li class="page-item <?= ($page >= $total_pages) ? 'disabled' : '' ?>">
+                            <a class="page-link" href="?<?= http_build_query(array_merge($_GET, ['page' => $page + 1])) ?>" aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        <?php endif; ?>
     <?php endif; ?>
 </div>
 

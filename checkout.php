@@ -53,6 +53,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
             SELECT seat_number, status, hold_expires_at, locked_by_session 
             FROM trip_seats 
             WHERE trip_id = ? AND seat_number IN ($seat_placeholders)
+            FOR UPDATE
         ");
 
         $chk_params = array_merge([$trip_id], $seats);
@@ -373,6 +374,7 @@ try {
         SELECT seat_number, status, hold_expires_at, locked_by_session 
         FROM trip_seats 
         WHERE trip_id = ? AND seat_number IN ($seat_placeholders)
+        FOR UPDATE
     ");
     $chk_params = array_merge([$trip_id], $seats);
     $chk_stmt->execute($chk_params);

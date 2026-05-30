@@ -7,6 +7,8 @@ DROP TABLE IF EXISTS layout_templates;
 DROP TABLE IF EXISTS cancellation_requests;
 DROP TABLE IF EXISTS seat_holds;
 DROP TABLE IF EXISTS seat_pricing;
+DROP TABLE IF EXISTS seat_price_overrides;
+DROP TABLE IF EXISTS seat_blocks;
 DROP TABLE IF EXISTS dropping_points;
 DROP TABLE IF EXISTS boarding_points;
 DROP TABLE IF EXISTS bus_seats;
@@ -32,6 +34,7 @@ CREATE TABLE users (
     password VARCHAR(255) NOT NULL,
     role ENUM('customer', 'agent', 'admin', 'super_admin') NOT NULL DEFAULT 'customer',
     status ENUM('pending', 'approved', 'suspended') NOT NULL DEFAULT 'approved',
+    operator_code VARCHAR(50) NULL UNIQUE,
     admin_id INT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (admin_id) REFERENCES users(id) ON DELETE SET NULL
@@ -68,7 +71,7 @@ CREATE TABLE buses (
     admin_id INT NOT NULL,
     bus_name VARCHAR(100) NOT NULL,
     bus_number VARCHAR(50) NOT NULL,
-    bus_type ENUM('AC Sleeper', 'Non-AC Sleeper', 'AC Seater', 'Non-AC Seater') NOT NULL,
+    bus_type VARCHAR(50) NOT NULL,
     total_seats INT NOT NULL,
     seat_layout_type VARCHAR(20) DEFAULT '2x2',
     status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
@@ -370,5 +373,44 @@ INSERT INTO trip_seats (trip_id, seat_number, status) VALUES
 (2, '26', 'available'), (2, '27', 'available'), (2, '28', 'available'), (2, '29', 'available'), (2, '30', 'available'),
 (2, '31', 'available'), (2, '32', 'available'), (2, '33', 'available'), (2, '34', 'available'), (2, '35', 'available'),
 (2, '36', 'available'), (2, '37', 'available'), (2, '38', 'available'), (2, '39', 'available'), (2, '40', 'available');
+
+-- 23. Seat Price Overrides
+CREATE TABLE seat_price_overrides (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    trip_id INT NOT NULL,
+    seat_number VARCHAR(20) NOT NULL,
+    custom_price DECIMAL(10,2) NOT NULL,
+    updated_by INT NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE CASCADE,
+    FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_trip_seat_override (trip_id, seat_number)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 24. Seat Blocks
+CREATE TABLE seat_blocks (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    trip_id INT NOT NULL,
+    seat_number VARCHAR(20) NOT NULL,
+    blocked_by INT NOT NULL,
+    blocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE CASCADE,
+    FOREIGN KEY (blocked_by) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_trip_seat_block (trip_id, seat_number)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 25. Indexes for Performance & Scalability
+CREATE INDEX idx_bookings_trip_id ON bookings(trip_id);
+CREATE INDEX idx_bookings_customer_id ON bookings(customer_id);
+CREATE INDEX idx_bookings_admin_id ON bookings(admin_id);
+CREATE INDEX idx_bookings_created_at ON bookings(created_at);
+CREATE INDEX idx_trips_route_id ON trips(route_id);
+CREATE INDEX idx_trips_bus_id ON trips(bus_id);
+CREATE INDEX idx_trips_admin_id ON trips(admin_id);
+CREATE INDEX idx_trips_departure_time ON trips(departure_time);
+CREATE INDEX idx_trip_seats_trip_status ON trip_seats(trip_id, status);
+CREATE INDEX idx_seat_holds_trip_seat ON seat_holds(trip_id, seat_number);
+CREATE INDEX idx_booking_seats_booking_id ON booking_seats(booking_id);
+CREATE INDEX idx_weekly_settlements_agent_id ON weekly_settlements(agent_id);
 
 SET FOREIGN_KEY_CHECKS = 1;

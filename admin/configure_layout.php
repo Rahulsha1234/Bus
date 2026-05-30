@@ -19,25 +19,7 @@ if (!$bus) {
     die("Bus not found or access denied.");
 }
 
-// Auto-migrate unique index on DB to support overlapping layouts (Upper/Lower decks)
-try {
-    $stmtCheck = $pdo->query("SHOW INDEX FROM bus_seats WHERE Key_name = 'unique_bus_seat_pos'");
-    $indexes = $stmtCheck->fetchAll();
-    $has_seat_type = false;
-    foreach ($indexes as $idx) {
-        if ($idx['Column_name'] === 'seat_type') {
-            $has_seat_type = true;
-        }
-    }
-    if (empty($indexes) || !$has_seat_type) {
-        if (!empty($indexes)) {
-            $pdo->exec("ALTER TABLE bus_seats DROP INDEX unique_bus_seat_pos");
-        }
-        $pdo->exec("ALTER TABLE bus_seats ADD UNIQUE KEY unique_bus_seat_pos (bus_id, row_pos, col_pos, seat_type)");
-    }
-} catch (Exception $ex) {
-    // Fail silently if index already modified or tables not ready
-}
+
 
 $error = '';
 $success = '';

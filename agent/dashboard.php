@@ -64,23 +64,31 @@ try {
     $stmt->execute([':agent_id' => $agent_id]);
     $lifetime_metrics = $stmt->fetch();
 
-    // 2. Fetch Earnings over the last 7 days for the chart
+    // 2. Fetch Earnings over the last 7 days for the chart using a single aggregated query
     $chart_days = [];
     $chart_earnings = [];
+    $start_date = date('Y-m-d', strtotime('-6 days'));
+    $end_date = date('Y-m-d');
+
+    $stmt = $pdo->prepare("
+        SELECT 
+            DATE(b.created_at) AS booking_date,
+            SUM(b.agent_net_earning) AS total_earnings
+        FROM bookings b
+        WHERE b.agent_id = :agent_id 
+          AND DATE(b.created_at) >= :start_date
+          AND DATE(b.created_at) <= :end_date
+          AND b.payment_status = 'paid'
+        GROUP BY DATE(b.created_at)
+    ");
+    $stmt->execute([':agent_id' => $agent_id, ':start_date' => $start_date, ':end_date' => $end_date]);
+    $results = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+
     for ($i = 6; $i >= 0; $i--) {
         $date_label = date('Y-m-d', strtotime("-$i days"));
         $display_label = date('D, d M', strtotime($date_label));
         $chart_days[] = $display_label;
-
-        $stmt = $pdo->prepare("
-            SELECT COALESCE(SUM(b.agent_net_earning), 0) 
-            FROM bookings b
-            WHERE b.agent_id = :agent_id 
-              AND DATE(b.created_at) = :date_label
-              AND b.payment_status = 'paid'
-        ");
-        $stmt->execute([':agent_id' => $agent_id, ':date_label' => $date_label]);
-        $chart_earnings[] = floatval($stmt->fetchColumn());
+        $chart_earnings[] = floatval($results[$date_label] ?? 0.00);
     }
 
     // 3. Fetch Recent Bookings of this Agent (Limit 5)

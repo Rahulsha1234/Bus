@@ -126,3 +126,49 @@ ALTER TABLE trip_seats ADD COLUMN IF NOT EXISTS gender_restriction ENUM('none', 
 
 -- 13. Add duration column to routes
 ALTER TABLE routes ADD COLUMN IF NOT EXISTS duration VARCHAR(50) NOT NULL DEFAULT '6 hours';
+
+-- 14. Add operator_code column to users
+ALTER TABLE users ADD COLUMN IF NOT EXISTS operator_code VARCHAR(50) NULL UNIQUE;
+
+-- 15. Modify bus_type column on buses
+ALTER TABLE buses MODIFY COLUMN bus_type VARCHAR(50) NOT NULL;
+
+-- 16. Seat Price Overrides
+CREATE TABLE IF NOT EXISTS seat_price_overrides (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    trip_id INT NOT NULL,
+    seat_number VARCHAR(20) NOT NULL,
+    custom_price DECIMAL(10,2) NOT NULL,
+    updated_by INT NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE CASCADE,
+    FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_trip_seat_override (trip_id, seat_number)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 17. Seat Blocks
+CREATE TABLE IF NOT EXISTS seat_blocks (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    trip_id INT NOT NULL,
+    seat_number VARCHAR(20) NOT NULL,
+    blocked_by INT NOT NULL,
+    blocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE CASCADE,
+    FOREIGN KEY (blocked_by) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_trip_seat_block (trip_id, seat_number)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 18. Optimization Indexes (Ignore errors if index already exists)
+ALTER TABLE bookings ADD INDEX IF NOT EXISTS idx_bookings_trip_id (trip_id);
+ALTER TABLE bookings ADD INDEX IF NOT EXISTS idx_bookings_customer_id (customer_id);
+ALTER TABLE bookings ADD INDEX IF NOT EXISTS idx_bookings_admin_id (admin_id);
+ALTER TABLE bookings ADD INDEX IF NOT EXISTS idx_bookings_created_at (created_at);
+ALTER TABLE trips ADD INDEX IF NOT EXISTS idx_trips_route_id (route_id);
+ALTER TABLE trips ADD INDEX IF NOT EXISTS idx_trips_bus_id (bus_id);
+ALTER TABLE trips ADD INDEX IF NOT EXISTS idx_trips_admin_id (admin_id);
+ALTER TABLE trips ADD INDEX IF NOT EXISTS idx_trips_departure_time (departure_time);
+ALTER TABLE trip_seats ADD INDEX IF NOT EXISTS idx_trip_seats_trip_status (trip_id, status);
+ALTER TABLE seat_holds ADD INDEX IF NOT EXISTS idx_seat_holds_trip_seat (trip_id, seat_number);
+ALTER TABLE booking_seats ADD INDEX IF NOT EXISTS idx_booking_seats_booking_id (booking_id);
+ALTER TABLE weekly_settlements ADD INDEX IF NOT EXISTS idx_weekly_settlements_agent_id (agent_id);
+

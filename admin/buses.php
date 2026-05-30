@@ -8,16 +8,7 @@ $admin_id = $_SESSION['user_id'];
 $error = '';
 $success = trim($_GET['success'] ?? '');
 
-// Auto-migrate buses.bus_type to VARCHAR(50) to support dynamic classifications on live DB
-try {
-    $stmtCol = $pdo->query("SHOW COLUMNS FROM buses LIKE 'bus_type'");
-    $col = $stmtCol->fetch();
-    if ($col && strpos(strtolower($col['Type']), 'enum') !== false) {
-        $pdo->exec("ALTER TABLE buses MODIFY COLUMN bus_type VARCHAR(50) NOT NULL");
-    }
-} catch (Exception $ex) {
-    // Fail silently
-}
+
 
 // Handle Actions (Add, Edit, Delete)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -124,37 +115,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (empty($op_name) || empty($op_phone) || empty($op_whatsapp) || empty($op_emergency) || empty($op_email) || $bus_id === 0) {
                 $error = "Please fill in all operator contact fields.";
             } else {
-                $stmt = $pdo->prepare("
-                    INSERT INTO operator_contacts (bus_id, operator_name, contact_number, whatsapp_number, emergency_number, support_email)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                    ON DUPLICATE KEY UPDATE 
-                        operator_name = VALUES(operator_name),
-                        contact_number = VALUES(contact_number),
-                        whatsapp_number = VALUES(whatsapp_number),
-                        emergency_number = VALUES(emergency_number),
-                        support_email = VALUES(support_email)
-                ");
-                $stmt->execute([$bus_id, $op_name, $op_phone, $op_whatsapp, $op_emergency, $op_email]);
-                $success = "Operator contacts updated successfully!";
-                log_activity($pdo, $admin_id, 'BUS_OPERATOR_UPDATE', "Updated operator info for bus ID: $bus_id");
+                // Verify ownership of the bus
+                $owner_chk = $pdo->prepare("SELECT 1 FROM buses WHERE id = ? AND admin_id = ? AND status = 'active' LIMIT 1");
+                $owner_chk->execute([$bus_id, $admin_id]);
+                if (!$owner_chk->fetchColumn()) {
+                    $error = "Unauthorized operator contact settings request.";
+                } else {
+                    $stmt = $pdo->prepare("
+                        INSERT INTO operator_contacts (bus_id, operator_name, contact_number, whatsapp_number, emergency_number, support_email)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                        ON DUPLICATE KEY UPDATE 
+                            operator_name = VALUES(operator_name),
+                            contact_number = VALUES(contact_number),
+                            whatsapp_number = VALUES(whatsapp_number),
+                            emergency_number = VALUES(emergency_number),
+                            support_email = VALUES(support_email)
+                    ");
+                    $stmt->execute([$bus_id, $op_name, $op_phone, $op_whatsapp, $op_emergency, $op_email]);
+                    $success = "Operator contacts updated successfully!";
+                    log_activity($pdo, $admin_id, 'BUS_OPERATOR_UPDATE', "Updated operator info for bus ID: $bus_id");
+                }
             }
         }
     }
 }
 
-// Fetch Agent's Buses
+// Fetch Agent's Buses with Pagination
 try {
+    $count_stmt = $pdo->prepare("SELECT COUNT(*) FROM buses WHERE admin_id = ? AND status = 'active'");
+    $count_stmt->execute([$admin_id]);
+    $total_records = intval($count_stmt->fetchColumn());
+
+    $limit = 10;
+    $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+    $offset = ($page - 1) * $limit;
+    $total_pages = ceil($total_records / $limit);
+
     $stmt = $pdo->prepare("
         SELECT b.*, op.operator_name, op.contact_number, op.whatsapp_number, op.emergency_number, op.support_email 
         FROM buses b 
         LEFT JOIN operator_contacts op ON b.id = op.bus_id
         WHERE b.admin_id = ? AND b.status = 'active'
         ORDER BY b.id DESC
+        LIMIT " . intval($limit) . " OFFSET " . intval($offset) . "
     ");
     $stmt->execute([$admin_id]);
     $buses = $stmt->fetchAll();
 } catch (PDOException $e) {
     $buses = [];
+    $total_records = 0;
+    $total_pages = 0;
+    $page = 1;
+    $offset = 0;
+    $limit = 10;
 }
 ?>
 
@@ -219,6 +232,33 @@ try {
                 </tbody>
             </table>
         </div>
+        
+        <?php if ($total_pages > 1): ?>
+            <div class="d-flex justify-content-between align-items-center mt-4">
+                <div class="text-secondary small">
+                    Showing <?= $offset + 1 ?> to <?= min($total_records, $offset + $limit) ?> of <?= $total_records ?> entries
+                </div>
+                <nav aria-label="Page navigation">
+                    <ul class="pagination pagination-swift mb-0">
+                        <li class="page-item <?= ($page <= 1) ? 'disabled' : '' ?>">
+                            <a class="page-link" href="?<?= http_build_query(array_merge($_GET, ['page' => $page - 1])) ?>" aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                        <?php for ($p = 1; $p <= $total_pages; $p++): ?>
+                            <li class="page-item <?= ($p == $page) ? 'active' : '' ?>">
+                                <a class="page-link" href="?<?= http_build_query(array_merge($_GET, ['page' => $p])) ?>"><?= $p ?></a>
+                            </li>
+                        <?php endfor; ?>
+                        <li class="page-item <?= ($page >= $total_pages) ? 'disabled' : '' ?>">
+                            <a class="page-link" href="?<?= http_build_query(array_merge($_GET, ['page' => $page + 1])) ?>" aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        <?php endif; ?>
     <?php endif; ?>
 </div>
 

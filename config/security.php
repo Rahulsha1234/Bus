@@ -84,44 +84,19 @@ if (!function_exists('log_activity')) {
 // Auto create overrides and blocks tables if they don't exist
 if (!function_exists('ensure_refactor_tables_exist')) {
     function ensure_refactor_tables_exist($pdo) {
-        static $run = false;
-        if ($run) return;
-        try {
-            $pdo->exec("
-                CREATE TABLE IF NOT EXISTS seat_price_overrides (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    trip_id INT NOT NULL,
-                    seat_number VARCHAR(20) NOT NULL,
-                    custom_price DECIMAL(10,2) NOT NULL,
-                    updated_by INT NOT NULL,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                    FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE CASCADE,
-                    FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE CASCADE,
-                    UNIQUE KEY unique_trip_seat_override (trip_id, seat_number)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-            ");
-            $pdo->exec("
-                CREATE TABLE IF NOT EXISTS seat_blocks (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    trip_id INT NOT NULL,
-                    seat_number VARCHAR(20) NOT NULL,
-                    blocked_by INT NOT NULL,
-                    blocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE CASCADE,
-                    FOREIGN KEY (blocked_by) REFERENCES users(id) ON DELETE CASCADE,
-                    UNIQUE KEY unique_trip_seat_block (trip_id, seat_number)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-            ");
-            $run = true;
-        } catch (Exception $e) {
-            // fail silently
-        }
+        // No-op (Moved to SQL migrations)
     }
 }
 
 // Get dynamic resolved seat price using override hierarchy
 if (!function_exists('calculate_dynamic_pricing')) {
     function calculate_dynamic_pricing($pdo, $trip_id, $base_fare) {
+        static $request_cache = [];
+        $cache_key = $trip_id . '_' . $base_fare;
+        if (isset($request_cache[$cache_key])) {
+            return $request_cache[$cache_key];
+        }
+
         $base_fare = floatval($base_fare);
         
         try {
@@ -130,7 +105,7 @@ if (!function_exists('calculate_dynamic_pricing')) {
             $trip_stmt->execute([$trip_id]);
             $trip = $trip_stmt->fetch();
             if (!$trip) {
-                return [
+                $res = [
                     'occupancy_percent' => 0,
                     'occupancy_increase_pct' => 0,
                     'time_increase_pct' => 0,
@@ -138,6 +113,8 @@ if (!function_exists('calculate_dynamic_pricing')) {
                     'time_adjustment' => 0,
                     'final_price' => $base_fare
                 ];
+                $request_cache[$cache_key] = $res;
+                return $res;
             }
             
             $operator_id = intval($trip['admin_id']);
@@ -159,7 +136,7 @@ if (!function_exists('calculate_dynamic_pricing')) {
             $mode = $settings ? $settings['dynamic_pricing_mode'] : 'custom';
             
             if (!$enabled) {
-                return [
+                $res = [
                     'occupancy_percent' => 0,
                     'occupancy_increase_pct' => 0,
                     'time_increase_pct' => 0,
@@ -167,12 +144,19 @@ if (!function_exists('calculate_dynamic_pricing')) {
                     'time_adjustment' => 0,
                     'final_price' => $base_fare
                 ];
+                $request_cache[$cache_key] = $res;
+                return $res;
             }
 
-            // 3. Calculate Occupancy %
-            $total_seats = intval($pdo->query("SELECT COUNT(*) FROM bus_seats WHERE bus_id = $bus_id AND is_active = 1")->fetchColumn());
+            // 3. Calculate Occupancy % (Parameterize queries)
+            $seats_count_stmt = $pdo->prepare("SELECT COUNT(*) FROM bus_seats WHERE bus_id = ? AND is_active = 1");
+            $seats_count_stmt->execute([$bus_id]);
+            $total_seats = intval($seats_count_stmt->fetchColumn());
+            
             if ($total_seats <= 0) {
-                $total_seats = intval($pdo->query("SELECT total_seats FROM buses WHERE id = $bus_id")->fetchColumn());
+                $bus_seats_stmt = $pdo->prepare("SELECT total_seats FROM buses WHERE id = ?");
+                $bus_seats_stmt->execute([$bus_id]);
+                $total_seats = intval($bus_seats_stmt->fetchColumn());
             }
             if ($total_seats <= 0) $total_seats = 40; // absolute fallback
             
@@ -267,7 +251,7 @@ if (!function_exists('calculate_dynamic_pricing')) {
             $time_adjustment = round(($base_fare * $time_increase_pct) / 100, 2);
             $final_price = $base_fare + $occupancy_adjustment + $time_adjustment;
 
-            return [
+            $res = [
                 'occupancy_percent' => $occupancy_percent,
                 'occupancy_increase_pct' => $occ_increase_pct,
                 'time_increase_pct' => $time_increase_pct,
@@ -275,10 +259,12 @@ if (!function_exists('calculate_dynamic_pricing')) {
                 'time_adjustment' => $time_adjustment,
                 'final_price' => $final_price
             ];
+            $request_cache[$cache_key] = $res;
+            return $res;
 
         } catch (Exception $e) {
             error_log("Dynamic pricing engine exception: " . $e->getMessage());
-            return [
+            $res = [
                 'occupancy_percent' => 0,
                 'occupancy_increase_pct' => 0,
                 'time_increase_pct' => 0,
@@ -286,6 +272,8 @@ if (!function_exists('calculate_dynamic_pricing')) {
                 'time_adjustment' => 0,
                 'final_price' => $base_fare
             ];
+            $request_cache[$cache_key] = $res;
+            return $res;
         }
     }
 }

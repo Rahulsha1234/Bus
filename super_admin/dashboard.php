@@ -34,20 +34,37 @@ try {
     $paid_comm = $pdo->query("SELECT COALESCE(SUM(commission_payable), 0) FROM weekly_settlements WHERE status = 'paid'")->fetchColumn();
     $pending_comm = max(0, $lifetime_comm - $paid_comm);
 
-    // 2. Chart 1: Sales trend over 7 days
+    // 2. Chart 1: Sales trend over 7 days using a single aggregated query
     $chart_days = [];
     $chart_sales = [];
     $chart_comm = [];
+    $start_date = date('Y-m-d', strtotime('-6 days'));
+    $end_date = date('Y-m-d');
+
+    $stmt = $pdo->prepare("
+        SELECT 
+            DATE(created_at) AS booking_date,
+            SUM(total_amount) AS total_sales,
+            SUM(admin_commission) AS total_comm
+        FROM bookings
+        WHERE DATE(created_at) >= ? 
+          AND DATE(created_at) <= ?
+          AND payment_status = 'paid'
+        GROUP BY DATE(created_at)
+    ");
+    $stmt->execute([$start_date, $end_date]);
+    $results = $stmt->fetchAll(PDO::FETCH_UNIQUE | PDO::FETCH_ASSOC);
+
     for ($i = 6; $i >= 0; $i--) {
         $date_label = date('Y-m-d', strtotime("-$i days"));
         $display_label = date('D, d M', strtotime($date_label));
         $chart_days[] = $display_label;
 
-        $stmt = $pdo->prepare("SELECT COALESCE(SUM(total_amount), 0), COALESCE(SUM(admin_commission), 0) FROM bookings WHERE DATE(created_at) = ? AND payment_status = 'paid'");
-        $stmt->execute([$date_label]);
-        $row = $stmt->fetch(PDO::FETCH_NUM);
-        $chart_sales[] = floatval($row[0]);
-        $chart_comm[] = floatval($row[1]);
+        $sales_val = isset($results[$date_label]) ? floatval($results[$date_label]['total_sales']) : 0.00;
+        $comm_val = isset($results[$date_label]) ? floatval($results[$date_label]['total_comm']) : 0.00;
+
+        $chart_sales[] = $sales_val;
+        $chart_comm[] = $comm_val;
     }
 
     // 3. Chart 2: Admin/Operator-wise Performance (Gross sales comparison)

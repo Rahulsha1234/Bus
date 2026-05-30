@@ -8,6 +8,30 @@ $admin_id = $_SESSION['user_id'];
 $search = trim($_GET['search'] ?? '');
 
 try {
+    $count_sql = "
+        SELECT COUNT(*) 
+        FROM bookings b
+        JOIN trips t ON b.trip_id = t.id
+        JOIN buses bs ON t.bus_id = bs.id
+        JOIN routes r ON t.route_id = r.id
+        WHERE bs.admin_id = :admin_id
+    ";
+    $params = [':admin_id' => $admin_id];
+
+    if (!empty($search)) {
+        $count_sql .= " AND (b.booking_reference LIKE :search OR b.customer_name LIKE :search OR b.customer_phone LIKE :search)";
+        $params[':search'] = "%$search%";
+    }
+
+    $count_stmt = $pdo->prepare($count_sql);
+    $count_stmt->execute($params);
+    $total_records = intval($count_stmt->fetchColumn());
+
+    $limit = 10;
+    $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+    $offset = ($page - 1) * $limit;
+    $total_pages = ceil($total_records / $limit);
+
     $sql = "
         SELECT 
             b.booking_reference,
@@ -30,20 +54,22 @@ try {
         WHERE bs.admin_id = :admin_id
     ";
 
-    $params = [':admin_id' => $admin_id];
-
     if (!empty($search)) {
         $sql .= " AND (b.booking_reference LIKE :search OR b.customer_name LIKE :search OR b.customer_phone LIKE :search)";
-        $params[':search'] = "%$search%";
     }
 
-    $sql .= " ORDER BY b.created_at DESC";
+    $sql .= " ORDER BY b.created_at DESC LIMIT " . intval($limit) . " OFFSET " . intval($offset);
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
     $bookings = $stmt->fetchAll();
 } catch (PDOException $e) {
     $bookings = [];
+    $total_records = 0;
+    $total_pages = 0;
+    $page = 1;
+    $offset = 0;
+    $limit = 10;
 }
 ?>
 
@@ -115,6 +141,33 @@ try {
                 </tbody>
             </table>
         </div>
+        
+        <?php if ($total_pages > 1): ?>
+            <div class="d-flex justify-content-between align-items-center mt-4">
+                <div class="text-secondary small">
+                    Showing <?= $offset + 1 ?> to <?= min($total_records, $offset + $limit) ?> of <?= $total_records ?> entries
+                </div>
+                <nav aria-label="Page navigation">
+                    <ul class="pagination pagination-swift mb-0">
+                        <li class="page-item <?= ($page <= 1) ? 'disabled' : '' ?>">
+                            <a class="page-link" href="?<?= http_build_query(array_merge($_GET, ['page' => $page - 1])) ?>" aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                        <?php for ($p = 1; $p <= $total_pages; $p++): ?>
+                            <li class="page-item <?= ($p == $page) ? 'active' : '' ?>">
+                                <a class="page-link" href="?<?= http_build_query(array_merge($_GET, ['page' => $p])) ?>"><?= $p ?></a>
+                            </li>
+                        <?php endfor; ?>
+                        <li class="page-item <?= ($page >= $total_pages) ? 'disabled' : '' ?>">
+                            <a class="page-link" href="?<?= http_build_query(array_merge($_GET, ['page' => $page + 1])) ?>" aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        <?php endif; ?>
     <?php endif; ?>
 </div>
 

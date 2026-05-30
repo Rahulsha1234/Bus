@@ -12,103 +12,107 @@ $error_msg = '';
 
 // Handle POST actions for Approve / Reject
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-    $action = $_POST['action'];
-    $request_id = intval($_POST['request_id'] ?? 0);
-    $refund_val = floatval($_POST['refund_amount'] ?? 0.00);
+    $csrf = $_POST['csrf_token'] ?? '';
+    if (!verify_csrf_token($csrf)) {
+        $error_msg = "Security token validation failed. Please refresh.";
+    } else {
+        $action = $_POST['action'];
+        $request_id = intval($_POST['request_id'] ?? 0);
+        $refund_val = floatval($_POST['refund_amount'] ?? 0.00);
 
-    try {
-        // Validate request belongs to this agent's buses
-        $chk_stmt = $pdo->prepare("
-            SELECT cr.id, cr.booking_id, cr.request_number, b.booking_reference, b.trip_id, b.total_amount, cr.status
-            FROM cancellation_requests cr
-            JOIN bookings b ON cr.booking_id = b.id
-            JOIN trips t ON b.trip_id = t.id
-            JOIN buses bu ON t.bus_id = bu.id
-            WHERE cr.id = ? AND bu.admin_id = ?
-            LIMIT 1
-        ");
-        $chk_stmt->execute([$request_id, $admin_id]);
-        $request = $chk_stmt->fetch();
+        try {
+            // Validate request belongs to this agent's buses
+            $chk_stmt = $pdo->prepare("
+                SELECT cr.id, cr.booking_id, cr.request_number, b.booking_reference, b.trip_id, b.total_amount, cr.status
+                FROM cancellation_requests cr
+                JOIN bookings b ON cr.booking_id = b.id
+                JOIN trips t ON b.trip_id = t.id
+                JOIN buses bu ON t.bus_id = bu.id
+                WHERE cr.id = ? AND bu.admin_id = ?
+                LIMIT 1
+            ");
+            $chk_stmt->execute([$request_id, $admin_id]);
+            $request = $chk_stmt->fetch();
 
-        if (!$request) {
-            $error_msg = "Cancellation request not found or unauthorized.";
-        } elseif ($request['status'] !== 'pending') {
-            $error_msg = "This request has already been processed.";
-        } else {
-            $pdo->beginTransaction();
+            if (!$request) {
+                $error_msg = "Cancellation request not found or unauthorized.";
+            } elseif ($request['status'] !== 'pending') {
+                $error_msg = "This request has already been processed.";
+            } else {
+                $pdo->beginTransaction();
 
-            if ($action === 'approve') {
-                // 1. Update cancellation request
-                $up_stmt = $pdo->prepare("
-                    UPDATE cancellation_requests 
-                    SET status = 'approved', refund_amount = ?, processed_at = NOW(), processed_by = ? 
-                    WHERE id = ?
-                ");
-                $up_stmt->execute([$refund_val, $admin_id, $request_id]);
-
-                // 2. Set booking status to 'cancelled'
-                $bk_stmt = $pdo->prepare("UPDATE bookings SET status = 'cancelled' WHERE id = ?");
-                $bk_stmt->execute([$request['booking_id']]);
-
-                // 3. Fetch seats associated with this booking
-                $seats_stmt = $pdo->prepare("SELECT seat_number FROM booking_seats WHERE booking_id = ?");
-                $seats_stmt->execute([$request['booking_id']]);
-                $booked_seats = $seats_stmt->fetchAll(PDO::FETCH_COLUMN);
-
-                if (!empty($booked_seats)) {
-                    // 4. Reset those seats to 'available' in trip_seats
-                    $placeholders = implode(',', array_fill(0, count($booked_seats), '?'));
-                    $rst_stmt = $pdo->prepare("
-                        UPDATE trip_seats 
-                        SET status = 'available', hold_expires_at = NULL, locked_by_session = NULL, locked_at = NULL
-                        WHERE trip_id = ? AND seat_number IN ($placeholders)
+                if ($action === 'approve') {
+                    // 1. Update cancellation request
+                    $up_stmt = $pdo->prepare("
+                        UPDATE cancellation_requests 
+                        SET status = 'approved', refund_amount = ?, processed_at = NOW(), processed_by = ? 
+                        WHERE id = ?
                     ");
-                    $rst_stmt->execute(array_merge([$request['trip_id']], $booked_seats));
-                }
+                    $up_stmt->execute([$refund_val, $admin_id, $request_id]);
 
-                // 5. Notify Customer (we'd insert into notifications or alert, let's notify the customer)
-                // Get customer ID
-                $cust_stmt = $pdo->prepare("SELECT customer_id FROM bookings WHERE id = ? LIMIT 1");
-                $cust_stmt->execute([$request['booking_id']]);
-                $customer_id = $cust_stmt->fetchColumn();
-                if ($customer_id) {
-                    $notif = $pdo->prepare("
+                    // 2. Set booking status to 'cancelled'
+                    $bk_stmt = $pdo->prepare("UPDATE bookings SET status = 'cancelled' WHERE id = ?");
+                    $bk_stmt->execute([$request['booking_id']]);
+
+                    // 3. Fetch seats associated with this booking
+                    $seats_stmt = $pdo->prepare("SELECT seat_number FROM booking_seats WHERE booking_id = ?");
+                    $seats_stmt->execute([$request['booking_id']]);
+                    $booked_seats = $seats_stmt->fetchAll(PDO::FETCH_COLUMN);
+
+                    if (!empty($booked_seats)) {
+                        // 4. Reset those seats to 'available' in trip_seats
+                        $placeholders = implode(',', array_fill(0, count($booked_seats), '?'));
+                        $rst_stmt = $pdo->prepare("
+                            UPDATE trip_seats 
+                            SET status = 'available', hold_expires_at = NULL, locked_by_session = NULL, locked_at = NULL
+                            WHERE trip_id = ? AND seat_number IN ($placeholders)
+                        ");
+                        $rst_stmt->execute(array_merge([$request['trip_id']], $booked_seats));
+                    }
+
+                    // 5. Notify Customer (we'd insert into notifications or alert, let's notify the customer)
+                    // Get customer ID
+                    $cust_stmt = $pdo->prepare("SELECT customer_id FROM bookings WHERE id = ? LIMIT 1");
+                    $cust_stmt->execute([$request['booking_id']]);
+                    $customer_id = $cust_stmt->fetchColumn();
+                    if ($customer_id) {
+                        $notif = $pdo->prepare("
+                            INSERT INTO system_notifications (user_id, user_role, message) 
+                            VALUES (?, 'customer', ?)
+                        ");
+                    }
+
+                    // Notify admin of refund processing
+                    $notif_admin = $pdo->prepare("
                         INSERT INTO system_notifications (user_id, user_role, message) 
-                        VALUES (?, 'customer', ?)
+                        VALUES (NULL, 'admin', ?)
                     ");
+                    $notif_admin->execute(["Cancellation Approved for Booking " . $request['booking_reference'] . ". Refund processed: ₹" . number_format($refund_val, 2)]);
+
+                    log_activity($pdo, $admin_id, 'CANCELLATION_APPROVE', "Approved cancellation request " . $request['request_number'] . " for Booking " . $request['booking_reference'] . ". Refunded: ₹$refund_val", "pending", "approved");
+                    $success_msg = "Cancellation approved successfully and seats released.";
+
+                } elseif ($action === 'reject') {
+                    // Update request to rejected
+                    $up_stmt = $pdo->prepare("
+                        UPDATE cancellation_requests 
+                        SET status = 'rejected', processed_at = NOW(), processed_by = ? 
+                        WHERE id = ?
+                    ");
+                    $up_stmt->execute([$admin_id, $request_id]);
+
+                    log_activity($pdo, $admin_id, 'CANCELLATION_REJECT', "Rejected cancellation request " . $request['request_number'] . " for Booking " . $request['booking_reference'], "pending", "rejected");
+                    $success_msg = "Cancellation request has been rejected.";
                 }
 
-                // Notify admin of refund processing
-                $notif_admin = $pdo->prepare("
-                    INSERT INTO system_notifications (user_id, user_role, message) 
-                    VALUES (NULL, 'admin', ?)
-                ");
-                $notif_admin->execute(["Cancellation Approved for Booking " . $request['booking_reference'] . ". Refund processed: ₹" . number_format($refund_val, 2)]);
-
-                log_activity($pdo, $admin_id, 'CANCELLATION_APPROVE', "Approved cancellation request " . $request['request_number'] . " for Booking " . $request['booking_reference'] . ". Refunded: ₹$refund_val", "pending", "approved");
-                $success_msg = "Cancellation approved successfully and seats released.";
-
-            } elseif ($action === 'reject') {
-                // Update request to rejected
-                $up_stmt = $pdo->prepare("
-                    UPDATE cancellation_requests 
-                    SET status = 'rejected', processed_at = NOW(), processed_by = ? 
-                    WHERE id = ?
-                ");
-                $up_stmt->execute([$admin_id, $request_id]);
-
-                log_activity($pdo, $admin_id, 'CANCELLATION_REJECT', "Rejected cancellation request " . $request['request_number'] . " for Booking " . $request['booking_reference'], "pending", "rejected");
-                $success_msg = "Cancellation request has been rejected.";
+                $pdo->commit();
             }
-
-            $pdo->commit();
+        } catch (Exception $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            $error_msg = "Error processing request: " . $e->getMessage();
         }
-
-    } catch (Exception $e) {
-        if ($pdo->inTransaction()) {
-            $pdo->rollBack();
-        }
-        $error_msg = "Error processing request: " . $e->getMessage();
     }
 }
 
@@ -215,6 +219,7 @@ require_once __DIR__ . '/header.php';
                                         </button>
                                         <!-- Reject Action Form -->
                                         <form method="POST" onsubmit="return confirm('Are you sure you want to reject this cancellation request?');" style="display:inline-block;">
+                                            <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
                                             <input type="hidden" name="request_id" value="<?= $r['request_id'] ?>">
                                             <input type="hidden" name="action" value="reject">
                                             <button type="submit" class="btn btn-danger-glass btn-sm px-3 rounded-2">Reject</button>
@@ -226,6 +231,7 @@ require_once __DIR__ . '/header.php';
                                         <div class="modal-dialog modal-dialog-centered">
                                             <div class="modal-content glass-card text-white border-secondary border-opacity-20 shadow-2xl p-3" style="background:#111111; border-radius: 20px;">
                                                 <form method="POST">
+                                                    <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
                                                     <input type="hidden" name="request_id" value="<?= $r['request_id'] ?>">
                                                     <input type="hidden" name="action" value="approve">
                                                     <div class="modal-header border-0 pb-0">

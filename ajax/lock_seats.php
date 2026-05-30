@@ -38,11 +38,13 @@ function in_repeat_action($val, $arr) {
 }
 
 try {
+    $pdo->beginTransaction();
+
     $now = date('Y-m-d H:i:s');
     $seven_mins_ago = date('Y-m-d H:i:s', strtotime('-7 minutes'));
 
     // Fetch current status
-    $stmt = $pdo->prepare("SELECT status, locked_at, locked_by_session FROM trip_seats WHERE trip_id = ? AND seat_number = ? LIMIT 1");
+    $stmt = $pdo->prepare("SELECT status, locked_at, locked_by_session FROM trip_seats WHERE trip_id = ? AND seat_number = ? LIMIT 1 FOR UPDATE");
     $stmt->execute([$trip_id, $seat]);
     $current = $stmt->fetch();
 
@@ -52,9 +54,11 @@ try {
             // Check if locked and not expired
             if ($status === 'temp_locked' && !empty($current['locked_at']) && $current['locked_at'] > $seven_mins_ago) {
                 if ($current['locked_by_session'] !== $session_id) {
+                    $pdo->rollBack();
                     echo json_encode(['success' => false, 'message' => 'This seat is temporarily locked by another user.']);
                     exit();
                 } else {
+                    $pdo->rollBack();
                     echo json_encode(['success' => true, 'message' => 'Already locked by you.']);
                     exit();
                 }
@@ -62,6 +66,7 @@ try {
             
             // Check if booked or held
             if (in_array($status, ['booked', 'hold', 'blocked', 'reserved', 'female_booked', 'female_protected'])) {
+                $pdo->rollBack();
                 echo json_encode(['success' => false, 'message' => 'This seat is already booked, blocked, or held.']);
                 exit();
             }
@@ -85,6 +90,7 @@ try {
             ':session_up' => $session_id
         ]);
 
+        $pdo->commit();
         echo json_encode(['success' => true, 'message' => 'Seat locked successfully.']);
         exit();
     } 
@@ -92,14 +98,19 @@ try {
         if ($current && $current['status'] === 'temp_locked' && $current['locked_by_session'] === $session_id) {
             $unlock_stmt = $pdo->prepare("UPDATE trip_seats SET status = 'available', locked_at = NULL, locked_by_session = NULL WHERE trip_id = ? AND seat_number = ?");
             $unlock_stmt->execute([$trip_id, $seat]);
+            $pdo->commit();
             echo json_encode(['success' => true, 'message' => 'Seat unlocked successfully.']);
             exit();
         }
+        $pdo->commit();
         echo json_encode(['success' => true, 'message' => 'No active lock to release.']);
         exit();
     }
 
 } catch (Exception $e) {
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
     echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
     exit();
 }
