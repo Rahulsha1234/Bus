@@ -8,6 +8,17 @@ $admin_id = $_SESSION['user_id'];
 $error = '';
 $success = trim($_GET['success'] ?? '');
 
+// Auto-migrate buses.bus_type to VARCHAR(50) to support dynamic classifications on live DB
+try {
+    $stmtCol = $pdo->query("SHOW COLUMNS FROM buses LIKE 'bus_type'");
+    $col = $stmtCol->fetch();
+    if ($col && strpos(strtolower($col['Type']), 'enum') !== false) {
+        $pdo->exec("ALTER TABLE buses MODIFY COLUMN bus_type VARCHAR(50) NOT NULL");
+    }
+} catch (Exception $ex) {
+    // Fail silently
+}
+
 // Handle Actions (Add, Edit, Delete)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $csrf_token = $_POST['csrf_token'] ?? '';

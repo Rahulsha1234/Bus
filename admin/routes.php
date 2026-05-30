@@ -28,7 +28,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $source = strtoupper(trim($_POST['source'] ?? ''));
             $destination = strtoupper(trim($_POST['destination'] ?? ''));
             $distance = intval($_POST['distance_km'] ?? 0);
-            $duration = trim($_POST['duration'] ?? '6 hours');
+            $duration = trim($_POST['duration'] ?? '6');
+            if (is_numeric($duration)) {
+                $duration .= ' hours';
+            }
 
             // Pickup details array compilation
             $pickup_names = $_POST['pickup_name'] ?? [];
@@ -103,7 +106,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $source = strtoupper(trim($_POST['source'] ?? ''));
             $destination = strtoupper(trim($_POST['destination'] ?? ''));
             $distance = intval($_POST['distance_km'] ?? 0);
-            $duration = trim($_POST['duration'] ?? '6 hours');
+            $duration = trim($_POST['duration'] ?? '6');
+            if (is_numeric($duration)) {
+                $duration .= ' hours';
+            }
             $status = $_POST['status'] ?? 'active';
 
             // Pickup details array compilation
@@ -323,9 +329,9 @@ try {
                                 placeholder="e.g. 1000" min="10" required>
                         </div>
                         <div class="col-md-3 mb-3">
-                            <label class="form-label text-secondary small fw-semibold">Duration (hrs/mins)</label>
-                            <input type="text" name="duration" class="form-control form-control-swift"
-                                placeholder="e.g. 12 hours" required>
+                            <label class="form-label text-secondary small fw-semibold">Duration (hours)</label>
+                            <input type="number" name="duration" class="form-control form-control-swift"
+                                placeholder="e.g. 6" min="1" max="100" required>
                         </div>
                     </div>
 
@@ -414,9 +420,9 @@ try {
                                 class="form-control form-control-swift" min="10" required>
                         </div>
                         <div class="col-md-3 mb-3">
-                            <label class="form-label text-secondary small fw-semibold">Duration (hrs/mins)</label>
-                            <input type="text" name="duration" id="edit_duration"
-                                class="form-control form-control-swift" required>
+                            <label class="form-label text-secondary small fw-semibold">Duration (hours)</label>
+                            <input type="number" name="duration" id="edit_duration"
+                                class="form-control form-control-swift" min="1" max="100" required>
                         </div>
                     </div>
 
@@ -516,7 +522,9 @@ try {
             $('#edit_source').val($(this).data('source'));
             $('#edit_destination').val($(this).data('destination'));
             $('#edit_distance').val($(this).data('distance'));
-            $('#edit_duration').val($(this).data('duration'));
+            var durStr = $(this).data('duration') || '';
+            var durNum = parseInt(durStr.replace(/[^0-9]/g, '')) || '';
+            $('#edit_duration').val(durNum);
 
             // Rebuild dynamic milestones
             var pickups = $(this).data('pickups');
@@ -585,7 +593,7 @@ try {
         });
 
         // Automatically convert route setup input values to uppercase as user types
-        $(document).on('input', 'input[name="source"], input[name="destination"], input[name="duration"], input[name="pickup_name[]"], input[name="drop_name[]"]', function() {
+        $(document).on('input', 'input[name="source"], input[name="destination"], input[name="pickup_name[]"], input[name="drop_name[]"]', function() {
             this.value = this.value.toUpperCase();
         });
     });
