@@ -479,48 +479,48 @@ require_once __DIR__ . '/includes/header.php';
         </div>
 
         <!-- Testimonials Section -->
-        <div class="py-5 my-5 reveal-on-scroll bg-white rounded-5 p-5 border shadow-sm">
+        <div class="py-5 my-5 reveal-on-scroll rounded-5 p-5 border shadow-sm" style="background: var(--card-bg); border-color: var(--border-glass) !important;">
             <div class="text-center mb-5">
-                <h2 class="fw-bold" style="font-family: 'Plus Jakarta Sans', sans-serif;">What Our Travelers Say</h2>
-                <p class="text-secondary">Verified reviews from passengers who travel with SwiftBus regularly.</p>
+                <h2 class="fw-bold" style="font-family: 'Plus Jakarta Sans', sans-serif; color: var(--text-primary);">What Our Travelers Say</h2>
+                <p class="text-secondary" style="color: var(--text-secondary) !important;">Verified reviews from passengers who travel with SwiftBus regularly.</p>
             </div>
             <div class="row g-4">
                 <!-- Review 1 -->
                 <div class="col-md-6">
-                    <div class="p-4 rounded-4 bg-light bg-opacity-50 border h-100 shadow-sm">
+                    <div class="p-4 rounded-4 border h-100 shadow-sm" style="background: var(--bg-secondary); border-color: var(--border-glass) !important;">
                         <div class="text-warning mb-2">
                             <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i
                                 class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i
                                 class="fa-solid fa-star"></i>
                         </div>
-                        <p class="text-dark mb-3 italic">"Extremely clean buses and very polite drivers. The online seat
+                        <p class="mb-3 italic" style="color: var(--text-primary); opacity: 0.9;">"Extremely clean buses and very polite drivers. The online seat
                             selection matched the bus layout perfectly. Will book again!"</p>
                         <div class="d-flex align-items-center gap-3">
                             <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center fw-bold"
                                 style="width: 42px; height: 42px;">AS</div>
                             <div>
-                                <h6 class="fw-bold mb-0 text-dark">Aarav Sharma</h6>
-                                <span class="text-secondary small">Verified Passenger</span>
+                                <h6 class="fw-bold mb-0" style="color: var(--text-primary);">Aarav Sharma</h6>
+                                <span class="text-secondary small" style="color: var(--text-secondary) !important;">Verified Passenger</span>
                             </div>
                         </div>
                     </div>
                 </div>
                 <!-- Review 2 -->
                 <div class="col-md-6">
-                    <div class="p-4 rounded-4 bg-light bg-opacity-50 border h-100 shadow-sm">
+                    <div class="p-4 rounded-4 border h-100 shadow-sm" style="background: var(--bg-secondary); border-color: var(--border-glass) !important;">
                         <div class="text-warning mb-2">
                             <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i
                                 class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i
                                 class="fa-solid fa-star"></i>
                         </div>
-                        <p class="text-dark mb-3 italic">"The live notification feature kept me updated. Ticket refund
+                        <p class="mb-3 italic" style="color: var(--text-primary); opacity: 0.9;">"The live notification feature kept me updated. Ticket refund
                             and cancellation is super simple compared to other portals."</p>
                         <div class="d-flex align-items-center gap-3">
                             <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center fw-bold"
                                 style="width: 42px; height: 42px;">RP</div>
                             <div>
-                                <h6 class="fw-bold mb-0 text-dark">Riya Patel</h6>
-                                <span class="text-secondary small">Frequent Traveler</span>
+                                <h6 class="fw-bold mb-0" style="color: var(--text-primary);">Riya Patel</h6>
+                                <span class="text-secondary small" style="color: var(--text-secondary) !important;">Frequent Traveler</span>
                             </div>
                         </div>
                     </div>

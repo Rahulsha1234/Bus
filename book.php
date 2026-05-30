@@ -217,6 +217,14 @@ try {
         }
     }
 
+    $has_upper_seats = false;
+    foreach ($seats_lookup as $sInfo) {
+        if (strpos(strtolower($sInfo['type']), 'upper') !== false) {
+            $has_upper_seats = true;
+            break;
+        }
+    }
+
 } catch (PDOException $e) {
     die("Error fetching voyage mapping: " . $e->getMessage());
 }
@@ -301,44 +309,128 @@ require_once __DIR__ . '/includes/header.php';
                     </div>
                 <?php else: ?>
                     <!-- Custom Grid Visual Layout (Seater, Mixed or configured Layouts) -->
-                    <div class="seat-map-container shadow-lg overflow-auto" style="max-width: 500px; margin:0 auto;">
-                        <div class="d-flex justify-content-between mb-4 pb-2 border-bottom border-secondary border-opacity-20">
-                            <span class="text-secondary small fw-semibold font-monospace">FRONT / ENGINE</span>
-                            <span class="text-secondary small"><i class="fa-solid fa-steering-wheel"></i> DRIVER</span>
+                    <?php if ($has_upper_seats): ?>
+                        <ul class="nav nav-pills justify-content-center mb-4 gap-2" role="tablist">
+                            <li class="nav-item">
+                                <button class="nav-link btn-secondary-glass active px-4 py-2" id="low-deck-tab" data-bs-toggle="pill" data-bs-target="#low-deck-berth" type="button" role="tab">Lower Deck</button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link btn-secondary-glass px-4 py-2" id="up-deck-tab" data-bs-toggle="pill" data-bs-target="#up-deck-berth" type="button" role="tab">Upper Deck</button>
+                            </li>
+                        </ul>
+
+                        <div class="tab-content">
+                            <div class="tab-pane fade show active" id="low-deck-berth" role="tabpanel">
+                                <div class="seat-map-container shadow-lg overflow-auto" style="max-width: 500px; margin:0 auto;">
+                                    <div class="d-flex justify-content-between mb-4 pb-2 border-bottom border-secondary border-opacity-20">
+                                        <span class="text-secondary small fw-semibold font-monospace">FRONT / ENGINE</span>
+                                        <span class="text-secondary small"><i class="fa-solid fa-steering-wheel"></i> DRIVER</span>
+                                    </div>
+                                    <div style="display: inline-grid; gap: 12px; grid-template-rows: repeat(<?= $rows_count ?>, 60px); grid-template-columns: repeat(<?= $cols_count ?>, 60px); position: relative; width: 100%;">
+                                        <?php 
+                                        for ($r = 0; $r < $rows_count; $r++) {
+                                            for ($c = 0; $c < $cols_count; $c++) {
+                                                $seat = null;
+                                                foreach ($seats_lookup as $sNum => $sInfo) {
+                                                    if ($sInfo['row'] === $r && $sInfo['col'] === $c) {
+                                                        $seat = $sInfo;
+                                                        break;
+                                                    }
+                                                }
+                                                if ($seat && strpos(strtolower($seat['type']), 'upper') === false) {
+                                                    $isSleeper = (strpos($seat['type'], 'Sleeper') !== false);
+                                                    $sleeperClass = $isSleeper ? ' sleeper-berth' : '';
+                                                    $rowSpan = $isSleeper ? 2 : 1;
+                                                    $typeClass = ' type-' . strtolower(str_replace(' ', '-', $seat['type']));
+                                                    echo '<div class="seat' . $sleeperClass . ' ' . $typeClass . ' ' . $seat['status'] . '" ' .
+                                                         'style="grid-row: ' . ($r + 1) . ' / span ' . $rowSpan . '; grid-column: ' . ($c + 1) . ';" ' .
+                                                         'data-seat="' . $seat['number'] . '" data-price="' . $seat['price'] . '">' . 
+                                                         '<span>' . $seat['number'] . '</span>' .
+                                                         '<span class="price-lbl">₹' . number_format($seat['price'], 0) . '</span>' .
+                                                         '</div>';
+                                                }
+                                            }
+                                        }
+                                        ?>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="tab-pane fade" id="up-deck-berth" role="tabpanel">
+                                <div class="seat-map-container shadow-lg overflow-auto" style="max-width: 500px; margin:0 auto;">
+                                    <div class="d-flex justify-content-between mb-4 pb-2 border-bottom border-secondary border-opacity-20">
+                                        <span class="text-secondary small fw-semibold font-monospace">FRONT / ENGINE</span>
+                                        <span class="text-secondary small"><i class="fa-solid fa-steering-wheel"></i> DRIVER</span>
+                                    </div>
+                                    <div style="display: inline-grid; gap: 12px; grid-template-rows: repeat(<?= $rows_count ?>, 60px); grid-template-columns: repeat(<?= $cols_count ?>, 60px); position: relative; width: 100%;">
+                                        <?php 
+                                        for ($r = 0; $r < $rows_count; $r++) {
+                                            for ($c = 0; $c < $cols_count; $c++) {
+                                                $seat = null;
+                                                foreach ($seats_lookup as $sNum => $sInfo) {
+                                                    if ($sInfo['row'] === $r && $sInfo['col'] === $c) {
+                                                        $seat = $sInfo;
+                                                        break;
+                                                    }
+                                                }
+                                                if ($seat && strpos(strtolower($seat['type']), 'upper') !== false) {
+                                                    $isSleeper = (strpos($seat['type'], 'Sleeper') !== false);
+                                                    $sleeperClass = $isSleeper ? ' sleeper-berth' : '';
+                                                    $rowSpan = $isSleeper ? 2 : 1;
+                                                    $typeClass = ' type-' . strtolower(str_replace(' ', '-', $seat['type']));
+                                                    echo '<div class="seat' . $sleeperClass . ' ' . $typeClass . ' ' . $seat['status'] . '" ' .
+                                                         'style="grid-row: ' . ($r + 1) . ' / span ' . $rowSpan . '; grid-column: ' . ($c + 1) . ';" ' .
+                                                         'data-seat="' . $seat['number'] . '" data-price="' . $seat['price'] . '">' . 
+                                                         '<span>' . $seat['number'] . '</span>' .
+                                                         '<span class="price-lbl">₹' . number_format($seat['price'], 0) . '</span>' .
+                                                         '</div>';
+                                                }
+                                            }
+                                        }
+                                        ?>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        
-                        <div style="display: inline-grid; gap: 12px; grid-template-rows: repeat(<?= $rows_count ?>, 60px); grid-template-columns: repeat(<?= $cols_count ?>, 60px); position: relative; width: 100%;">
-                            <?php 
-                            for ($r = 0; $r < $rows_count; $r++) {
-                                for ($c = 0; $c < $cols_count; $c++) {
-                                    // Find mapped seat
-                                    $seat = null;
-                                    foreach ($seats_lookup as $sNum => $sInfo) {
-                                        if ($sInfo['row'] === $r && $sInfo['col'] === $c) {
-                                            $seat = $sInfo;
-                                            break;
+                    <?php else: ?>
+                        <!-- Single Lower Deck (No Upper Seats) -->
+                        <div class="seat-map-container shadow-lg overflow-auto" style="max-width: 500px; margin:0 auto;">
+                            <div class="d-flex justify-content-between mb-4 pb-2 border-bottom border-secondary border-opacity-20">
+                                <span class="text-secondary small fw-semibold font-monospace">FRONT / ENGINE</span>
+                                <span class="text-secondary small"><i class="fa-solid fa-steering-wheel"></i> DRIVER</span>
+                            </div>
+                            
+                            <div style="display: inline-grid; gap: 12px; grid-template-rows: repeat(<?= $rows_count ?>, 60px); grid-template-columns: repeat(<?= $cols_count ?>, 60px); position: relative; width: 100%;">
+                                <?php 
+                                for ($r = 0; $r < $rows_count; $r++) {
+                                    for ($c = 0; $c < $cols_count; $c++) {
+                                        // Find mapped seat
+                                        $seat = null;
+                                        foreach ($seats_lookup as $sNum => $sInfo) {
+                                            if ($sInfo['row'] === $r && $sInfo['col'] === $c) {
+                                                $seat = $sInfo;
+                                                break;
+                                            }
+                                        }
+                                        
+                                        if ($seat) {
+                                            $isSleeper = (strpos($seat['type'], 'Sleeper') !== false);
+                                            $sleeperClass = $isSleeper ? ' sleeper-berth' : '';
+                                            $rowSpan = $isSleeper ? 2 : 1;
+                                            
+                                            $typeClass = ' type-' . strtolower(str_replace(' ', '-', $seat['type']));
+                                            echo '<div class="seat' . $sleeperClass . ' ' . $typeClass . ' ' . $seat['status'] . '" ' .
+                                                 'style="grid-row: ' . ($r + 1) . ' / span ' . $rowSpan . '; grid-column: ' . ($c + 1) . ';" ' .
+                                                 'data-seat="' . $seat['number'] . '" data-price="' . $seat['price'] . '">' . 
+                                                 '<span>' . $seat['number'] . '</span>' .
+                                                 '<span class="price-lbl">₹' . number_format($seat['price'], 0) . '</span>' .
+                                                 '</div>';
                                         }
                                     }
-                                    
-                                    if ($seat) {
-                                        $isSleeper = (strpos($seat['type'], 'Sleeper') !== false);
-                                        $sleeperClass = $isSleeper ? ' sleeper-berth' : '';
-                                        $rowSpan = $isSleeper ? 2 : 1;
-                                        
-                                        $typeClass = ' type-' . strtolower(str_replace(' ', '-', $seat['type']));
-                                        // Position explicitly so sleepers span 2 rows without overlapping adjacent elements
-                                        echo '<div class="seat' . $sleeperClass . ' ' . $typeClass . ' ' . $seat['status'] . '" ' .
-                                             'style="grid-row: ' . ($r + 1) . ' / span ' . $rowSpan . '; grid-column: ' . ($c + 1) . ';" ' .
-                                             'data-seat="' . $seat['number'] . '" data-price="' . $seat['price'] . '">' . 
-                                             '<span>' . $seat['number'] . '</span>' .
-                                             '<span class="price-lbl">₹' . number_format($seat['price'], 0) . '</span>' .
-                                             '</div>';
-                                    }
                                 }
-                            }
-                            ?>
+                                ?>
+                            </div>
                         </div>
-                    </div>
+                    <?php endif; ?>
                 <?php endif; ?>
             </div>
         </div>

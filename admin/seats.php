@@ -333,7 +333,30 @@ if ($selected_trip_id > 0) {
                 </div>
 
                 <div class="text-center overflow-auto py-2">
-                    <div id="seats-builder-canvas" class="mx-auto" style="display: inline-grid; gap: 10px; padding: 15px; border-radius: 12px; background: rgba(0,0,0,0.15);"></div>
+                    <!-- Tab Buttons if mixed/sleeper has upper berths -->
+                    <div id="deck-tabs-container" style="display: none;">
+                        <ul class="nav nav-pills justify-content-center mb-4 gap-2" role="tablist">
+                            <li class="nav-item">
+                                <button class="nav-link btn-secondary-glass active px-4 py-2" id="admin-low-deck-tab" data-bs-toggle="pill" data-bs-target="#admin-low-deck-pane" type="button" role="tab">Lower Deck</button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link btn-secondary-glass px-4 py-2" id="admin-up-deck-tab" data-bs-toggle="pill" data-bs-target="#admin-up-deck-pane" type="button" role="tab">Upper Deck</button>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="admin-low-deck-pane" role="tabpanel">
+                            <div class="seat-map-container shadow-lg overflow-auto py-3" style="max-width: 100%;">
+                                <div id="seats-canvas-lower" class="mx-auto" style="display: inline-grid; gap: 10px; padding: 15px; border-radius: 12px; background: rgba(0,0,0,0.15);"></div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="admin-up-deck-pane" role="tabpanel">
+                            <div class="seat-map-container shadow-lg overflow-auto py-3" style="max-width: 100%;">
+                                <div id="seats-canvas-upper" class="mx-auto" style="display: inline-grid; gap: 10px; padding: 15px; border-radius: 12px; background: rgba(0,0,0,0.15);"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             <?php endif; ?>
         </div>
@@ -394,17 +417,35 @@ $(document).ready(function() {
     var selectedSeats = [];
 
     function renderConsoleGrid() {
-        var canvas = $('#seats-builder-canvas');
+        var hasUpperSeats = seats.some(s => s.type.toLowerCase().includes('upper'));
+        if (hasUpperSeats) {
+            $('#deck-tabs-container').show();
+        } else {
+            $('#deck-tabs-container').hide();
+        }
+
+        renderCanvas($('#seats-canvas-lower'), false, hasUpperSeats);
+        if (hasUpperSeats) {
+            renderCanvas($('#seats-canvas-upper'), true, hasUpperSeats);
+        }
+    }
+
+    function renderCanvas(canvas, getUpper, hasUpper) {
         canvas.empty();
         canvas.css({
             'grid-template-rows': 'repeat(' + rows + ', 60px)',
             'grid-template-columns': 'repeat(' + (cols + 1) + ', 60px)'
         });
 
-        // Map occupied cells due to row-spanning sleepers (excluding Semi Sleeper)
+        var canvasSeats = seats.filter(s => {
+            var isUpper = s.type.toLowerCase().includes('upper');
+            return getUpper ? isUpper : (!hasUpper || !isUpper);
+        });
+
+        // Map occupied cells due to row-spanning sleepers in this deck to render spacers
         var occupied = {};
-        seats.forEach(function(s) {
-            var isSleeper = s.type.toLowerCase().indexOf('sleeper') !== -1 && s.type.toLowerCase().indexOf('semi') === -1;
+        canvasSeats.forEach(function(s) {
+            var isSleeper = s.type.toLowerCase().includes('sleeper') && !s.type.toLowerCase().includes('semi');
             if (isSleeper) {
                 occupied[(s.row + 1) + ',' + s.col] = true;
             }
@@ -416,7 +457,7 @@ $(document).ready(function() {
                 'grid-row': (r + 1),
                 'grid-column': 1
             });
-            rowHeaderCell.click(handleRowHeaderClick(r));
+            rowHeaderCell.click(handleRowHeaderClick(r, canvasSeats));
             canvas.append(rowHeaderCell);
             
             for (var c = 0; c < cols; c++) {
@@ -432,7 +473,7 @@ $(document).ready(function() {
                     continue;
                 }
 
-                var seat = seats.find(s => s.row === r && s.col === c);
+                var seat = canvasSeats.find(s => s.row === r && s.col === c);
                 var cell = $('<div class="grid-cell"></div>');
                 cell.css({
                     'grid-row': (r + 1),
@@ -492,9 +533,10 @@ $(document).ready(function() {
         };
     }
 
-    function handleRowHeaderClick(rowIdx) {
+    function handleRowHeaderClick(rowIdx, canvasSeats) {
         return function() {
-            var rowSeats = seats.filter(s => s.row === rowIdx && s.status !== 'booked' && s.status !== 'female_booked');
+            var targetSeatsList = canvasSeats || seats;
+            var rowSeats = targetSeatsList.filter(s => s.row === rowIdx && s.status !== 'booked' && s.status !== 'female_booked');
             var rowSeatNums = rowSeats.map(s => s.number);
             
             // Check if all are already selected

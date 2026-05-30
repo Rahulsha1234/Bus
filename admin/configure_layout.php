@@ -364,7 +364,25 @@ $templates = $templates_stmt->fetchAll();
 
             <!-- Canvas Grid Container -->
             <div class="text-center overflow-auto py-3">
-                <div id="grid-canvas" class="mx-auto grid-canvas-board" style="display: inline-grid; gap: 10px; padding: 15px; border-radius: 12px;"></div>
+                <div id="deck-tabs-builder" style="display: none;">
+                    <ul class="nav nav-pills justify-content-center mb-4 gap-2" role="tablist">
+                        <li class="nav-item">
+                            <button class="nav-link btn-secondary-glass active px-4 py-2" id="builder-low-deck-tab" data-bs-toggle="pill" data-bs-target="#builder-low-deck-pane" type="button" role="tab" onclick="currentBuilderDeck = 'lower';">Lower Deck</button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link btn-secondary-glass px-4 py-2" id="builder-up-deck-tab" data-bs-toggle="pill" data-bs-target="#builder-up-deck-pane" type="button" role="tab" onclick="currentBuilderDeck = 'upper';">Upper Deck</button>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="tab-content">
+                    <div class="tab-pane fade show active" id="builder-low-deck-pane" role="tabpanel">
+                        <div id="grid-canvas-lower" class="mx-auto grid-canvas-board" style="display: inline-grid; gap: 10px; padding: 15px; border-radius: 12px;"></div>
+                    </div>
+                    <div class="tab-pane fade" id="builder-up-deck-pane" role="tabpanel">
+                        <div id="grid-canvas-upper" class="mx-auto grid-canvas-board" style="display: inline-grid; gap: 10px; padding: 15px; border-radius: 12px;"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -381,6 +399,7 @@ $templates = $templates_stmt->fetchAll();
             <div class="modal-body py-3">
                 <input type="hidden" id="modal_seat_row">
                 <input type="hidden" id="modal_seat_col">
+                <input type="hidden" id="modal_seat_is_upper">
 
                 <div class="mb-3">
                     <label class="form-label text-secondary small fw-semibold">Seat Number / Designation</label>
@@ -493,19 +512,40 @@ $(document).ready(function() {
     var seats = <?= json_encode($seats_json) ?>;
     var rows = <?= $rows_count ?>;
     var cols = <?= $cols_count ?>;
+    var currentBuilderDeck = 'lower';
 
     // Render visual grid
     function renderGrid() {
-        var canvas = $('#grid-canvas');
+        var layoutType = $('#layout_type').val();
+        var hasUpper = (layoutType === 'Sleeper' || layoutType === 'Mixed');
+        if (hasUpper) {
+            $('#deck-tabs-builder').show();
+        } else {
+            $('#deck-tabs-builder').hide();
+            currentBuilderDeck = 'lower';
+        }
+
+        renderCanvasGrid($('#grid-canvas-lower'), false, hasUpper);
+        if (hasUpper) {
+            renderCanvasGrid($('#grid-canvas-upper'), true, hasUpper);
+        }
+    }
+
+    function renderCanvasGrid(canvas, getUpper, hasUpper) {
         canvas.empty();
         canvas.css({
             'grid-template-rows': 'repeat(' + rows + ', 60px)',
             'grid-template-columns': 'repeat(' + cols + ', 60px)'
         });
 
-        // Map occupied cells due to row-spanning sleepers (excluding Semi Sleeper)
+        var canvasSeats = seats.filter(s => {
+            var isUpper = s.type.toLowerCase().includes('upper');
+            return getUpper ? isUpper : (!hasUpper || !isUpper);
+        });
+
+        // Map occupied cells due to row-spanning sleepers (excluding Semi Sleeper) in this deck
         var occupied = {};
-        seats.forEach(function(s) {
+        canvasSeats.forEach(function(s) {
             var isSleeper = s.type.toLowerCase().indexOf('sleeper') !== -1 && s.type.toLowerCase().indexOf('semi') === -1;
             if (isSleeper) {
                 occupied[(s.row + 1) + ',' + s.col] = true;
@@ -527,8 +567,8 @@ $(document).ready(function() {
                     continue;
                 }
 
-                // Find seat at this position
-                var seat = findSeat(r, c);
+                // Find seat at this position on this deck
+                var seat = findSeat(r, c, getUpper);
                 var cell = $('<div class="grid-cell" data-row="' + r + '" data-col="' + c + '"></div>');
                 cell.css({
                     'grid-row': (r + 1),
@@ -551,50 +591,61 @@ $(document).ready(function() {
                         '<span class="seat-type-badge">' + seat.type + '</span>' +
                         '</div>');
 
-                    seatElement.on('dragstart', handleDragStart(r, c));
+                    seatElement.on('dragstart', handleDragStart(r, c, getUpper));
                     cell.append(seatElement);
                 } else {
-                    cell.on('click', handleCellClick(r, c));
+                    cell.on('click', handleCellClick(r, c, getUpper));
                 }
 
                 cell.on('dragover', function(e) { e.preventDefault(); });
-                cell.on('drop', handleDrop(r, c));
+                cell.on('drop', handleDrop(r, c, getUpper));
 
                 canvas.append(cell);
             }
         }
     }
 
-    function findSeat(row, col) {
-        return seats.find(s => s.row === row && s.col === col);
+    function findSeat(row, col, getUpper) {
+        if (typeof getUpper === 'undefined') {
+            getUpper = $('#builder-up-deck-pane').hasClass('active');
+        }
+        return seats.find(s => {
+            var isUpper = s.type.toLowerCase().includes('upper');
+            return s.row === row && s.col === col && (getUpper ? isUpper : !isUpper);
+        });
     }
 
     // Add new seat on click
-    function handleCellClick(row, col) {
+    function handleCellClick(row, col, getUpper) {
         return function() {
-            // Automatically determine row prefix letter (A, B, C...)
-            var rowLetter = String.fromCharCode(65 + row); // 0 -> A, 1 -> B...
+            var rowLetter = String.fromCharCode(65 + row);
             
-            // Determine column sequence position within the row
+            // Determine column sequence position within the row for this deck
             var colCountInRow = 1;
             for (var c = 0; c < col; c++) {
-                if (findSeat(row, c)) {
+                if (findSeat(row, c, getUpper)) {
                     colCountInRow++;
                 }
             }
             
-            var seatNum = rowLetter + colCountInRow;
+            var prefix = getUpper ? 'U' : 'L';
+            var seatNum = prefix + rowLetter + colCountInRow;
             
-            // Check if name already exists, if so fall back to simple row+col representation
             if (seats.find(s => s.number === seatNum)) {
-                seatNum = rowLetter + (col + 1);
+                seatNum = prefix + rowLetter + (col + 1);
+            }
+            
+            var defaultType = getUpper ? 'Upper Sleeper' : 'Normal';
+            var layoutType = $('#layout_type').val();
+            if (layoutType === 'Sleeper' && !getUpper) {
+                defaultType = 'Lower Sleeper';
             }
             
             seats.push({
                 number: seatNum,
                 row: row,
                 col: col,
-                type: 'Normal',
+                type: defaultType,
                 active: 1,
                 price: 500.00
             });
@@ -608,11 +659,13 @@ $(document).ready(function() {
         var cell = $(this).parent();
         var row = parseInt(cell.data('row'));
         var col = parseInt(cell.data('col'));
-        var seat = findSeat(row, col);
+        var getUpper = cell.closest('.tab-pane').attr('id') === 'builder-up-deck-pane';
+        var seat = findSeat(row, col, getUpper);
 
         if (seat) {
             $('#modal_seat_row').val(row);
             $('#modal_seat_col').val(col);
+            $('#modal_seat_is_upper').val(getUpper ? '1' : '0');
             $('#modal_seat_number').val(seat.number);
             $('#modal_seat_type').val(seat.type);
             $('#modal_seat_price').val(seat.price);
@@ -625,7 +678,8 @@ $(document).ready(function() {
     $('#btnApplySeat').click(function() {
         var row = parseInt($('#modal_seat_row').val());
         var col = parseInt($('#modal_seat_col').val());
-        var seat = findSeat(row, col);
+        var isUpper = $('#modal_seat_is_upper').val() === '1';
+        var seat = findSeat(row, col, isUpper);
 
         if (seat) {
             seat.number = $('#modal_seat_number').val();
@@ -641,7 +695,11 @@ $(document).ready(function() {
     $('#btnRemoveSeat').click(function() {
         var row = parseInt($('#modal_seat_row').val());
         var col = parseInt($('#modal_seat_col').val());
-        seats = seats.filter(s => !(s.row === row && s.col === col));
+        var isUpper = $('#modal_seat_is_upper').val() === '1';
+        seats = seats.filter(s => {
+            var isUpperSeat = s.type.toLowerCase().includes('upper');
+            return !(s.row === row && s.col === col && (isUpper ? isUpperSeat : !isUpperSeat));
+        });
         $('#seatConfigModal').modal('hide');
         renderGrid();
     });
@@ -649,6 +707,7 @@ $(document).ready(function() {
     // Drag-and-drop properties
     var dragSrcRow = null;
     var dragSrcCol = null;
+    var dragSrcIsUpper = null;
 
     function isSleeper(type) {
         if (!type) return false;
@@ -656,21 +715,23 @@ $(document).ready(function() {
         return t.indexOf('sleeper') !== -1 && t.indexOf('semi') === -1;
     }
 
-    // Returns shadowed (row,col) keys — cells occupied by the lower half of a sleeper above
-    function getShadowedCells() {
+    // Returns shadowed (row,col) keys
+    function getShadowedCells(getUpper) {
         var shadowed = {};
         seats.forEach(function(s) {
-            if (isSleeper(s.type)) {
+            var isUpper = s.type.toLowerCase().includes('upper');
+            if ((getUpper ? isUpper : !isUpper) && isSleeper(s.type)) {
                 shadowed[(s.row + 1) + ',' + s.col] = true;
             }
         });
         return shadowed;
     }
 
-    function handleDragStart(row, col) {
+    function handleDragStart(row, col, getUpper) {
         return function(e) {
             dragSrcRow = row;
             dragSrcCol = col;
+            dragSrcIsUpper = getUpper;
             e.originalEvent.dataTransfer.setData('text/plain', '');
         };
     }
@@ -685,16 +746,24 @@ $(document).ready(function() {
         return numStr + '2';
     }
 
-    function handleDrop(row, col) {
+    function handleDrop(row, col, getUpper) {
         return function(e) {
             e.preventDefault();
             if (dragSrcRow === null || dragSrcCol === null) return;
 
-            var srcSeat = findSeat(dragSrcRow, dragSrcCol);
-            var destSeat = findSeat(row, col);
+            var srcSeat = findSeat(dragSrcRow, dragSrcCol, dragSrcIsUpper);
+            var destSeat = findSeat(row, col, getUpper);
+
+            // Cannot drag between different decks
+            if (dragSrcIsUpper !== getUpper) {
+                alert('You cannot drag seats between the Lower and Upper decks.');
+                dragSrcRow = null;
+                dragSrcCol = null;
+                return;
+            }
 
             // Check if drop target is shadowed by another sleeper
-            var shadowed = getShadowedCells();
+            var shadowed = getShadowedCells(getUpper);
             if (shadowed[row + ',' + col]) {
                 alert('This cell is occupied by the lower half of a sleeper above it. Choose a different cell.');
                 dragSrcRow = null;
@@ -705,7 +774,7 @@ $(document).ready(function() {
             if (srcSeat && !destSeat) {
                 var sleeperSeat = isSleeper(srcSeat.type);
 
-                // Sleeper needs 2 rows — reject if no room below or if below cell is occupied/shadowed
+                // Sleeper needs 2 rows
                 if (sleeperSeat) {
                     if (row + 1 >= rows) {
                         alert('A sleeper berth needs 2 row-heights. This is the last row — not enough space.');
@@ -713,7 +782,7 @@ $(document).ready(function() {
                         dragSrcCol = null;
                         return;
                     }
-                    if (findSeat(row + 1, col)) {
+                    if (findSeat(row + 1, col, getUpper)) {
                         alert('A sleeper berth needs 2 free consecutive vertical cells. The cell below is occupied.');
                         dragSrcRow = null;
                         dragSrcCol = null;
@@ -727,7 +796,6 @@ $(document).ready(function() {
                     }
                 }
 
-                // Generate unique seat number (Copy behavior)
                 var newNumber = incrementSeatNumber(srcSeat.number);
                 while (seats.find(function(s) { return s.number === newNumber; })) {
                     newNumber = incrementSeatNumber(newNumber);
@@ -750,7 +818,7 @@ $(document).ready(function() {
     }
 
     function updateDropdownOptions(type, current_row, current_col) {
-        var maxRows = type === 'Sleeper' ? 14 : 7;
+        var maxRows = (type === 'Sleeper' || type === 'Mixed') ? 14 : 7;
         var maxCols = 5;
 
         // Populate rows
@@ -791,19 +859,21 @@ $(document).ready(function() {
         seats = []; // Clear existing seats
         
         if (type === 'Sleeper') {
-            updateDropdownOptions('Sleeper', 14, 5);
+            updateDropdownOptions('Sleeper', 14, 4);
             rows = 14;
-            cols = 5;
+            cols = 4;
             
             for (var r = 0; r < rows; r += 2) {
                 var index = (r / 2) + 1;
-                // Left side: Column 0 (Lower Sleeper), Column 1 (Upper Sleeper)
+                // Left side: Column 0 (Lower Sleeper and Upper Sleeper occupy same column 0)
                 seats.push({ number: 'L' + index, row: r, col: 0, type: 'Lower Sleeper', active: 1, price: 700.00 });
-                seats.push({ number: 'U' + index, row: r, col: 1, type: 'Upper Sleeper', active: 1, price: 800.00 });
-                // Col 2 is walkway
-                // Right side: Column 3 (Double Sleeper Lower), Column 4 (Double Sleeper Upper)
-                seats.push({ number: 'DL' + index, row: r, col: 3, type: 'Double Sleeper Lower', active: 1, price: 1000.00 });
-                seats.push({ number: 'DU' + index, row: r, col: 4, type: 'Double Sleeper Upper', active: 1, price: 1100.00 });
+                seats.push({ number: 'U' + index, row: r, col: 0, type: 'Upper Sleeper', active: 1, price: 800.00 });
+                // Col 1 is walkway
+                // Right side: Column 2 and Column 3 (Double Sleeper Lower on Lower Deck, Double Sleeper Upper on Upper Deck)
+                seats.push({ number: 'DL' + (index * 2 - 1), row: r, col: 2, type: 'Double Sleeper Lower', active: 1, price: 1000.00 });
+                seats.push({ number: 'DL' + (index * 2), row: r, col: 3, type: 'Double Sleeper Lower', active: 1, price: 1000.00 });
+                seats.push({ number: 'DU' + (index * 2 - 1), row: r, col: 2, type: 'Double Sleeper Upper', active: 1, price: 1100.00 });
+                seats.push({ number: 'DU' + (index * 2), row: r, col: 3, type: 'Double Sleeper Upper', active: 1, price: 1100.00 });
             }
             
         } else if (type === 'Seater') {
@@ -826,6 +896,27 @@ $(document).ready(function() {
                     seats.push({ number: letter + '3', row: r, col: 3, type: 'Normal', active: 1, price: 500.00 });
                     seats.push({ number: letter + '4', row: r, col: 4, type: 'Normal', active: 1, price: 500.00 });
                 }
+            }
+        } else if (type === 'Mixed') {
+            updateDropdownOptions('Mixed', 14, 4);
+            rows = 14;
+            cols = 4;
+            
+            for (var r = 0; r < rows; r += 2) {
+                var index = (r / 2) + 1;
+                // Left side: Column 0 (Lower Sleeper and Upper Sleeper occupy same column 0)
+                seats.push({ number: 'L' + index, row: r, col: 0, type: 'Lower Sleeper', active: 1, price: 700.00 });
+                seats.push({ number: 'U' + index, row: r, col: 0, type: 'Upper Sleeper', active: 1, price: 800.00 });
+                // Col 1 is walkway
+                // Right side:
+                // Lower Deck: normal seats in Column 2 and Column 3
+                seats.push({ number: 'S' + (index * 4 - 3), row: r, col: 2, type: 'Normal', active: 1, price: 500.00 });
+                seats.push({ number: 'S' + (index * 4 - 2), row: r + 1, col: 2, type: 'Normal', active: 1, price: 500.00 });
+                seats.push({ number: 'S' + (index * 4 - 1), row: r, col: 3, type: 'Normal', active: 1, price: 500.00 });
+                seats.push({ number: 'S' + (index * 4), row: r + 1, col: 3, type: 'Normal', active: 1, price: 500.00 });
+                // Upper Deck: Double Sleeper Upper in Column 2 and Column 3
+                seats.push({ number: 'DU' + (index * 2 - 1), row: r, col: 2, type: 'Double Sleeper Upper', active: 1, price: 1100.00 });
+                seats.push({ number: 'DU' + (index * 2), row: r, col: 3, type: 'Double Sleeper Upper', active: 1, price: 1100.00 });
             }
         }
         

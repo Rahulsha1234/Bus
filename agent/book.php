@@ -242,8 +242,29 @@ try {
 
             <!-- Seating Grid -->
             <div class="text-center py-4">
-                <div class="seat-map-container shadow-lg overflow-auto py-3">
-                    <div id="seats-builder-canvas" class="mx-auto" style="display: inline-grid; gap: 10px; padding: 15px; border-radius: 12px; background: rgba(0,0,0,0.15);"></div>
+                <!-- Tab Buttons if mixed/sleeper has upper berths -->
+                <div id="deck-tabs-container" style="display: none;">
+                    <ul class="nav nav-pills justify-content-center mb-4 gap-2" role="tablist">
+                        <li class="nav-item">
+                            <button class="nav-link btn-secondary-glass active px-4 py-2" id="agent-low-deck-tab" data-bs-toggle="pill" data-bs-target="#agent-low-deck-pane" type="button" role="tab">Lower Deck</button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link btn-secondary-glass px-4 py-2" id="agent-up-deck-tab" data-bs-toggle="pill" data-bs-target="#agent-up-deck-pane" type="button" role="tab">Upper Deck</button>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="tab-content">
+                    <div class="tab-pane fade show active" id="agent-low-deck-pane" role="tabpanel">
+                        <div class="seat-map-container shadow-lg overflow-auto py-3">
+                            <div id="seats-canvas-lower" class="mx-auto" style="display: inline-grid; gap: 10px; padding: 15px; border-radius: 12px; background: rgba(0,0,0,0.15);"></div>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="agent-up-deck-pane" role="tabpanel">
+                        <div class="seat-map-container shadow-lg overflow-auto py-3">
+                            <div id="seats-canvas-upper" class="mx-auto" style="display: inline-grid; gap: 10px; padding: 15px; border-radius: 12px; background: rgba(0,0,0,0.15);"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -374,17 +395,49 @@ $(document).ready(function() {
     var selectedSeats = [];
 
     function renderGrid() {
-        var canvas = $('#seats-builder-canvas');
+        var hasUpperSeats = seats.some(s => s.type.toLowerCase().includes('upper'));
+        if (hasUpperSeats) {
+            $('#deck-tabs-container').show();
+        } else {
+            $('#deck-tabs-container').hide();
+        }
+
+        renderCanvas($('#seats-canvas-lower'), false, hasUpperSeats);
+        if (hasUpperSeats) {
+            renderCanvas($('#seats-canvas-upper'), true, hasUpperSeats);
+        }
+    }
+
+    function renderCanvas(canvas, getUpper, hasUpper) {
         canvas.empty();
         canvas.css({
             'grid-template-rows': 'repeat(' + rows + ', 60px)',
             'grid-template-columns': 'repeat(' + cols + ', 60px)'
         });
 
+        var canvasSeats = seats.filter(s => {
+            var isUpper = s.type.toLowerCase().includes('upper');
+            return getUpper ? isUpper : (!hasUpper || !isUpper);
+        });
+
+        var occupied = {};
+        canvasSeats.forEach(function(s) {
+            var isSleeper = s.type.toLowerCase().includes('sleeper') && !s.type.toLowerCase().includes('semi');
+            if (isSleeper) {
+                occupied[(s.row + 1) + ',' + s.col] = true;
+            }
+        });
+
         for (var r = 0; r < rows; r++) {
             for (var c = 0; c < cols; c++) {
-                var seat = seats.find(s => s.row === r && s.col === c);
-                var isSleeper = seat && (seat.type.toLowerCase().includes('sleeper'));
+                if (occupied[r + ',' + c]) {
+                    var spacer = $('<div class="grid-cell spacer-cell"></div>').css('visibility', 'hidden');
+                    canvas.append(spacer);
+                    continue;
+                }
+
+                var seat = canvasSeats.find(s => s.row === r && s.col === c);
+                var isSleeper = seat && seat.type.toLowerCase().includes('sleeper');
                 var cellH = isSleeper ? '120px' : '60px';
                 var cell = $('<div class="grid-cell"></div>').css('height', cellH);
 

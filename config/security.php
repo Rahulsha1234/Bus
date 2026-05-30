@@ -358,6 +358,10 @@ if (!function_exists('get_vehicle_classifications')) {
             'Seater' => [
                 'display' => 'Full Seater Layout',
                 'layout' => 'Seater'
+            ],
+            'Mixed' => [
+                'display' => 'Mixed Layout',
+                'layout' => 'Mixed'
             ]
         ];
     }
