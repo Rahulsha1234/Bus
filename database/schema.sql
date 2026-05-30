@@ -112,7 +112,7 @@ CREATE TABLE bus_seats (
     is_active TINYINT NOT NULL DEFAULT 1,
     base_price DECIMAL(10,2) NOT NULL DEFAULT 500.00,
     FOREIGN KEY (bus_id) REFERENCES buses(id) ON DELETE CASCADE,
-    UNIQUE KEY unique_bus_seat_pos (bus_id, row_pos, col_pos),
+    UNIQUE KEY unique_bus_seat_pos (bus_id, row_pos, col_pos, seat_type),
     UNIQUE KEY unique_bus_seat_num (bus_id, seat_number)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
