@@ -264,6 +264,8 @@ body {
 
 /* Dropdown Panel */
 .profile-dropdown {
+    width: 280px !important;
+    min-width: 280px !important;
     background: var(--bg-card) !important;
     border: 1px solid var(--border-glass) !important;
     box-shadow: 0 20px 48px -12px rgba(0, 0, 0, 0.18) !important;
@@ -1239,6 +1241,7 @@ body {
     .sidebar-agent {
         display: none !important;
     }
+
     .main-display-panel,
     .main-site-content {
         padding-top: 1.5rem !important;
@@ -1250,54 +1253,64 @@ body {
 }
 
 @media (max-width: 767.98px) {
+
     /* Responsive Spacing & Padding */
     .glass-card {
         padding: 1.25rem !important;
         border-radius: 12px !important;
     }
-    
+
     /* Responsive Titles and Typography */
-    h2, .fs-2 {
+    h2,
+    .fs-2 {
         font-size: 1.6rem !important;
     }
-    h3, .fs-3 {
+
+    h3,
+    .fs-3 {
         font-size: 1.4rem !important;
     }
-    h4, .fs-4 {
+
+    h4,
+    .fs-4 {
         font-size: 1.2rem !important;
     }
-    h5, .fs-5 {
+
+    h5,
+    .fs-5 {
         font-size: 1.05rem !important;
     }
-    
+
     /* Metrics Layout adjustments */
     .metric-card {
         padding: 1.25rem !important;
     }
+
     .metric-icon {
         width: 48px !important;
         height: 48px !important;
         font-size: 1.6rem !important;
     }
-    
+
     /* Checkout Form tweaks */
     #paymentCheckForm .p-4 {
         padding: 1.25rem !important;
         border-radius: 12px !important;
     }
-    
+
     /* Summary Panel (Disable fixed top on mobile) */
     .col-lg-4 .glass-card,
     .col-lg-5 .glass-card {
         position: static !important;
         margin-top: 0 !important;
     }
-    
+
     /* Homepage Hero & Search Panel Reset */
     #search-panel {
         margin: 1.5rem auto !important;
         position: static !important;
     }
+
     .hero-video-section {
         height: auto !important;
         min-height: auto !important;
@@ -1309,14 +1322,14 @@ body {
     .glass-card {
         padding: 1rem !important;
     }
-    
+
     /* Grid Seat Layout scaling for extremely narrow viewports */
     #seats-builder-canvas,
     #grid-canvas {
         transform: scale(0.9);
         transform-origin: top center;
     }
-    
+
     .seat-map-container {
         padding: 1rem !important;
     }
@@ -1330,10 +1343,13 @@ body {
 * {
     max-width: 100%;
 }
-html, body {
+
+html,
+body {
     overflow-x: hidden !important;
     width: 100%;
 }
+
 .table-responsive {
     overflow-x: auto !important;
     -webkit-overflow-scrolling: touch;
@@ -1358,15 +1374,18 @@ html, body {
         display: block !important;
         width: 100% !important;
     }
+
     .table-swift-mobile-cards thead {
         display: none !important;
     }
+
     .table-swift-mobile-cards tbody,
     .table-swift-mobile-cards tr,
     .table-swift-mobile-cards td {
         display: block !important;
         width: 100% !important;
     }
+
     .table-swift-mobile-cards tr {
         margin-bottom: 1rem !important;
         background: var(--bg-card) !important;
@@ -1374,6 +1393,7 @@ html, body {
         border-radius: 12px !important;
         padding: 0.75rem !important;
     }
+
     .table-swift-mobile-cards td {
         text-align: left !important;
         padding: 0.5rem 0.25rem !important;
@@ -1383,9 +1403,11 @@ html, body {
         align-items: center !important;
         border-bottom: 1px dashed var(--border-glass) !important;
     }
+
     .table-swift-mobile-cards td:last-child {
         border-bottom: none !important;
     }
+
     .table-swift-mobile-cards td::before {
         content: attr(data-label);
         font-weight: 700;
@@ -1404,6 +1426,7 @@ html, body {
         margin-bottom: -10% !important;
     }
 }
+
 @media (max-width: 375px) {
     .seat-map-container {
         transform: scale(0.82);
@@ -1411,6 +1434,7 @@ html, body {
         margin-bottom: -18% !important;
     }
 }
+
 @media (max-width: 320px) {
     .seat-map-container {
         transform: scale(0.72);
@@ -1426,18 +1450,40 @@ html, body {
     width: 3rem !important;
     height: 3rem !important;
     font-size: 1rem !important;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
 }
 
 /* 5. Fluid Typography Protection */
 @media (max-width: 575.98px) {
-    h1, .fs-1 { font-size: 2rem !important; }
-    h2, .fs-2 { font-size: 1.5rem !important; }
-    h3, .fs-3 { font-size: 1.3rem !important; }
-    h4, .fs-4 { font-size: 1.1rem !important; }
-    body, p, input, select, button {
+
+    h1,
+    .fs-1 {
+        font-size: 2rem !important;
+    }
+
+    h2,
+    .fs-2 {
+        font-size: 1.5rem !important;
+    }
+
+    h3,
+    .fs-3 {
+        font-size: 1.3rem !important;
+    }
+
+    h4,
+    .fs-4 {
+        font-size: 1.1rem !important;
+    }
+
+    body,
+    p,
+    input,
+    select,
+    button {
         font-size: 0.9rem !important;
     }
+
     .container {
         padding-left: 12px !important;
         padding-right: 12px !important;
@@ -1445,6 +1491,9 @@ html, body {
 }
 
 /* 6. Form elements optimization */
-input, select, textarea {
-    font-size: 16px !important; /* Prevents auto-zoom on iOS Safari */
+input,
+select,
+textarea {
+    font-size: 16px !important;
+    /* Prevents auto-zoom on iOS Safari */
 }

@@ -308,14 +308,14 @@ $user = get_logged_user();
                                 <?php endif; ?>
                             </button>
                             <div class="dropdown-menu dropdown-menu-end glass-card mt-2 border-0 p-0 shadow-lg profile-dropdown"
-                                aria-labelledby="userMenuButton" style="width: 260px; border-radius: 14px; overflow: hidden;">
+                                aria-labelledby="userMenuButton" style="border-radius: 14px; overflow: hidden;">
 
                                 <!-- Profile Header -->
                                 <div class="profile-dropdown-header px-4 py-3 d-flex align-items-center gap-3">
                                     <div class="profile-avatar-lg">
                                         <?= strtoupper(substr($user['username'], 0, 1)) ?>
                                     </div>
-                                    <div class="overflow-hidden">
+                                    <div class="overflow-hidden flex-grow-1" style="min-width: 0;">
                                         <div class="profile-name text-truncate"><?= htmlspecialchars($user['username']) ?></div>
                                         <span class="profile-role-badge"><?= ucfirst(htmlspecialchars($user['role'])) ?></span>
                                     </div>

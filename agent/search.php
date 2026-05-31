@@ -74,15 +74,13 @@ try {
     <form action="" method="GET" class="row g-3 align-items-end">
         <!-- Source dropdown -->
         <div class="col-md-3">
-            <label for="source" class="form-label text-secondary small fw-semibold">Leaving From</label>
+            <label for="source_search" class="form-label text-secondary small fw-semibold">Leaving From</label>
             <div class="input-group">
                 <span class="input-group-text bg-dark border-secondary border-end-0 text-secondary" style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-location-dot"></i></span>
-                <select name="source" id="source" class="form-select form-control-swift border-start-0 select2-searchable" style="border-radius: 0 12px 12px 0;" required>
-                    <option value="">Select Origin...</option>
-                    <?php foreach ($sources as $src): ?>
-                        <option value="<?= htmlspecialchars($src) ?>" <?= $src === $source ? 'selected' : '' ?>><?= htmlspecialchars($src) ?></option>
-                    <?php endforeach; ?>
-                </select>
+                <div class="autocomplete-wrapper">
+                    <input type="text" id="source_search" class="form-control form-control-swift border-start-0" style="border-radius: 0 12px 12px 0;" placeholder="Select Origin..." value="<?= htmlspecialchars($source) ?>" autocomplete="off" required>
+                    <input type="hidden" name="source" id="source" value="<?= htmlspecialchars($source) ?>">
+                </div>
             </div>
         </div>
 
@@ -95,12 +93,13 @@ try {
 
         <!-- Destination dropdown -->
         <div class="col-md-3">
-            <label for="destination" class="form-label text-secondary small fw-semibold">Going To</label>
+            <label for="destination_search" class="form-label text-secondary small fw-semibold">Going To</label>
             <div class="input-group">
                 <span class="input-group-text bg-dark border-secondary border-end-0 text-secondary" style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-location-crosshairs"></i></span>
-                <select name="destination" id="destination" class="form-select form-control-swift border-start-0 select2-searchable" style="border-radius: 0 12px 12px 0;" required>
-                    <option value="">Select Destination...</option>
-                </select>
+                <div class="autocomplete-wrapper">
+                    <input type="text" id="destination_search" class="form-control form-control-swift border-start-0" style="border-radius: 0 12px 12px 0;" placeholder="Select Destination..." value="<?= htmlspecialchars($destination) ?>" autocomplete="off" required>
+                    <input type="hidden" name="destination" id="destination" value="<?= htmlspecialchars($destination) ?>">
+                </div>
             </div>
             <div id="dest-loading" class="small text-muted mt-1" style="display:none;"><i class="fa-solid fa-spinner fa-spin me-1"></i>Loading...</div>
         </div>
@@ -272,19 +271,66 @@ try {
 
 <script>
 $(document).ready(function() {
-// Dynamic destination loading on source change
-    $('#source').on('change', function() {
-        var source = $(this).val();
-        var $dest = $('#destination');
+    // Setup sources array from PHP
+    var sourcesList = <?= json_encode($sources) ?> || [];
+    var destinationsList = [];
+
+    // Helper function to create suggestion dropdown
+    function setupAutocomplete($input, $hidden, listData, onSelect) {
+        var wrapperClass = 'autocomplete-wrapper';
+        var suggestionsClass = 'autocomplete-suggestions';
+        var suggestionClass = 'autocomplete-suggestion';
+
+        $input.on('focus click input', function() {
+            var val = $(this).val().toLowerCase();
+            var $wrapper = $(this).closest('.' + wrapperClass);
+            
+            // Remove existing suggestions
+            $wrapper.find('.' + suggestionsClass).remove();
+
+            // Filter list
+            var filtered = listData.filter(function(item) {
+                return item.toLowerCase().indexOf(val) > -1;
+            });
+
+            if (filtered.length === 0) return;
+
+            var $suggestions = $('<div class="' + suggestionsClass + '"></div>');
+            $.each(filtered, function(i, item) {
+                var $sug = $('<div class="' + suggestionClass + '">' + item + '</div>');
+                $sug.on('mousedown', function(e) {
+                    e.preventDefault(); // prevent blur
+                    $input.val(item);
+                    $hidden.val(item).trigger('change');
+                    $wrapper.find('.' + suggestionsClass).remove();
+                    if (onSelect) onSelect(item);
+                });
+                $suggestions.append($sug);
+            });
+            $wrapper.append($suggestions);
+        });
+
+        $input.on('blur', function() {
+            setTimeout(function() {
+                $input.closest('.' + wrapperClass).find('.' + suggestionsClass).remove();
+            }, 200);
+        });
+    }
+
+    // Init Autocomplete for Source input
+    setupAutocomplete($('#source_search'), $('#source'), sourcesList, function(selectedSource) {
+        loadDestinations(selectedSource);
+    });
+
+    // Function to load destinations via AJAX
+    function loadDestinations(source, callback) {
+        var $destInput = $('#destination_search');
+        var $destHidden = $('#destination');
         var $loading = $('#dest-loading');
 
-        $dest.html('<option value="">Select Destination...</option>');
-        $dest.prop('disabled', true);
-        if ($dest.data('select2')) {
-            $dest.select2('destroy');
-        }
-        $dest.select2({ width: '100%' });
-        $dest.trigger('change');
+        // Reset
+        $destInput.prop('disabled', true);
+        destinationsList = [];
         $loading.hide();
 
         if (!source) {
@@ -295,29 +341,18 @@ $(document).ready(function() {
 
         $.getJSON('<?= BASE_URL ?>/ajax/get_destinations.php', { source: source, admin_id: <?= $parent_admin_id ?> }, function(data) {
             $loading.hide();
-            $dest.html('<option value="">Select Destination...</option>');
-
-            $.each(data, function(i, dest) {
-                $dest.append($('<option>', { value: dest, text: dest }));
-            });
-
-            $dest.prop('disabled', false);
-            if ($dest.data('select2')) {
-                $dest.select2('destroy');
-            }
-            $dest.select2({ width: '100%' });
-            $dest.trigger('change').trigger('combobox:refresh');
+            destinationsList = data;
+            $destInput.prop('disabled', false);
+            
+            // Re-init setup with updated destinationsList
+            setupAutocomplete($destInput, $destHidden, destinationsList);
+            
+            if (callback) callback();
         }).fail(function() {
             $loading.hide();
-            $dest.html('<option value="">Error loading routes</option>');
-            $dest.prop('disabled', true);
-            if ($dest.data('select2')) {
-                $dest.select2('destroy');
-            }
-            $dest.select2({ width: '100%' });
-            $dest.trigger('change');
+            $destInput.val('Error loading routes');
         });
-    });
+    }
 
     // Swapper functionality
     $('#swapCities').on('click', function() {
@@ -326,35 +361,23 @@ $(document).ready(function() {
 
         if (!destVal) return;
 
-        $('#source').val(destVal).trigger('change');
+        $('#source_search').val(destVal);
+        $('#source').val(destVal);
 
-        setTimeout(function() {
-            $('#destination').val(srcVal).trigger('change');
-        }, 500);
+        loadDestinations(destVal, function() {
+            $('#destination_search').val(srcVal);
+            $('#destination').val(srcVal);
+        });
     });
 
-    // Auto trigger destinations sync if source is pre-selected
-    if ($('#source').val()) {
-        var currentDest = '<?= htmlspecialchars($destination) ?>';
-        var source = $('#source').val();
-        var $dest = $('#destination');
-        
-        $.getJSON('<?= BASE_URL ?>/ajax/get_destinations.php', { source: source, admin_id: <?= $parent_admin_id ?> }, function(data) {
-            $dest.html('<option value="">Select Destination...</option>');
-            $.each(data, function(i, dest) {
-                $dest.append($('<option>', { 
-                    value: dest, 
-                    text: dest,
-                    selected: (dest === currentDest)
-                }));
-            });
-            
-            $dest.prop('disabled', false);
-            if ($dest.data('select2')) {
-                $dest.select2('destroy');
-            }
-            $dest.select2({ width: '100%' });
-            $dest.trigger('change').trigger('combobox:refresh');
+    // Initialize active destinations list for current source on page load
+    var currentSource = $('#source').val();
+    if (currentSource) {
+        var currentDestVal = '<?= htmlspecialchars($destination) ?>';
+        loadDestinations(currentSource, function() {
+            // Ensure correct destination is set after loading
+            $('#destination_search').val(currentDestVal);
+            $('#destination').val(currentDestVal);
         });
     }
 });
