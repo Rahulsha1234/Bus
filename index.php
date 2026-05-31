@@ -104,17 +104,15 @@ require_once __DIR__ . '/includes/header.php';
             <form action="<?= BASE_URL ?>/search.php" method="GET" class="row g-3 align-items-end">
                 <!-- Source dropdown -->
                 <div class="col-md-3">
-                    <label for="source" class="form-label text-secondary small fw-bold">Leaving From</label>
+                    <label for="source_search" class="form-label text-secondary small fw-bold">Leaving From</label>
                     <div class="input-group">
                         <span class="input-group-text bg-light border-end-0 text-secondary"
                             style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-location-dot"></i></span>
-                        <select name="source" id="source" class="form-select border-start-0 bg-light select2-searchable"
-                            style="border-radius: 0 12px 12px 0; padding: 0.75rem;" required>
-                            <option value="">Select Origin...</option>
-                            <?php foreach ($sources as $src): ?>
-                                <option value="<?= htmlspecialchars($src) ?>"><?= htmlspecialchars($src) ?></option>
-                            <?php endforeach; ?>
-                        </select>
+                        <div class="autocomplete-wrapper">
+                            <input type="text" id="source_search" class="form-control border-start-0 bg-light"
+                                style="border-radius: 0 12px 12px 0; padding: 0.75rem;" placeholder="Select Origin..." autocomplete="off" required>
+                            <input type="hidden" name="source" id="source" value="">
+                        </div>
                     </div>
                 </div>
 
@@ -128,14 +126,15 @@ require_once __DIR__ . '/includes/header.php';
 
                 <!-- Destination dropdown -->
                 <div class="col-md-3">
-                    <label for="destination" class="form-label text-secondary small fw-bold">Going To</label>
+                    <label for="destination_search" class="form-label text-secondary small fw-bold">Going To</label>
                     <div class="input-group">
                         <span class="input-group-text bg-light border-end-0 text-secondary"
                             style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-location-crosshairs"></i></span>
-                        <select name="destination" id="destination" class="form-select border-start-0 bg-light select2-searchable"
-                            style="border-radius: 0 12px 12px 0; padding: 0.75rem;" required>
-                            <option value="">Select Destination...</option>
-                        </select>
+                        <div class="autocomplete-wrapper">
+                            <input type="text" id="destination_search" class="form-control border-start-0 bg-light"
+                                style="border-radius: 0 12px 12px 0; padding: 0.75rem;" placeholder="Select Destination..." autocomplete="off" required disabled>
+                            <input type="hidden" name="destination" id="destination" value="">
+                        </div>
                     </div>
                     <div id="dest-loading" class="small text-muted mt-1" style="display:none;"><i
                             class="fa-solid fa-spinner fa-spin me-1"></i>Loading...</div>
@@ -1018,20 +1017,77 @@ require_once __DIR__ . '/includes/header.php';
             const trustSection = document.getElementById('trust-section');
             if (trustSection) counterObserver.observe(trustSection);
 
-            // Dynamically load destinations when source changes
-            $('#source').on('change', function() {
-                var source = $(this).val();
-                var $dest = $('#destination');
+            // Setup sources array from PHP
+            var sourcesList = <?= json_encode($sources) ?> || [];
+            var destinationsList = [];
+
+            // Helper function to create suggestion dropdown
+            function setupAutocomplete($input, $hidden, listData, onSelect) {
+                var wrapperClass = 'autocomplete-wrapper';
+                var suggestionsClass = 'autocomplete-suggestions';
+                var suggestionClass = 'autocomplete-suggestion';
+
+                $input.on('focus click input', function() {
+                    var val = $(this).val().toLowerCase();
+                    var $wrapper = $(this).closest('.' + wrapperClass);
+                    
+                    // Remove existing suggestions
+                    $wrapper.find('.' + suggestionsClass).remove();
+
+                    // Filter list
+                    var filtered = listData.filter(function(item) {
+                        return item.toLowerCase().indexOf(val) > -1;
+                    });
+
+                    if (filtered.length === 0) return;
+
+                    var $suggestions = $('<div class="' + suggestionsClass + '"></div>');
+                    $.each(filtered, function(i, item) {
+                        var $sug = $('<div class="' + suggestionClass + '">' + item + '</div>');
+                        $sug.on('mousedown', function(e) {
+                            e.preventDefault(); // prevent blur
+                            $input.val(item);
+                            $hidden.val(item).trigger('change');
+                            $wrapper.find('.' + suggestionsClass).remove();
+                            if (onSelect) onSelect(item);
+                        });
+                        $suggestions.append($sug);
+                    });
+                    $wrapper.append($suggestions);
+                });
+
+                $input.on('blur', function() {
+                    setTimeout(function() {
+                        $input.closest('.' + wrapperClass).find('.' + suggestionsClass).remove();
+                    }, 200);
+                });
+            }
+
+            // Init Autocomplete for Source input
+            setupAutocomplete($('#source_search'), $('#source'), sourcesList, function(selectedSource) {
+                loadDestinations(selectedSource);
+            });
+
+            // Init Autocomplete for Destination input
+            setupAutocomplete($('#destination_search'), $('#destination'), destinationsList);
+
+            // Function to load destinations via AJAX
+            function loadDestinations(source, callback) {
+                var $destInput = $('#destination_search');
+                var $destHidden = $('#destination');
                 var $loading = $('#dest-loading');
                 var $empty = $('#dest-empty');
 
                 // Reset
-                $dest.prop('disabled', true).html('<option value="">Select Destination...</option>').trigger('change');
+                $destInput.val('');
+                $destHidden.val('');
+                $destInput.prop('disabled', true);
+                destinationsList = [];
+                
                 $loading.hide();
                 $empty.hide();
 
                 if (!source) {
-                    $dest.html('<option value="">Select Origin first...</option>').trigger('change');
                     return;
                 }
 
@@ -1041,44 +1097,39 @@ require_once __DIR__ . '/includes/header.php';
                     source: source
                 }, function(data) {
                     $loading.hide();
-                    $dest.html('<option value="">Select Destination...</option>');
 
                     if (data.length === 0) {
                         $empty.show();
-                        $dest.trigger('change').trigger('combobox:refresh');
                         return;
                     }
 
-                    $.each(data, function(i, dest) {
-                        $dest.append($('<option>', {
-                            value: dest,
-                            text: dest
-                        }));
-                    });
-
-                    $dest.prop('disabled', false).trigger('change').trigger('combobox:refresh');
+                    destinationsList = data;
+                    $destInput.prop('disabled', false);
+                    
+                    // Re-init setup with updated destinationsList
+                    setupAutocomplete($destInput, $destHidden, destinationsList);
+                    
+                    if (callback) callback();
                 }).fail(function() {
                     $loading.hide();
-                    $dest.html('<option value="">Error loading routes</option>').trigger('change');
+                    $destInput.val('Error loading routes');
                 });
-            });
+            }
 
-            // City Swapper - swap source <-> destination and reload destinations
+            // City Swapper
             $('#swapCities').on('click', function() {
                 var srcVal = $('#source').val();
                 var destVal = $('#destination').val();
 
-                // Only swap if destination is valid
                 if (!destVal) return;
 
-                // Set source to old destination value
-                $('#source').val(destVal).trigger('change');
+                $('#source_search').val(destVal);
+                $('#source').val(destVal);
 
-                // After AJAX loads, set destination to old source value
-                // Use a small delay to wait for AJAX
-                setTimeout(function() {
-                    $('#destination').val(srcVal).trigger('change');
-                }, 600);
+                loadDestinations(destVal, function() {
+                    $('#destination_search').val(srcVal);
+                    $('#destination').val(srcVal);
+                });
             });
         });
     </script>

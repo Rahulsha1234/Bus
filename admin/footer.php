@@ -14,6 +14,7 @@
 
 <script>
     $(document).ready(function() {
+        console.log('Select2 Init');
         // Apply Select2 to selects (excluding seat layout controls and visual builders)
         $('select.select2-searchable').select2({
             width: '100%',

@@ -117,6 +117,7 @@
     
     <script>
         $(document).ready(function() {
+            console.log('Select2 Init');
             // Apply Select2 to selects (excluding seat selectors and layouts)
             $('select.select2-searchable').select2({
                 width: '100%'
@@ -128,6 +129,21 @@
                 pageLength: 10,
                 order: []
             });
+        });
+
+        // Re-initialize Select2 on browser back/forward (bfcache) navigation
+        $(window).on('pageshow', function(event) {
+            if (event.originalEvent && event.originalEvent.persisted) {
+                console.log('Select2 Re-Init (bfcache page restore)');
+                $('select.select2-searchable').each(function() {
+                    if ($(this).data('select2')) {
+                        $(this).select2('destroy');
+                    }
+                });
+                $('select.select2-searchable').select2({
+                    width: '100%'
+                });
+            }
         });
     </script>
 </body>

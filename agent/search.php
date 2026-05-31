@@ -272,13 +272,19 @@ try {
 
 <script>
 $(document).ready(function() {
-    // Dynamic destination loading on source change
+// Dynamic destination loading on source change
     $('#source').on('change', function() {
         var source = $(this).val();
         var $dest = $('#destination');
         var $loading = $('#dest-loading');
 
-        $dest.prop('disabled', true).html('<option value="">Select Destination...</option>').trigger('change');
+        $dest.html('<option value="">Select Destination...</option>');
+        $dest.prop('disabled', true);
+        if ($dest.data('select2')) {
+            $dest.select2('destroy');
+        }
+        $dest.select2({ width: '100%' });
+        $dest.trigger('change');
         $loading.hide();
 
         if (!source) {
@@ -295,10 +301,21 @@ $(document).ready(function() {
                 $dest.append($('<option>', { value: dest, text: dest }));
             });
 
-            $dest.prop('disabled', false).trigger('change').trigger('combobox:refresh');
+            $dest.prop('disabled', false);
+            if ($dest.data('select2')) {
+                $dest.select2('destroy');
+            }
+            $dest.select2({ width: '100%' });
+            $dest.trigger('change').trigger('combobox:refresh');
         }).fail(function() {
             $loading.hide();
-            $dest.html('<option value="">Error loading routes</option>').trigger('change');
+            $dest.html('<option value="">Error loading routes</option>');
+            $dest.prop('disabled', true);
+            if ($dest.data('select2')) {
+                $dest.select2('destroy');
+            }
+            $dest.select2({ width: '100%' });
+            $dest.trigger('change');
         });
     });
 
@@ -331,7 +348,13 @@ $(document).ready(function() {
                     selected: (dest === currentDest)
                 }));
             });
-            $dest.prop('disabled', false).trigger('change').trigger('combobox:refresh');
+            
+            $dest.prop('disabled', false);
+            if ($dest.data('select2')) {
+                $dest.select2('destroy');
+            }
+            $dest.select2({ width: '100%' });
+            $dest.trigger('change').trigger('combobox:refresh');
         });
     }
 });

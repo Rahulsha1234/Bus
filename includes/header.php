@@ -135,6 +135,63 @@ $user = get_logged_user();
         .input-group > .input-group-text {
             height: 48px !important;
         }
+        
+        /* Custom Autocomplete Suggestions dropdown styling */
+        .autocomplete-wrapper {
+            position: relative;
+            flex: 1 1 auto;
+            width: 1% !important;
+            display: flex;
+            flex-direction: column;
+        }
+        .autocomplete-wrapper input {
+            border-top-left-radius: 0 !important;
+            border-bottom-left-radius: 0 !important;
+            border-top-right-radius: 12px !important;
+            border-bottom-right-radius: 12px !important;
+            border-left: 0 !important;
+            height: 48px !important;
+        }
+        .autocomplete-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--bg-swift-dropdown, #ffffff);
+            border: 1px solid var(--border-swift-dropdown, #dee2e6);
+            border-radius: 12px;
+            margin-top: 4px;
+            max-height: 250px;
+            overflow-y: auto;
+            z-index: 9999;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        }
+        [data-theme="dark"] .autocomplete-suggestions {
+            background-color: #131a30 !important;
+            border-color: rgba(255, 255, 255, 0.15) !important;
+        }
+        .autocomplete-suggestion {
+            padding: 10px 14px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: var(--text-swift-main, #212529);
+            transition: background-color 0.15s;
+        }
+        [data-theme="dark"] .autocomplete-suggestion {
+            color: #e2e8f0;
+        }
+        .autocomplete-suggestion:hover, .autocomplete-suggestion.active {
+            background-color: var(--accent-primary, #198754) !important;
+            color: white !important;
+        }
+        .autocomplete-suggestion:first-child {
+            border-top-left-radius: 11px;
+            border-top-right-radius: 11px;
+        }
+        .autocomplete-suggestion:last-child {
+            border-bottom-left-radius: 11px;
+            border-bottom-right-radius: 11px;
+        }
     </style>
 </head>
 
