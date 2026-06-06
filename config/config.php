@@ -32,7 +32,7 @@ $is_local = php_sapi_name() === 'cli' || ((in_array($_SERVER['REMOTE_ADDR'] ?? '
 
 
 if ($is_local) {
-    define('DB_HOST', '127.0.0.1;port=3307');
+    define('DB_HOST', '127.0.0.1');
     define('DB_USER', 'root');
     define('DB_PASS', '');
     define('DB_NAME', 'bus_booking');
