@@ -38,9 +38,9 @@ if ($is_local) {
     define('DB_NAME', 'bus_booking');
 } else {
     define('DB_HOST', 'sql311.byethost22.com');
-    define('DB_USER', 'b22_42038100');
-    define('DB_PASS', '123456789');
-    define('DB_NAME', 'b22_42038100_bus');
+    define('DB_USER', 'u578827232_busbooking');
+    define('DB_PASS', 'By|d>#w6');
+    define('DB_NAME', 'u578827232_bus_booking');
 }
 
 // System Settings
