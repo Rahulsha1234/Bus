@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Global Configuration Settings
  */
@@ -12,21 +13,21 @@ ini_set('log_errors', 1);
 if (!defined('BASE_URL')) {
     $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
     $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-    
+
     // Auto detect if running in a subdirectory or direct htdocs root
     $script_dir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME']));
     $base_dir = ($script_dir === '/' || $script_dir === '\\') ? '' : rtrim($script_dir, '/');
-    
+
     // If inside portal folders, strip them from base url detection
     $base_dir = preg_replace('/\/(admin|super_admin|agent|ajax|includes|config)$/', '', $base_dir);
-    
+
     define('BASE_URL', $protocol . '://' . $host . $base_dir);
 }
 
 // Database Credentials (Dynamic configuration for Local WAMP and Live Server)
 $host = $_SERVER['HTTP_HOST'] ?? '';
-$is_local = php_sapi_name() === 'cli' || ((in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1']) 
-    || $host === 'localhost' 
+$is_local = php_sapi_name() === 'cli' || ((in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1'])
+    || $host === 'localhost'
     || strpos($host, '127.0.0.1') !== false)
     && strpos($host, 'byethost') === false);
 
@@ -37,7 +38,7 @@ if ($is_local) {
     define('DB_PASS', '');
     define('DB_NAME', 'bus_booking');
 } else {
-    define('DB_HOST', 'sql311.byethost22.com');
+    define('DB_HOST', 'localhost');
     define('DB_USER', 'u578827232_busbooking');
     define('DB_PASS', 'By|d>#w6');
     define('DB_NAME', 'u578827232_bus_booking');
@@ -89,4 +90,3 @@ $_SESSION['LAST_ACTIVITY'] = time();
 
 // Initialize Multilingual system
 require_once __DIR__ . '/../includes/lang.php';
-
