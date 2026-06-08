@@ -7,14 +7,15 @@ require_role('admin');
 
 $page_title = "Manage Agent Wallets";
 $admin_id = $_SESSION['user_id'];
-$success_msg = '';
-$error_msg = '';
+$success_msg = $_SESSION['success_msg'] ?? '';
+$error_msg = $_SESSION['error_msg'] ?? '';
+unset($_SESSION['success_msg'], $_SESSION['error_msg']);
 
 // Handle actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $csrf = $_POST['csrf_token'] ?? '';
     if (!verify_csrf_token($csrf)) {
-        $error_msg = "Security token validation failed. Please refresh.";
+        $_SESSION['error_msg'] = "Security token validation failed. Please refresh.";
     } else {
         $action = $_POST['action'];
         $wallet_id = intval($_POST['wallet_id'] ?? 0);
@@ -35,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $wallet = $wallet_stmt->fetch();
 
             if (!$wallet) {
-                $error_msg = "Wallet not found or unauthorized.";
+                $_SESSION['error_msg'] = "Wallet not found or unauthorized.";
             } else {
                 $pdo->beginTransaction();
                 $balance_before = floatval($wallet['balance']);
@@ -60,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $ledger_stmt->execute([$wallet_id, $amount, $balance_before, $balance_after, $remarks ?: "Manual Admin Credit", $admin_id]);
                     
                     log_activity($pdo, $admin_id, 'WALLET_ADMIN_CREDIT', "Credited ₹$amount to Agent wallet ID $wallet_id. Remarks: $remarks");
-                    $success_msg = "Successfully credited ₹" . number_format($amount, 2) . " to Agent " . htmlspecialchars($wallet['username']) . "'s wallet.";
+                    $_SESSION['success_msg'] = "Successfully credited ₹" . number_format($amount, 2) . " to Agent " . htmlspecialchars($wallet['username']) . "'s wallet.";
 
                 } elseif ($action === 'debit') {
                     if ($amount <= 0) {
@@ -85,21 +86,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $ledger_stmt->execute([$wallet_id, $amount, $balance_before, $balance_after, $remarks ?: "Manual Admin Debit", $admin_id]);
 
                     log_activity($pdo, $admin_id, 'WALLET_ADMIN_DEBIT', "Debited ₹$amount from Agent wallet ID $wallet_id. Remarks: $remarks");
-                    $success_msg = "Successfully debited ₹" . number_format($amount, 2) . " from Agent " . htmlspecialchars($wallet['username']) . "'s wallet.";
+                    $_SESSION['success_msg'] = "Successfully debited ₹" . number_format($amount, 2) . " from Agent " . htmlspecialchars($wallet['username']) . "'s wallet.";
 
                 } elseif ($action === 'freeze') {
                     $up_stmt = $pdo->prepare("UPDATE agent_wallets SET status = 'frozen' WHERE id = ?");
                     $up_stmt->execute([$wallet_id]);
                     
                     log_activity($pdo, $admin_id, 'WALLET_FREEZE', "Froze Agent wallet ID $wallet_id");
-                    $success_msg = "Agent wallet frozen successfully.";
+                    $_SESSION['success_msg'] = "Agent wallet frozen successfully.";
 
                 } elseif ($action === 'unfreeze') {
                     $up_stmt = $pdo->prepare("UPDATE agent_wallets SET status = 'active' WHERE id = ?");
                     $up_stmt->execute([$wallet_id]);
 
                     log_activity($pdo, $admin_id, 'WALLET_UNFREEZE', "Unfroze Agent wallet ID $wallet_id");
-                    $success_msg = "Agent wallet unfrozen successfully.";
+                    $_SESSION['success_msg'] = "Agent wallet unfrozen successfully.";
                 }
 
                 $pdo->commit();
@@ -108,9 +109,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
             }
-            $error_msg = "Transaction failed: " . $e->getMessage();
+            $_SESSION['error_msg'] = "Transaction failed: " . $e->getMessage();
         }
     }
+    
+    if (!headers_sent()) {
+        header("Location: " . $_SERVER['PHP_SELF']);
+    } else {
+        echo "<script>window.location.replace('" . $_SERVER['PHP_SELF'] . "');</script>";
+    }
+    exit();
 }
 
 // Fetch all wallets belonging to this Admin's partner agents
@@ -214,7 +222,7 @@ require_once __DIR__ . '/header.php';
         <!-- Partner Wallets Pane -->
         <div class="tab-pane fade show active" id="wallets-pane" role="tabpanel">
             <div class="table-responsive">
-                <table class="table table-swift table-dark table-hover align-middle datatable-swift">
+                <table id="partnerWalletsTable" class="table table-swift table-dark table-hover align-middle text-nowrap" style="width: 100%; min-width: 800px;">
                     <thead>
                         <tr>
                             <th>Agency Name</th>
@@ -238,15 +246,15 @@ require_once __DIR__ . '/header.php';
                                 <td class="fw-bold fs-5 text-indigo">₹<?= number_format($w['balance'], 2) ?></td>
                                 <td>
                                     <?php if ($w['status'] === 'frozen'): ?>
-                                        <span class="badge bg-danger bg-opacity-15 text-danger border border-danger border-opacity-25 px-2 py-1">Frozen</span>
+                                        <span class="badge px-3 py-2" style="background: rgba(220, 53, 69, 0.15); color: #dc3545; border: 1px solid rgba(220, 53, 69, 0.25); font-weight: 600; font-size: 0.8rem; border-radius: 30px;">Frozen</span>
                                     <?php else: ?>
-                                        <span class="badge bg-success bg-opacity-15 text-success border border-success border-opacity-25 px-2 py-1">Active</span>
+                                        <span class="badge px-3 py-2" style="background: rgba(25, 135, 84, 0.15); color: #198754; border: 1px solid rgba(25, 135, 84, 0.25); font-weight: 600; font-size: 0.8rem; border-radius: 30px;">Active</span>
                                     <?php endif; ?>
                                 </td>
                                 <td class="text-end">
-                                    <div class="d-flex justify-content-end gap-2">
-                                        <button type="button" class="btn btn-success btn-sm rounded-2" data-bs-toggle="modal" data-bs-target="#creditModal<?= $w['id'] ?>">Credit</button>
-                                        <button type="button" class="btn btn-warning-glass btn-sm rounded-2" data-bs-toggle="modal" data-bs-target="#debitModal<?= $w['id'] ?>">Debit</button>
+                                    <div class="d-flex justify-content-end gap-2 align-items-center">
+                                        <button type="button" class="btn btn-sm rounded-2" style="background: rgba(25, 135, 84, 0.12); color: #198754; border: 1px solid rgba(25, 135, 84, 0.25); font-weight: 600;" data-bs-toggle="modal" data-bs-target="#creditModal<?= $w['id'] ?>">Credit</button>
+                                        <button type="button" class="btn btn-sm rounded-2" style="background: rgba(212, 175, 55, 0.12); color: #b59210; border: 1px solid rgba(212, 175, 55, 0.25); font-weight: 600;" data-bs-toggle="modal" data-bs-target="#debitModal<?= $w['id'] ?>">Debit</button>
                                         
                                         <?php if ($w['status'] === 'frozen'): ?>
                                             <form method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to unfreeze this wallet?');">
@@ -338,7 +346,7 @@ require_once __DIR__ . '/header.php';
         <!-- Global Ledger Log Pane -->
         <div class="tab-pane fade" id="ledger-pane" role="tabpanel">
             <div class="table-responsive">
-                <table class="table table-swift table-dark table-hover align-middle datatable-swift">
+                <table id="globalLedgerTable" class="table table-swift table-dark table-hover align-middle text-nowrap" style="width: 100%; min-width: 1000px;">
                     <thead>
                         <tr>
                             <th>Timestamp</th>
@@ -392,12 +400,20 @@ require_once __DIR__ . '/header.php';
 <script src="https://cdn.datatables.net/1.13.5/js/dataTables.bootstrap5.min.js"></script>
 <script>
 $(document).ready(function() {
-    $('.datatable-swift').DataTable({
-        order: [[0, 'desc']],
+    $('#partnerWalletsTable').DataTable({
+        order: [[0, 'asc']],
         pageLength: 10,
         language: {
             search: "_INPUT_",
             searchPlaceholder: "Search records..."
+        }
+    });
+    $('#globalLedgerTable').DataTable({
+        order: [[0, 'desc']],
+        pageLength: 10,
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search ledger..."
         }
     });
 });

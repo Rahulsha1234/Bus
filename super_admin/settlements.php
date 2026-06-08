@@ -2,6 +2,9 @@
 /**
  * Super Admin Weekly Settlement Processor
  */
+require_once __DIR__ . '/../includes/auth_middleware.php';
+require_role('super_admin');
+
 $page_title = __('weekly_settlements_title', "Weekly Settlements");
 require_once __DIR__ . '/header.php';
 

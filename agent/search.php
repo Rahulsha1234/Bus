@@ -69,6 +69,47 @@ try {
 }
 ?>
 
+<style>
+.autocomplete-wrapper {
+    position: relative;
+    flex: 1 1 auto;
+    width: 1%;
+    display: flex;
+}
+.autocomplete-wrapper .form-control {
+    border-radius: 0 12px 12px 0 !important;
+}
+.autocomplete-suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1050;
+    width: 100%;
+    max-height: 200px;
+    overflow-y: auto;
+    background: var(--bg-card);
+    border: 1px solid var(--border-glass);
+    border-radius: 12px;
+    box-shadow: var(--shadow-main);
+    margin-top: 5px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+.autocomplete-suggestion {
+    padding: 10px 15px;
+    cursor: pointer;
+    color: var(--text-main);
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    text-align: left;
+}
+.autocomplete-suggestion:hover {
+    background: var(--bg-secondary);
+    color: var(--accent-primary);
+    padding-left: 18px;
+}
+</style>
+
 <div class="glass-card p-4 mb-4" style="border-radius: 12px;">
     <h5 class="fw-bold mb-3 text-white"><i class="fa-solid fa-magnifying-glass text-indigo me-2"></i><?= __('find_voyages', 'Find Voyages') ?> (<?= htmlspecialchars($agent_profile['agency_name']) ?>)</h5>
     <form action="" method="GET" class="row g-3 align-items-end">

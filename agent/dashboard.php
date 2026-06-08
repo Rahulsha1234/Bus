@@ -126,13 +126,28 @@ try {
 ?>
 
 <?php if ($agent_wallet_balance < 1000 && $agent_wallet['status'] === 'active'): ?>
-<div class="alert alert-warning border-warning border-opacity-20 bg-warning bg-opacity-10 text-warning d-flex align-items-center mb-4 rounded-4 p-3 shadow-lg" role="alert">
+<div id="low-balance-alert-dashboard" class="alert alert-warning alert-dismissible border-warning border-opacity-20 bg-warning bg-opacity-10 text-warning d-flex align-items-center mb-4 rounded-4 p-3 shadow-lg fade show" role="alert" style="display: none !important;">
     <i class="fa-solid fa-triangle-exclamation fs-4 me-3"></i>
-    <div>
+    <div class="flex-grow-1">
         <strong class="d-block">Low Wallet Balance Warning</strong>
-        <span class="small">Your wallet balance is ₹<?= number_format($agent_wallet_balance, 2) ?>. Please <a href="wallet_history.php" class="text-warning fw-bold text-decoration-underline">recharge your wallet</a> to continue booking tickets.</span>
+        <span class="small">Your wallet balance is ₹<?= number_format($agent_wallet_balance, 2) ?>. Please <a href="wallet_history.php?recharge=1" class="text-warning fw-bold text-decoration-underline">recharge your wallet</a> to continue booking tickets.</span>
     </div>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" id="dismiss-low-balance-dashboard" style="filter: var(--btn-close-filter);"></button>
 </div>
+<script>
+    if (localStorage.getItem('dismissed_low_balance_warning') !== 'true') {
+        document.getElementById('low-balance-alert-dashboard').style.setProperty('display', 'flex', 'important');
+    }
+    document.getElementById('dismiss-low-balance-dashboard')?.addEventListener('click', function() {
+        localStorage.setItem('dismissed_low_balance_warning', 'true');
+    });
+</script>
+<?php endif; ?>
+
+<?php if ($agent_wallet_balance >= 1000): ?>
+<script>
+    localStorage.removeItem('dismissed_low_balance_warning');
+</script>
 <?php endif; ?>
 
 <!-- Metrics Row -->

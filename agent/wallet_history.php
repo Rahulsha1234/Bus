@@ -37,42 +37,82 @@ $recharges_stmt->execute([$wallet_id]);
 $recharge_records = $recharges_stmt->fetchAll();
 ?>
 
+<style>
+    .wallet-tab-btn {
+        background: rgba(0, 0, 0, 0.04) !important;
+        color: var(--text-secondary) !important;
+        border: 1px solid var(--border-glass) !important;
+        transition: all 0.3s ease;
+    }
+    .wallet-tab-btn:hover {
+        background: rgba(0, 0, 0, 0.08) !important;
+        color: var(--text-primary) !important;
+    }
+    .wallet-tab-btn.active {
+        background: var(--accent-primary) !important;
+        color: #ffffff !important;
+        border-color: var(--accent-primary) !important;
+        box-shadow: 0 4px 15px rgba(25, 135, 84, 0.2) !important;
+    }
+    [data-theme="dark"] .wallet-tab-btn {
+        background: rgba(255, 255, 255, 0.04) !important;
+    }
+    [data-theme="dark"] .wallet-tab-btn:hover {
+        background: rgba(255, 255, 255, 0.08) !important;
+    }
+</style>
+
 <div class="row g-4">
     <!-- Wallet Summary Widget -->
-    <div class="col-lg-4">
-        <div class="glass-card p-4 text-center border border-secondary border-opacity-20" style="border-radius: 20px;">
+    <div class="col-12">
+        <div class="glass-card p-4 text-center" style="border-radius: 20px; border: 1px solid var(--border-glass);">
             <div class="d-flex justify-content-center mb-3">
-                <span class="bg-indigo bg-opacity-10 p-3 rounded-circle text-indigo" style="font-size: 2.5rem; width: 80px; height: 80px; display: flex; align-items: center; justify-content: center;">
+                <span class="p-3 rounded-circle text-success" style="font-size: 2.5rem; width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; background: rgba(25, 135, 84, 0.12);">
                     <i class="fa-solid fa-wallet"></i>
                 </span>
             </div>
-            <h4 class="text-secondary small fw-semibold uppercase mb-1">Available Wallet Balance</h4>
-            <h2 class="fw-bold text-white mb-2" style="font-size: 2.5rem;">₹<?= number_format($wallet_balance, 2) ?></h2>
+            <h4 class="text-secondary small fw-semibold text-uppercase mb-1" style="letter-spacing: 0.5px;">Available Wallet Balance</h4>
+            <h2 class="fw-bold mb-2" style="font-size: 2.5rem; color: var(--text-primary);">₹<?= number_format($wallet_balance, 2) ?></h2>
             
             <div class="mb-4">
                 <?php if ($wallet_status === 'frozen'): ?>
-                    <span class="badge bg-danger bg-opacity-15 text-danger border border-danger border-opacity-25 px-3 py-2">
+                    <span class="badge px-3 py-2" style="background: rgba(220, 53, 69, 0.15); color: #dc3545; border: 1px solid rgba(220, 53, 69, 0.25); font-weight: 600; font-size: 0.85rem; border-radius: 30px;">
                         <i class="fa-solid fa-snowflake me-1"></i> Frozen
                     </span>
                 <?php else: ?>
-                    <span class="badge bg-success bg-opacity-15 text-success border border-success border-opacity-25 px-3 py-2">
+                    <span class="badge px-3 py-2" style="background: rgba(25, 135, 84, 0.15); color: #198754; border: 1px solid rgba(25, 135, 84, 0.25); font-weight: 600; font-size: 0.85rem; border-radius: 30px;">
                         <i class="fa-solid fa-circle-check me-1"></i> Active
                     </span>
                 <?php endif; ?>
             </div>
 
             <?php if ($wallet_balance < 1000 && $wallet_status === 'active'): ?>
-                <div class="alert alert-warning border-warning border-opacity-20 bg-warning bg-opacity-10 text-warning text-start mb-4 small rounded-3" role="alert">
+                <div id="low-balance-alert-wallet" class="alert alert-warning alert-dismissible border-warning border-opacity-20 bg-warning bg-opacity-10 text-warning text-start mb-4 small rounded-3 fade show" role="alert" style="display: none !important;">
                     <i class="fa-solid fa-triangle-exclamation me-2"></i> Low Wallet Balance. Please recharge to continue booking.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" id="dismiss-low-balance-wallet" style="padding: 0.85rem; filter: var(--btn-close-filter);"></button>
                 </div>
+                <script>
+                    if (localStorage.getItem('dismissed_low_balance_warning') !== 'true') {
+                        document.getElementById('low-balance-alert-wallet').style.setProperty('display', 'block', 'important');
+                    }
+                    document.getElementById('dismiss-low-balance-wallet')?.addEventListener('click', function() {
+                        localStorage.setItem('dismissed_low_balance_warning', 'true');
+                    });
+                </script>
+            <?php endif; ?>
+            
+            <?php if ($wallet_balance >= 1000): ?>
+                <script>
+                    localStorage.removeItem('dismissed_low_balance_warning');
+                </script>
             <?php endif; ?>
 
             <?php if ($wallet_status === 'active'): ?>
-                <button type="button" class="btn btn-primary-gradient w-100 py-3 text-uppercase fw-bold" style="border-radius: 12px; letter-spacing: 0.5px;" data-bs-toggle="modal" data-bs-target="#rechargeModal">
+                <button type="button" class="btn btn-primary-gradient py-3 text-uppercase fw-bold mx-auto d-block" style="border-radius: 12px; letter-spacing: 0.5px; max-width: 320px; width: 100%;" data-bs-toggle="modal" data-bs-target="#rechargeModal">
                     <i class="fa-solid fa-plus me-2"></i>Recharge Wallet
                 </button>
             <?php else: ?>
-                <button type="button" class="btn btn-secondary w-100 py-3 text-uppercase fw-bold disabled" style="border-radius: 12px; letter-spacing: 0.5px;" disabled>
+                <button type="button" class="btn btn-secondary py-3 text-uppercase fw-bold disabled mx-auto d-block" style="border-radius: 12px; letter-spacing: 0.5px; max-width: 320px; width: 100%;" disabled>
                     <i class="fa-solid fa-ban me-2"></i>Recharge Disabled
                 </button>
             <?php endif; ?>
@@ -80,16 +120,16 @@ $recharge_records = $recharges_stmt->fetchAll();
     </div>
 
     <!-- Ledger & Recharge History Panel -->
-    <div class="col-lg-8">
-        <div class="glass-card p-4 border border-secondary border-opacity-20" style="border-radius: 20px;">
+    <div class="col-12">
+        <div class="glass-card p-4" style="border-radius: 20px; border: 1px solid var(--border-glass);">
             <ul class="nav nav-pills mb-4 gap-2" id="walletTab" role="tablist">
                 <li class="nav-item" role="presentation">
-                    <button class="btn btn-secondary-glass active px-4 py-2 border-0 text-white" id="ledger-tab" data-bs-toggle="tab" data-bs-target="#ledger-pane" type="button" role="tab">
+                    <button class="btn wallet-tab-btn active px-4 py-2" id="ledger-tab" data-bs-toggle="tab" data-bs-target="#ledger-pane" type="button" role="tab">
                         <i class="fa-solid fa-list-check me-2"></i>Account Ledger
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="btn btn-secondary-glass px-4 py-2 border-0 text-white" id="recharges-tab" data-bs-toggle="tab" data-bs-target="#recharges-pane" type="button" role="tab">
+                    <button class="btn wallet-tab-btn px-4 py-2" id="recharges-tab" data-bs-toggle="tab" data-bs-target="#recharges-pane" type="button" role="tab">
                         <i class="fa-solid fa-receipt me-2"></i>Recharge History
                     </button>
                 </li>
@@ -99,7 +139,7 @@ $recharge_records = $recharges_stmt->fetchAll();
                 <!-- Ledger Pane -->
                 <div class="tab-pane fade show active" id="ledger-pane" role="tabpanel" tabindex="0">
                     <div class="table-responsive">
-                        <table id="ledgerTable" class="table table-swift table-hover align-middle w-100">
+                        <table id="ledgerTable" class="table table-swift table-hover align-middle text-nowrap" style="width: 100%; min-width: 700px;">
                             <thead>
                                 <tr>
                                     <th>Date</th>
@@ -119,12 +159,12 @@ $recharge_records = $recharges_stmt->fetchAll();
                                             $badge_class = 'bg-secondary';
                                             $tx_type = $tx['transaction_type'];
                                             if ($tx_type === 'recharge' || $tx_type === 'refund' || $tx_type === 'admin_credit') {
-                                                $badge_class = 'bg-success bg-opacity-10 text-success border border-success border-opacity-20';
+                                                $badge_style = 'background: rgba(25, 135, 84, 0.12); color: #198754; border: 1px solid rgba(25, 135, 84, 0.25);';
                                             } else {
-                                                $badge_class = 'bg-danger bg-opacity-10 text-danger border border-danger border-opacity-20';
+                                                $badge_style = 'background: rgba(220, 53, 69, 0.12); color: #dc3545; border: 1px solid rgba(220, 53, 69, 0.25);';
                                             }
                                             ?>
-                                            <span class="badge <?= $badge_class ?> text-capitalize"><?= str_replace('_', ' ', $tx_type) ?></span>
+                                            <span class="badge text-capitalize px-3 py-2" style="<?= $badge_style ?> font-size: 0.8rem; font-weight: 600; border-radius: 30px;"><?= str_replace('_', ' ', $tx_type) ?></span>
                                         </td>
                                         <td class="fw-bold <?= ($tx_type === 'recharge' || $tx_type === 'refund' || $tx_type === 'admin_credit') ? 'text-success' : 'text-danger' ?>">
                                             <?= ($tx_type === 'recharge' || $tx_type === 'refund' || $tx_type === 'admin_credit') ? '+' : '-' ?>₹<?= number_format($tx['amount'], 2) ?>
@@ -142,7 +182,7 @@ $recharge_records = $recharges_stmt->fetchAll();
                 <!-- Recharges Pane -->
                 <div class="tab-pane fade" id="recharges-pane" role="tabpanel" tabindex="0">
                     <div class="table-responsive">
-                        <table id="rechargesTable" class="table table-swift table-hover align-middle w-100">
+                        <table id="rechargesTable" class="table table-swift table-hover align-middle text-nowrap" style="width: 100%; min-width: 700px;">
                             <thead>
                                 <tr>
                                     <th>Date</th>
@@ -161,13 +201,12 @@ $recharge_records = $recharges_stmt->fetchAll();
                                         <td class="font-monospace small text-secondary"><?= htmlspecialchars($rec['razorpay_order_id']) ?></td>
                                         <td>
                                             <?php if ($rec['status'] === 'success'): ?>
-                                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-20">Success</span>
+                                                <span class="badge px-3 py-2 text-capitalize" style="background: rgba(25, 135, 84, 0.12); color: #198754; border: 1px solid rgba(25, 135, 84, 0.25); font-size: 0.8rem; font-weight: 600; border-radius: 30px;">Success</span>
                                             <?php else: ?>
-                                                <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-20"><?= htmlspecialchars($rec['status']) ?></span>
+                                                <span class="badge px-3 py-2 text-capitalize" style="background: rgba(255, 193, 7, 0.12); color: #ffc107; border: 1px solid rgba(255, 193, 7, 0.25); font-size: 0.8rem; font-weight: 600; border-radius: 30px;"><?= htmlspecialchars($rec['status']) ?></span>
                                             <?php endif; ?>
                                         </td>
                                     </tr>
-                                <?php endphp; ?>
                                 <?php endforeach; ?>
                             </tbody>
                         </table>
@@ -183,7 +222,7 @@ $recharge_records = $recharges_stmt->fetchAll();
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content glass-card border-secondary text-white shadow-2xl" style="border-radius: 20px; background: #121829;">
             <div class="modal-header border-secondary p-4">
-                <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-plus text-indigo me-2"></i>Recharge Wallet Balance</h5>
+                <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-plus text-success me-2"></i>Recharge Wallet Balance</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4">
@@ -197,7 +236,7 @@ $recharge_records = $recharges_stmt->fetchAll();
                         </div>
                     </div>
                     <div class="d-grid">
-                        <button type="submit" class="btn btn-indigo py-3 fw-bold text-uppercase" style="border-radius: 12px;">Initiate Razorpay Payment</button>
+                        <button type="submit" class="btn btn-primary-gradient py-3 fw-bold text-uppercase" style="border-radius: 12px;">Initiate Razorpay Payment</button>
                     </div>
                 </form>
             </div>
@@ -268,6 +307,13 @@ $(document).ready(function() {
             searchPlaceholder: "Search recharges..."
         }
     });
+
+    // Auto-open recharge modal if parameter recharge=1 is present
+    if (new URLSearchParams(window.location.search).get('recharge') === '1') {
+        $('#rechargeModal').modal('show');
+        // Clean URL parameter so refresh doesn't pop it up repeatedly
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
 
     var selectedRechargeAmount = 0;
 

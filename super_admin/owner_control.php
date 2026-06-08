@@ -2,6 +2,9 @@
 /**
  * Safe Owner Emergency Control Panel
  */
+require_once __DIR__ . '/../includes/auth_middleware.php';
+require_role('super_admin');
+
 $page_title = __('owner_emergency_control_panel_title', "Owner Emergency Controls");
 require_once __DIR__ . '/header.php';
 

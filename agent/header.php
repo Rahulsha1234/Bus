@@ -31,6 +31,18 @@ try {
     $parent_admin_id = 0;
 }
 
+// Fetch operator's username
+$operator_username = 'System';
+if ($parent_admin_id > 0) {
+    try {
+        $op_stmt = $pdo->prepare("SELECT username FROM users WHERE id = ? LIMIT 1");
+        $op_stmt->execute([$parent_admin_id]);
+        $operator_username = $op_stmt->fetchColumn() ?: 'System';
+    } catch (Exception $e) {
+        $operator_username = 'System';
+    }
+}
+
 // Fetch wallet balance
 try {
     $wallet_stmt = $pdo->prepare("SELECT balance FROM agent_wallets WHERE agent_id = ?");
@@ -309,7 +321,8 @@ try {
                         </ul>
                     </div>
 
-                    <span class="small text-secondary me-3"><i class="fa-solid fa-wallet text-info me-2"></i>₹<?= number_format($header_wallet_balance, 2) ?></span>
-                    <span class="small text-secondary"><i class="fa-solid fa-briefcase text-indigo me-2"></i><?= htmlspecialchars($agent_profile['agency_name'] ?? $user['username']) ?></span>
+                    <a href="<?= BASE_URL ?>/agent/wallet_history.php?recharge=1" class="text-decoration-none small text-secondary me-3" style="cursor: pointer; transition: all 0.2s;" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1"><i class="fa-solid fa-wallet text-info me-2"></i>₹<?= number_format($header_wallet_balance, 2) ?></a>
+                    <span class="small text-secondary me-3"><i class="fa-solid fa-briefcase text-indigo me-2"></i><?= htmlspecialchars($agent_profile['agency_name'] ?? $user['username']) ?></span>
+                    <span class="small text-secondary"><i class="fa-solid fa-user-tie text-success me-2"></i>Operator: <strong><?= htmlspecialchars($operator_username) ?></strong></span>
                 </div>
             </div>

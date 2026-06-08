@@ -7,14 +7,15 @@ require_role('super_admin');
 
 $page_title = "Global Agent Wallets & Audits";
 $super_admin_id = $_SESSION['user_id'];
-$success_msg = '';
-$error_msg = '';
+$success_msg = $_SESSION['success_msg'] ?? '';
+$error_msg = $_SESSION['error_msg'] ?? '';
+unset($_SESSION['success_msg'], $_SESSION['error_msg']);
 
 // Handle Freeze / Unfreeze actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $csrf = $_POST['csrf_token'] ?? '';
     if (!verify_csrf_token($csrf)) {
-        $error_msg = "Security token validation failed. Please refresh.";
+        $_SESSION['error_msg'] = "Security token validation failed. Please refresh.";
     } else {
         $action = $_POST['action'];
         $wallet_id = intval($_POST['wallet_id'] ?? 0);
@@ -27,13 +28,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $up_stmt->execute([$wallet_id]);
                 
                 log_activity($pdo, $super_admin_id, 'SUPER_ADMIN_WALLET_FREEZE', "Super Admin froze wallet ID $wallet_id");
-                $success_msg = "Successfully froze agent wallet.";
+                $_SESSION['success_msg'] = "Successfully froze agent wallet.";
             } elseif ($action === 'unfreeze') {
                 $up_stmt = $pdo->prepare("UPDATE agent_wallets SET status = 'active' WHERE id = ?");
                 $up_stmt->execute([$wallet_id]);
                 
                 log_activity($pdo, $super_admin_id, 'SUPER_ADMIN_WALLET_UNFREEZE', "Super Admin unfroze wallet ID $wallet_id");
-                $success_msg = "Successfully unfroze agent wallet.";
+                $_SESSION['success_msg'] = "Successfully unfroze agent wallet.";
             }
 
             $pdo->commit();
@@ -41,9 +42,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
             }
-            $error_msg = "Failed to update wallet: " . $e->getMessage();
+            $_SESSION['error_msg'] = "Failed to update wallet: " . $e->getMessage();
         }
     }
+
+    if (!headers_sent()) {
+        header("Location: " . $_SERVER['PHP_SELF']);
+    } else {
+        echo "<script>window.location.replace('" . $_SERVER['PHP_SELF'] . "');</script>";
+    }
+    exit();
 }
 
 // Fetch all wallets in the system
@@ -177,7 +185,7 @@ require_once __DIR__ . '/header.php';
         <!-- Global Wallets Pane -->
         <div class="tab-pane fade show active" id="all-wallets-pane" role="tabpanel">
             <div class="table-responsive">
-                <table class="table table-swift table-dark table-hover align-middle datatable-swift">
+                <table id="superWalletsTable" class="table table-swift table-dark table-hover align-middle text-nowrap" style="width: 100%; min-width: 800px;">
                     <thead>
                         <tr>
                             <th>Wallet ID</th>
@@ -202,9 +210,9 @@ require_once __DIR__ . '/header.php';
                                 <td class="fw-bold fs-5 text-indigo">₹<?= number_format($w['balance'], 2) ?></td>
                                 <td>
                                     <?php if ($w['status'] === 'frozen'): ?>
-                                        <span class="badge bg-danger bg-opacity-15 text-danger border border-danger border-opacity-25">Frozen</span>
+                                        <span class="badge px-3 py-2" style="background: rgba(220, 53, 69, 0.15); color: #dc3545; border: 1px solid rgba(220, 53, 69, 0.25); font-weight: 600; font-size: 0.8rem; border-radius: 30px;">Frozen</span>
                                     <?php else: ?>
-                                        <span class="badge bg-success bg-opacity-15 text-success border border-success border-opacity-25">Active</span>
+                                        <span class="badge px-3 py-2" style="background: rgba(25, 135, 84, 0.15); color: #198754; border: 1px solid rgba(25, 135, 84, 0.25); font-weight: 600; font-size: 0.8rem; border-radius: 30px;">Active</span>
                                     <?php endif; ?>
                                 </td>
                                 <td class="text-end">
@@ -234,7 +242,7 @@ require_once __DIR__ . '/header.php';
         <!-- Recharges Report Pane -->
         <div class="tab-pane fade" id="all-recharges-pane" role="tabpanel">
             <div class="table-responsive">
-                <table class="table table-swift table-dark table-hover align-middle datatable-swift">
+                <table id="superRechargesTable" class="table table-swift table-dark table-hover align-middle text-nowrap" style="width: 100%; min-width: 900px;">
                     <thead>
                         <tr>
                             <th>Timestamp</th>
@@ -273,7 +281,7 @@ require_once __DIR__ . '/header.php';
         <!-- Audit Log Ledger Pane -->
         <div class="tab-pane fade" id="all-ledger-pane" role="tabpanel">
             <div class="table-responsive">
-                <table class="table table-swift table-dark table-hover align-middle datatable-swift">
+                <table id="superLedgerTable" class="table table-swift table-dark table-hover align-middle text-nowrap" style="width: 100%; min-width: 1000px;">
                     <thead>
                         <tr>
                             <th>Timestamp</th>
@@ -327,7 +335,23 @@ require_once __DIR__ . '/header.php';
 <script src="https://cdn.datatables.net/1.13.5/js/dataTables.bootstrap5.min.js"></script>
 <script>
 $(document).ready(function() {
-    $('.datatable-swift').DataTable({
+    $('#superWalletsTable').DataTable({
+        order: [[0, 'asc']],
+        pageLength: 10,
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search global records..."
+        }
+    });
+    $('#superRechargesTable').DataTable({
+        order: [[0, 'desc']],
+        pageLength: 10,
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search recharges..."
+        }
+    });
+    $('#superLedgerTable').DataTable({
         order: [[0, 'desc']],
         pageLength: 10,
         language: {
