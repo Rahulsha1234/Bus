@@ -5,7 +5,7 @@
  */
 require_once __DIR__ . '/includes/auth_middleware.php';
 
-$page_title = "Book Bus Tickets";
+$page_title = __('nav_home', 'Book Bus Tickets');
 
 // Fetch unique sources from active routes only
 try {
@@ -72,21 +72,19 @@ require_once __DIR__ . '/includes/header.php';
         style="height: 100%; min-height: 600px; padding-top: 5rem;">
         <h1 class="display-4 fw-bold text-white-fixed mb-3"
             style="line-height: 1.1; font-family: 'Plus Jakarta Sans', sans-serif; letter-spacing: -1px; max-width: 800px; color: #ffffff !important;">
-            Travel Across India<br><span
-                style="background: linear-gradient(135deg, #2ecc71, #198754); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Comfortably
-                & Reliably</span>
+            <?= __('hero_title_1', 'Travel Across India') ?><br><span
+                style="background: linear-gradient(135deg, #2ecc71, #198754); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"><?= __('hero_title_2', 'Comfortably & Reliably') ?></span>
         </h1>
         <p class="lead text-white-fixed mb-4"
             style="max-width: 600px; font-weight: 400; opacity: 0.9; color: rgba(255, 255, 255, 0.9) !important;">
-            Book buses, choose seats, track bookings, and travel with confidence.
+            <?= __('hero_subtitle', 'Book buses, choose seats, track bookings, and travel with confidence.') ?>
         </p>
 
         <div class="d-flex flex-wrap gap-3 mb-3 justify-content-center">
             <a href="#search-panel" class="btn btn-primary-gradient px-4 py-3 text-uppercase fw-bold text-white-fixed"
-                style="font-size: 0.9rem; color: #ffffff !important;">Search Buses</a>
+                style="font-size: 0.9rem; color: #ffffff !important;"><?= __('hero_btn_search', 'Search Buses') ?></a>
             <a href="#trust-section" class="btn btn-secondary-glass px-4 py-3 text-uppercase fw-bold"
-                style="font-size: 0.9rem; background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); color: #ffffff !important; border-color: rgba(255,255,255,0.4) !important;">View
-                Features</a>
+                style="font-size: 0.9rem; background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); color: #ffffff !important; border-color: rgba(255,255,255,0.4) !important;"><?= __('hero_btn_features', 'View Features') ?></a>
         </div>
     </div>
 </div>
@@ -99,18 +97,18 @@ require_once __DIR__ . '/includes/header.php';
             style="background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(10px);">
             <h5 class="fw-bold mb-3 text-dark d-flex align-items-center gap-2"
                 style="font-family: 'Plus Jakarta Sans', sans-serif;">
-                <i class="fa-solid fa-magnifying-glass text-success"></i> Find Your Destination
+                <i class="fa-solid fa-magnifying-glass text-success"></i> <?= __('find_destination', 'Find Your Destination') ?>
             </h5>
             <form action="<?= BASE_URL ?>/search.php" method="GET" class="row g-3 align-items-end">
                 <!-- Source dropdown -->
                 <div class="col-md-3">
-                    <label for="source_search" class="form-label text-secondary small fw-bold">Leaving From</label>
+                    <label for="source_search" class="form-label text-secondary small fw-bold"><?= __('leaving_from', 'Leaving From') ?></label>
                     <div class="input-group">
                         <span class="input-group-text bg-light border-end-0 text-secondary"
                             style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-location-dot"></i></span>
                         <div class="autocomplete-wrapper">
                             <input type="text" id="source_search" class="form-control border-start-0 bg-light"
-                                style="border-radius: 0 12px 12px 0; padding: 0.75rem;" placeholder="Select Origin..." autocomplete="off" required>
+                                style="border-radius: 0 12px 12px 0; padding: 0.75rem;" placeholder="<?= __('select_origin', 'Select Origin...') ?>" autocomplete="off" required>
                             <input type="hidden" name="source" id="source" value="">
                         </div>
                     </div>
@@ -126,25 +124,25 @@ require_once __DIR__ . '/includes/header.php';
 
                 <!-- Destination dropdown -->
                 <div class="col-md-3">
-                    <label for="destination_search" class="form-label text-secondary small fw-bold">Going To</label>
+                    <label for="destination_search" class="form-label text-secondary small fw-bold"><?= __('going_to', 'Going To') ?></label>
                     <div class="input-group">
                         <span class="input-group-text bg-light border-end-0 text-secondary"
                             style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-location-crosshairs"></i></span>
                         <div class="autocomplete-wrapper">
                             <input type="text" id="destination_search" class="form-control border-start-0 bg-light"
-                                style="border-radius: 0 12px 12px 0; padding: 0.75rem;" placeholder="Select Destination..." autocomplete="off" required disabled>
+                                style="border-radius: 0 12px 12px 0; padding: 0.75rem;" placeholder="<?= __('select_destination', 'Select Destination...') ?>" autocomplete="off" required disabled>
                             <input type="hidden" name="destination" id="destination" value="">
                         </div>
                     </div>
                     <div id="dest-loading" class="small text-muted mt-1" style="display:none;"><i
-                            class="fa-solid fa-spinner fa-spin me-1"></i>Loading...</div>
+                            class="fa-solid fa-spinner fa-spin me-1"></i><?= __('loading', 'Loading...') ?></div>
                     <div id="dest-empty" class="small text-warning mt-1" style="display:none;"><i
-                            class="fa-solid fa-triangle-exclamation me-1"></i>No routes.</div>
+                            class="fa-solid fa-triangle-exclamation me-1"></i><?= __('no_routes', 'No routes.') ?></div>
                 </div>
 
                 <!-- Date Picker -->
                 <div class="col-md-3">
-                    <label for="date" class="form-label text-secondary small fw-bold">Travel Date</label>
+                    <label for="date" class="form-label text-secondary small fw-bold"><?= __('travel_date', 'Travel Date') ?></label>
                     <div class="input-group">
                         <span class="input-group-text bg-light border-end-0 text-secondary"
                             style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-calendar-days"></i></span>
@@ -159,7 +157,7 @@ require_once __DIR__ . '/includes/header.php';
                     <div class="d-grid">
                         <button type="submit"
                             class="btn btn-primary-gradient py-3 text-uppercase fw-bold text-white-fixed"
-                            style="letter-spacing: 0.5px; color: #ffffff !important;">Search</button>
+                            style="letter-spacing: 0.5px; color: #ffffff !important;"><?= __('btn_search', 'Search') ?></button>
                     </div>
                 </div>
             </form>
@@ -185,9 +183,9 @@ require_once __DIR__ . '/includes/header.php';
 
     <div class="container position-relative z-1">
         <div class="text-center mb-5">
-            <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill uppercase tracking-wider mb-2" style="font-size: 0.8rem; font-weight: 700; border: 1px solid rgba(46, 204, 113, 0.2);">SMART VOYAGES</span>
-            <h2 class="fw-bold display-5 text-white" style="font-family: 'Plus Jakarta Sans', sans-serif; letter-spacing: -1px; color: #ffffff !important;">Revolutionizing Road Travel</h2>
-            <p class="text-secondary mx-auto" style="max-width: 600px; color: rgba(255,255,255,0.6) !important;">Experience high-end amenities, robust security infrastructure, and absolute booking flexibility.</p>
+            <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill uppercase tracking-wider mb-2" style="font-size: 0.8rem; font-weight: 700; border: 1px solid rgba(46, 204, 113, 0.2);"><?= __('smart_voyages', 'SMART VOYAGES') ?></span>
+            <h2 class="fw-bold display-5 text-white" style="font-family: 'Plus Jakarta Sans', sans-serif; letter-spacing: -1px; color: #ffffff !important;"><?= __('rev_road_travel', 'Revolutionizing Road Travel') ?></h2>
+            <p class="text-secondary mx-auto" style="max-width: 600px; color: rgba(255,255,255,0.6) !important;"><?= __('rev_subtitle', 'Experience high-end amenities, robust security infrastructure, and absolute booking flexibility.') ?></p>
         </div>
 
         <div class="row g-4">
@@ -199,11 +197,11 @@ require_once __DIR__ . '/includes/header.php';
                         <div class="mb-4 d-inline-flex align-items-center justify-content-center rounded-3" style="width: 50px; height: 50px; background: rgba(46, 204, 113, 0.1); border: 1px solid rgba(46, 204, 113, 0.25);">
                             <i class="fa-solid fa-chair fs-4 text-success"></i>
                         </div>
-                        <h4 class="fw-bold text-white mb-2" style="font-family: 'Plus Jakarta Sans', sans-serif; color: #ffffff !important;">Visual Interactive Seating</h4>
-                        <p class="text-secondary small mb-0" style="color: rgba(255,255,255,0.55) !important; line-height: 1.6;">Our state-of-the-art layout builder provides live grid updates. Select berths, upper/lower sleeper decks, and window alignments in a premium visual interface.</p>
+                        <h4 class="fw-bold text-white mb-2" style="font-family: 'Plus Jakarta Sans', sans-serif; color: #ffffff !important;"><?= __('feat_seating_title', 'Visual Interactive Seating') ?></h4>
+                        <p class="text-secondary small mb-0" style="color: rgba(255,255,255,0.55) !important; line-height: 1.6;"><?= __('feat_seating_desc', 'Our state-of-the-art layout builder provides live grid updates. Select berths, upper/lower sleeper decks, and window alignments in a premium visual interface.') ?></p>
                     </div>
                     <div class="mt-4 pt-3 border-top border-secondary border-opacity-10 d-flex justify-content-between align-items-center">
-                        <span class="text-success small fw-bold font-monospace text-uppercase" style="letter-spacing: 1px;">Live Seating Engine</span>
+                        <span class="text-success small fw-bold font-monospace text-uppercase" style="letter-spacing: 1px;"><?= __('feat_seating_badge', 'Live Seating Engine') ?></span>
                         <i class="fa-solid fa-arrow-trend-up text-success"></i>
                     </div>
                 </div>
@@ -217,11 +215,11 @@ require_once __DIR__ . '/includes/header.php';
                         <div class="mb-4 d-inline-flex align-items-center justify-content-center rounded-3" style="width: 50px; height: 50px; background: rgba(46, 204, 113, 0.1); border: 1px solid rgba(46, 204, 113, 0.25);">
                             <i class="fa-solid fa-shield-halved fs-4 text-success"></i>
                         </div>
-                        <h4 class="fw-bold text-white mb-2" style="font-family: 'Plus Jakarta Sans', sans-serif; color: #ffffff !important;">Encrypted Safety Standards</h4>
-                        <p class="text-secondary small mb-0" style="color: rgba(255,255,255,0.55) !important; line-height: 1.6;">Every booking is processed through secure payment gateways with dynamic hash verification. Advanced session controls safeguard active partner logs.</p>
+                        <h4 class="fw-bold text-white mb-2" style="font-family: 'Plus Jakarta Sans', sans-serif; color: #ffffff !important;"><?= __('feat_security_title', 'Encrypted Safety Standards') ?></h4>
+                        <p class="text-secondary small mb-0" style="color: rgba(255,255,255,0.55) !important; line-height: 1.6;"><?= __('feat_security_desc', 'Every booking is processed through secure payment gateways with dynamic hash verification. Advanced session controls safeguard active partner logs.') ?></p>
                     </div>
                     <div class="mt-4 pt-3 border-top border-secondary border-opacity-10 d-flex justify-content-between align-items-center">
-                        <span class="text-success small fw-bold font-monospace text-uppercase" style="letter-spacing: 1px;">SSL Secure Desk</span>
+                        <span class="text-success small fw-bold font-monospace text-uppercase" style="letter-spacing: 1px;"><?= __('feat_security_badge', 'SSL Secure Desk') ?></span>
                         <i class="fa-solid fa-lock text-success"></i>
                     </div>
                 </div>
@@ -235,11 +233,11 @@ require_once __DIR__ . '/includes/header.php';
                         <div class="mb-4 d-inline-flex align-items-center justify-content-center rounded-3" style="width: 50px; height: 50px; background: rgba(46, 204, 113, 0.1); border: 1px solid rgba(46, 204, 113, 0.25);">
                             <i class="fa-solid fa-clock-rotate-left fs-4 text-success"></i>
                         </div>
-                        <h4 class="fw-bold text-white mb-2" style="font-family: 'Plus Jakarta Sans', sans-serif; color: #ffffff !important;">Instant Cancel & Auto-Refund</h4>
-                        <p class="text-secondary small mb-0" style="color: rgba(255,255,255,0.55) !important; line-height: 1.6;">Change of plans? Cancel tickets with a single click. Our automated settlement system routes refunds instantly based on clean cancellation structures.</p>
+                        <h4 class="fw-bold text-white mb-2" style="font-family: 'Plus Jakarta Sans', sans-serif; color: #ffffff !important;"><?= __('feat_refund_title', 'Instant Cancel & Auto-Refund') ?></h4>
+                        <p class="text-secondary small mb-0" style="color: rgba(255,255,255,0.55) !important; line-height: 1.6;"><?= __('feat_refund_desc', 'Change of plans? Cancel tickets with a single click. Our automated settlement system routes refunds instantly based on clean cancellation structures.') ?></p>
                     </div>
                     <div class="mt-4 pt-3 border-top border-secondary border-opacity-10 d-flex justify-content-between align-items-center">
-                        <span class="text-success small fw-bold font-monospace text-uppercase" style="letter-spacing: 1px;">Flex Cancellation</span>
+                        <span class="text-success small fw-bold font-monospace text-uppercase" style="letter-spacing: 1px;"><?= __('feat_refund_badge', 'Flex Cancellation') ?></span>
                         <i class="fa-solid fa-rotate-left text-success"></i>
                     </div>
                 </div>
@@ -400,16 +398,14 @@ require_once __DIR__ . '/includes/header.php';
             <div class="text-center mb-5">
                 <span
                     class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill uppercase tracking-wider mb-2"
-                    style="font-size: 0.8rem; font-weight: 700;">Explore India</span>
-                <h2 class="fw-bold display-6" style="font-family: 'Plus Jakarta Sans', sans-serif;">Popular Routes &
-                    Fares</h2>
-                <p class="text-secondary mx-auto" style="max-width: 600px;">Book tickets for our most frequent and
-                    highly-rated routes at unbeatable prices.</p>
+                    style="font-size: 0.8rem; font-weight: 700;"><?= __('explore_india', 'Explore India') ?></span>
+                <h2 class="fw-bold display-6" style="font-family: 'Plus Jakarta Sans', sans-serif;"><?= __('popular_routes', 'Popular Routes & Fares') ?></h2>
+                <p class="text-secondary mx-auto" style="max-width: 600px;"><?= __('popular_subtitle', 'Book tickets for our most frequent and highly-rated routes at unbeatable prices.') ?></p>
             </div>
             <!-- Dynamic Carousel of Active Schedules -->
             <?php if (empty($active_trips)): ?>
                 <div class="text-center py-5">
-                    <p class="text-secondary">No active schedules found for upcoming dates.</p>
+                    <p class="text-secondary"><?= __('no_schedules', 'No active schedules found for upcoming dates.') ?></p>
                 </div>
             <?php else: ?>
                 <div id="popularRoutesCarousel" class="carousel slide" data-bs-ride="carousel">
@@ -441,7 +437,7 @@ require_once __DIR__ . '/includes/header.php';
                                                 <div>
                                                     <div class="d-flex justify-content-between align-items-center mb-3">
                                                         <span class="badge bg-success bg-opacity-10 text-success px-3 py-1.5 rounded-pill" style="font-size: 0.75rem; font-weight: 600;"><?= $badge ?></span>
-                                                        <span class="fw-bold text-success text-monospace" style="font-size: 1.15rem;">₹<?= number_format(floatval($trip['base_fare']) > 0 ? floatval($trip['base_fare']) : 399, 0) ?> <span class="text-secondary" style="font-size: 0.75rem; font-weight: normal;">onwards</span></span>
+                                                        <span class="fw-bold text-success text-monospace" style="font-size: 1.15rem;">₹<?= number_format(floatval($trip['base_fare']) > 0 ? floatval($trip['base_fare']) : 399, 0) ?> <span class="text-secondary" style="font-size: 0.75rem; font-weight: normal;"><?= __('onwards', 'onwards') ?></span></span>
                                                     </div>
 
                                                     <h5 class="fw-bold mb-2 text-main d-flex align-items-center gap-2" style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1.15rem;">
@@ -453,19 +449,19 @@ require_once __DIR__ . '/includes/header.php';
                                                     <div class="text-secondary small mb-3">
                                                         <div class="d-flex align-items-center mb-1.5">
                                                             <i class="fa-regular fa-clock text-success me-2"></i>
-                                                            <span>Approx. <?= htmlspecialchars($trip['duration'] ?: '6h') ?></span>
+                                                            <span><?= __('approx', 'Approx.') ?> <?= htmlspecialchars($trip['duration'] ?: '6h') ?></span>
                                                             <span class="mx-2 text-muted">•</span>
                                                             <span><?= htmlspecialchars($trip['bus_type']) ?></span>
                                                         </div>
                                                         <div class="d-flex align-items-center">
                                                             <i class="fa-regular fa-calendar text-success me-2"></i>
-                                                            <span>Departs: <strong><?= $dep_date ?></strong> at <strong><?= $dep_time ?></strong></span>
+                                                            <span><?= __('departs', 'Departs:') ?> <strong><?= $dep_date ?></strong> <?= __('at', 'at') ?> <strong><?= $dep_time ?></strong></span>
                                                         </div>
                                                     </div>
                                                 </div>
 
                                                 <a href="<?= BASE_URL ?>/search.php?source=<?= urlencode($trip['source']) ?>&destination=<?= urlencode($trip['destination']) ?>&date=<?= date('Y-m-d', strtotime($trip['departure_time'])) ?>"
-                                                    class="btn btn-outline-success btn-sm w-100 rounded-3 py-2 fw-bold text-uppercase mt-2 transition-all">Check Seats</a>
+                                                    class="btn btn-outline-success btn-sm w-100 rounded-3 py-2 fw-bold text-uppercase mt-2 transition-all"><?= __('check_seats', 'Check Seats') ?></a>
                                             </div>
                                         </div>
                                     <?php endforeach; ?>
@@ -480,8 +476,8 @@ require_once __DIR__ . '/includes/header.php';
         <!-- Testimonials Section -->
         <div class="py-5 my-5 reveal-on-scroll rounded-5 p-5 border shadow-sm" style="background: var(--card-bg); border-color: var(--border-glass) !important;">
             <div class="text-center mb-5">
-                <h2 class="fw-bold" style="font-family: 'Plus Jakarta Sans', sans-serif; color: var(--text-primary);">What Our Travelers Say</h2>
-                <p class="text-secondary" style="color: var(--text-secondary) !important;">Verified reviews from passengers who travel with SwiftBus regularly.</p>
+                <h2 class="fw-bold" style="font-family: 'Plus Jakarta Sans', sans-serif; color: var(--text-primary);"><?= __('what_travelers_say', 'What Our Travelers Say') ?></h2>
+                <p class="text-secondary" style="color: var(--text-secondary) !important;"><?= __('testimonials_subtitle', 'Verified reviews from passengers who travel with SwiftBus regularly.') ?></p>
             </div>
             <div class="row g-4">
                 <!-- Review 1 -->
@@ -492,14 +488,13 @@ require_once __DIR__ . '/includes/header.php';
                                 class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i
                                 class="fa-solid fa-star"></i>
                         </div>
-                        <p class="mb-3 italic" style="color: var(--text-primary); opacity: 0.9;">"Extremely clean buses and very polite drivers. The online seat
-                            selection matched the bus layout perfectly. Will book again!"</p>
+                        <p class="mb-3 italic" style="color: var(--text-primary); opacity: 0.9;"><?= __('passenger_1_text', '"Extremely clean buses and very polite drivers. The online seat selection matched the bus layout perfectly. Will book again!"') ?></p>
                         <div class="d-flex align-items-center gap-3">
                             <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center fw-bold"
                                 style="width: 42px; height: 42px;">AS</div>
                             <div>
-                                <h6 class="fw-bold mb-0" style="color: var(--text-primary);">Aarav Sharma</h6>
-                                <span class="text-secondary small" style="color: var(--text-secondary) !important;">Verified Passenger</span>
+                                <h6 class="fw-bold mb-0" style="color: var(--text-primary);"><?= __('passenger_1_name', 'Aarav Sharma') ?></h6>
+                                <span class="text-secondary small" style="color: var(--text-secondary) !important;"><?= __('passenger_1_role', 'Verified Passenger') ?></span>
                             </div>
                         </div>
                     </div>
@@ -512,14 +507,13 @@ require_once __DIR__ . '/includes/header.php';
                                 class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i
                                 class="fa-solid fa-star"></i>
                         </div>
-                        <p class="mb-3 italic" style="color: var(--text-primary); opacity: 0.9;">"The live notification feature kept me updated. Ticket refund
-                            and cancellation is super simple compared to other portals."</p>
+                        <p class="mb-3 italic" style="color: var(--text-primary); opacity: 0.9;"><?= __('passenger_2_text', '"The live notification feature kept me updated. Ticket refund and cancellation is super simple compared to other portals."') ?></p>
                         <div class="d-flex align-items-center gap-3">
                             <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center fw-bold"
                                 style="width: 42px; height: 42px;">RP</div>
                             <div>
-                                <h6 class="fw-bold mb-0" style="color: var(--text-primary);">Riya Patel</h6>
-                                <span class="text-secondary small" style="color: var(--text-secondary) !important;">Frequent Traveler</span>
+                                <h6 class="fw-bold mb-0" style="color: var(--text-primary);"><?= __('passenger_2_name', 'Riya Patel') ?></h6>
+                                <span class="text-secondary small" style="color: var(--text-secondary) !important;"><?= __('passenger_2_role', 'Frequent Traveler') ?></span>
                             </div>
                         </div>
                     </div>
@@ -530,9 +524,8 @@ require_once __DIR__ . '/includes/header.php';
         <!-- FAQ Accordion Section -->
         <div class="py-4 my-4 reveal-on-scroll">
             <div class="text-center mb-5">
-                <h2 class="fw-bold" style="font-family: 'Plus Jakarta Sans', sans-serif;">Frequently Asked Questions
-                </h2>
-                <p class="text-secondary">Have doubts? We've got answers to the most common queries.</p>
+                <h2 class="fw-bold" style="font-family: 'Plus Jakarta Sans', sans-serif;"><?= __('faq_title', 'Frequently Asked Questions') ?></h2>
+                <p class="text-secondary"><?= __('faq_subtitle', 'Have doubts? We\'ve got answers to the most common queries.') ?></p>
             </div>
             <div class="accordion accordion-flush mx-auto shadow-sm border rounded-4 overflow-hidden" id="faqAccordion"
                 style="max-width: 800px; background: var(--bg-card);">
@@ -542,15 +535,13 @@ require_once __DIR__ . '/includes/header.php';
                         <button class="accordion-button collapsed fw-bold text-main py-3"
                             style="background: transparent;" type="button" data-bs-toggle="collapse"
                             data-bs-target="#faq-collapseOne" aria-expanded="false" aria-controls="faq-collapseOne">
-                            How do I book tickets online?
+                            <?= __('faq_q1', 'How do I book tickets online?') ?>
                         </button>
                     </h2>
                     <div id="faq-collapseOne" class="accordion-collapse collapse" aria-labelledby="faq-headingOne"
                         data-bs-parent="#faqAccordion">
                         <div class="accordion-body text-secondary small">
-                            Simply enter your departure city, destination, and select your travel date on the homepage.
-                            Click search, select your preferred bus service, pick your seat, fill passenger details, and
-                            finish the booking.
+                            <?= __('faq_a1', 'Simply enter your departure city, destination, and select your travel date on the homepage. Click search, select your preferred bus service, pick your seat, fill passenger details, and finish the booking.') ?>
                         </div>
                     </div>
                 </div>
@@ -560,15 +551,13 @@ require_once __DIR__ . '/includes/header.php';
                         <button class="accordion-button collapsed fw-bold text-main py-3"
                             style="background: transparent;" type="button" data-bs-toggle="collapse"
                             data-bs-target="#faq-collapseTwo" aria-expanded="false" aria-controls="faq-collapseTwo">
-                            Can I cancel or reschedule my ticket?
+                            <?= __('faq_q2', 'Can I cancel or reschedule my ticket?') ?>
                         </button>
                     </h2>
                     <div id="faq-collapseTwo" class="accordion-collapse collapse" aria-labelledby="faq-headingTwo"
                         data-bs-parent="#faqAccordion">
                         <div class="accordion-body text-secondary small">
-                            Yes, you can cancel tickets easily through the 'My Bookings' section in your dashboard.
-                            Refund policies will apply depending on how many hours are left before the scheduled
-                            departure.
+                            <?= __('faq_a2', 'Yes, you can cancel tickets easily through the \'My Bookings\' section in your dashboard. Refund policies will apply depending on how many hours are left before the scheduled departure.') ?>
                         </div>
                     </div>
                 </div>
@@ -577,14 +566,13 @@ require_once __DIR__ . '/includes/header.php';
                         <button class="accordion-button collapsed fw-bold text-main py-3"
                             style="background: transparent;" type="button" data-bs-toggle="collapse"
                             data-bs-target="#faq-collapseThree" aria-expanded="false" aria-controls="faq-collapseThree">
-                            What are the payment methods accepted?
+                            <?= __('faq_q3', 'What are the payment methods accepted?') ?>
                         </button>
                     </h2>
                     <div id="faq-collapseThree" class="accordion-collapse collapse" aria-labelledby="faq-headingThree"
                         data-bs-parent="#faqAccordion">
                         <div class="accordion-body text-secondary small">
-                            We accept all major credit cards, debit cards, UPI payments, net banking, and secure digital
-                            wallets.
+                            <?= __('faq_a3', 'We accept all major credit cards, debit cards, UPI payments, net banking, and secure digital wallets.') ?>
                         </div>
                     </div>
                 </div>
@@ -599,9 +587,9 @@ require_once __DIR__ . '/includes/header.php';
         <div class="text-center mb-5">
             <span
                 class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill uppercase tracking-wider mb-2"
-                style="font-size: 0.8rem; font-weight: 700;">Our Premium Fleet</span>
-            <h2 class="fw-bold display-6" style="font-family: 'Plus Jakarta Sans', sans-serif;">Travel In Redefined Comfort</h2>
-            <p class="text-secondary mx-auto" style="max-width: 600px;">Explore the state-of-the-art features of our premium, safe, and highly maintained bus fleet.</p>
+                style="font-size: 0.8rem; font-weight: 700;"><?= __('premium_fleet', 'Our Premium Fleet') ?></span>
+            <h2 class="fw-bold display-6" style="font-family: 'Plus Jakarta Sans', sans-serif;"><?= __('fleet_title', 'Travel In Redefined Comfort') ?></h2>
+            <p class="text-secondary mx-auto" style="max-width: 600px;"><?= __('fleet_subtitle', 'Explore the state-of-the-art features of our premium, safe, and highly maintained bus fleet.') ?></p>
         </div>
         <div class="row g-4">
             <!-- Card 1 -->
@@ -613,17 +601,15 @@ require_once __DIR__ . '/includes/header.php';
                             class="w-100 h-100 object-fit-cover hover-zoom" alt="Scania Multi-Axle">
                         <span
                             class="position-absolute top-0 end-0 bg-success text-white px-3 py-1 rounded-bottom-start small m-3 fw-bold"
-                            style="border-bottom-left-radius: 12px; border-top-right-radius: 4px; z-index: 1;">Sleeper &
-                            Seater</span>
+                            style="border-bottom-left-radius: 12px; border-top-right-radius: 4px; z-index: 1;"><?= __('sleeper_seater', 'Sleeper & Seater') ?></span>
                     </div>
                     <div class="card-body p-4">
-                        <h4 class="fw-bold mb-2">Scania Multi-Axle Premium</h4>
-                        <p class="text-secondary small">Equipped with luxury reclining seats, USB ports at every seat,
-                            ambient lighting, and GPS tracking.</p>
+                        <h4 class="fw-bold mb-2"><?= __('fleet_1_name', 'Scania Multi-Axle Premium') ?></h4>
+                        <p class="text-secondary small"><?= __('fleet_1_desc', 'Equipped with luxury reclining seats, USB ports at every seat, ambient lighting, and GPS tracking.') ?></p>
                         <hr class="border-light opacity-50">
                         <div class="d-flex justify-content-between text-secondary small">
-                            <span><i class="fa-solid fa-snowflake text-info me-1"></i> Full AC</span>
-                            <span><i class="fa-solid fa-wifi text-warning me-1"></i> Free Wi-Fi</span>
+                            <span><i class="fa-solid fa-snowflake text-info me-1"></i> <?= __('full_ac', 'Full AC') ?></span>
+                            <span><i class="fa-solid fa-wifi text-warning me-1"></i> <?= __('free_wifi', 'Free Wi-Fi') ?></span>
                         </div>
                     </div>
                 </div>
@@ -637,17 +623,15 @@ require_once __DIR__ . '/includes/header.php';
                             class="w-100 h-100 object-fit-cover hover-zoom" alt="Volvo AC Sleeper">
                         <span
                             class="position-absolute top-0 end-0 bg-success text-white px-3 py-1 rounded-bottom-start small m-3 fw-bold"
-                            style="border-bottom-left-radius: 12px; border-top-right-radius: 4px; z-index: 1;">Premium
-                            Bunks</span>
+                            style="border-bottom-left-radius: 12px; border-top-right-radius: 4px; z-index: 1;"><?= __('premium_bunks', 'Premium Bunks') ?></span>
                     </div>
                     <div class="card-body p-4">
-                        <h4 class="fw-bold mb-2">Volvo AC Luxury Sleeper</h4>
-                        <p class="text-secondary small">Spacious individual sleeper berths with clean blankets, reading
-                            lights, and privacy curtains.</p>
+                        <h4 class="fw-bold mb-2"><?= __('fleet_2_name', 'Volvo AC Luxury Sleeper') ?></h4>
+                        <p class="text-secondary small"><?= __('fleet_2_desc', 'Spacious individual sleeper berths with clean blankets, reading lights, and privacy curtains.') ?></p>
                         <hr class="border-light opacity-50">
                         <div class="d-flex justify-content-between text-secondary small">
-                            <span><i class="fa-solid fa-plug text-info me-1"></i> Charging Slot</span>
-                            <span><i class="fa-solid fa-pillow text-warning me-1"></i> Pillow & Blanket</span>
+                            <span><i class="fa-solid fa-plug text-info me-1"></i> <?= __('charging_slot', 'Charging Slot') ?></span>
+                            <span><i class="fa-solid fa-pillow text-warning me-1"></i> <?= __('pillow_blanket', 'Pillow & Blanket') ?></span>
                         </div>
                     </div>
                 </div>
@@ -661,16 +645,15 @@ require_once __DIR__ . '/includes/header.php';
                             class="w-100 h-100 object-fit-cover hover-zoom" alt="Eco Electric Coach">
                         <span
                             class="position-absolute top-0 end-0 bg-success text-white px-3 py-1 rounded-bottom-start small m-3 fw-bold"
-                            style="border-bottom-left-radius: 12px; border-top-right-radius: 4px; z-index: 1;">Eco-Friendly</span>
+                            style="border-bottom-left-radius: 12px; border-top-right-radius: 4px; z-index: 1;"><?= __('eco_friendly', 'Eco-Friendly') ?></span>
                     </div>
                     <div class="card-body p-4">
-                        <h4 class="fw-bold mb-2">Electric Intercity Coach</h4>
-                        <p class="text-secondary small">Eco-friendly electric motor providing silent rides, regenerative
-                            braking, and zero direct emissions.</p>
+                        <h4 class="fw-bold mb-2"><?= __('fleet_3_name', 'Electric Intercity Coach') ?></h4>
+                        <p class="text-secondary small"><?= __('fleet_3_desc', 'Eco-friendly electric motor providing silent rides, regenerative braking, and zero direct emissions.') ?></p>
                         <hr class="border-light opacity-50">
                         <div class="d-flex justify-content-between text-secondary small">
-                            <span><i class="fa-solid fa-leaf text-success me-1"></i> Green Travel</span>
-                            <span><i class="fa-solid fa-volume-mute text-info me-1"></i> Ultra Quiet</span>
+                            <span><i class="fa-solid fa-leaf text-success me-1"></i> <?= __('green_travel', 'Green Travel') ?></span>
+                            <span><i class="fa-solid fa-volume-mute text-info me-1"></i> <?= __('ultra_quiet', 'Ultra Quiet') ?></span>
                         </div>
                     </div>
                 </div>
@@ -701,14 +684,12 @@ require_once __DIR__ . '/includes/header.php';
             <div class="col-lg-5 text-white">
                 <span
                     class="badge bg-success bg-opacity-20 text-success px-3 py-2 rounded-pill uppercase tracking-wider mb-2"
-                    style="font-size: 0.8rem; font-weight: 700; color: #2ecc71 !important; background: rgba(46,204,113,0.15) !important;">Operations
-                    Console</span>
+                    style="font-size: 0.8rem; font-weight: 700; color: #2ecc71 !important; background: rgba(46,204,113,0.15) !important;"><?= __('ops_console', 'Operations Console') ?></span>
                 <h2 class="fw-bold mb-3"
                     style="font-family: 'Plus Jakarta Sans', sans-serif; color: #ffffff !important; letter-spacing: -0.5px;">
-                    Our Operations Network</h2>
+                    <?= __('ops_network', 'Our Operations Network') ?></h2>
                 <p class="text-secondary mb-4" style="color: rgba(255,255,255,0.65) !important; font-size: 0.95rem;">
-                    Hover over or tap any city hub card to highlight its active intercity highway connections on the
-                    radar console.</p>
+                    <?= __('ops_subtitle', 'Hover over or tap any city hub card to highlight its active intercity highway connections on the radar console.') ?></p>
 
                 <div class="d-flex flex-column gap-3">
                     <!-- Delhi Card -->

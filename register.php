@@ -4,7 +4,7 @@
  */
 require_once __DIR__ . '/includes/auth_middleware.php';
 
-$page_title = "Customer Registration";
+$page_title = __('register_title', 'Customer Registration');
 
 // Redirect if already logged in
 if (is_logged_in()) {
@@ -18,7 +18,7 @@ $success = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $csrf_token = $_POST['csrf_token'] ?? '';
     if (!verify_csrf_token($csrf_token)) {
-        $error = "Security validation failed. Please try again.";
+        $error = __('security_validation_failed', 'Security validation failed. Please try again.');
     } else {
         $username = trim($_POST['username'] ?? '');
         $email = trim($_POST['email'] ?? '');
@@ -27,17 +27,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $role = 'customer';
 
         if (empty($username) || empty($email) || empty($password) || empty($confirm_password)) {
-            $error = "Please fill in all fields.";
+            $error = __('fill_all_fields', 'Please fill in all fields.');
         } elseif ($password !== $confirm_password) {
-            $error = "Passwords do not match.";
+            $error = __('password_mismatch', 'Passwords do not match.');
         } elseif (strlen($password) < 6) {
-            $error = "Password must be at least 6 characters long.";
+            $error = __('password_min_length', 'Password must be at least 6 characters long.');
         } else {
             // Verify if email or username already exists
             $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ? OR email = ? LIMIT 1");
             $stmt->execute([$username, $email]);
             if ($stmt->fetchColumn()) {
-                $error = "Username or Email already registered.";
+                $error = __('username_email_taken', 'Username or Email already registered.');
             } else {
                 try {
                     $pdo->beginTransaction();
@@ -49,13 +49,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $insertUser->execute([$username, $email, $hashed_pass, $role, $status]);
                     $new_user_id = $pdo->lastInsertId();
 
-                    $success = "Registration successful! You can now log in.";
+                    $success = __('registration_success', 'Registration successful! You can now log in.');
                     log_activity($pdo, $new_user_id, 'CUSTOMER_REGISTER', "Customer signed up: $username");
 
                     $pdo->commit();
                 } catch (Exception $e) {
                     $pdo->rollBack();
-                    $error = "Registration failed. Please try again. Info: " . $e->getMessage();
+                    $error = __('registration_failed', 'Registration failed. Please try again. Info: ') . $e->getMessage();
                 }
             }
         }
@@ -70,8 +70,8 @@ require_once __DIR__ . '/includes/header.php';
         <div class="glass-card p-5 mt-3">
             <div class="text-center mb-4">
                 <i class="fa-solid fa-user-plus text-indigo" style="font-size: 3rem; color: var(--accent); filter: drop-shadow(0 0 15px rgba(212,175,55,0.4));"></i>
-                <h2 class="fw-bold mt-3 text-white">Customer Registration</h2>
-                <p class="text-secondary small">Sign up to book bus tickets instantly</p>
+                <h2 class="fw-bold mt-3 text-white"><?= __('register_title', 'Customer Registration') ?></h2>
+                <p class="text-secondary small"><?= __('register_subtitle', 'Register to book tickets instantly and enjoy exclusive benefits.') ?></p>
             </div>
 
             <?php if (!empty($error)): ?>
@@ -91,15 +91,15 @@ require_once __DIR__ . '/includes/header.php';
                 <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
 
                 <div class="mb-4">
-                    <label for="username" class="form-label text-secondary small fw-semibold">Username</label>
+                    <label for="username" class="form-label text-secondary small fw-semibold"><?= __('username', 'Username') ?></label>
                     <div class="input-group">
                         <span class="input-group-text bg-dark border-secondary text-secondary"><i class="fa-solid fa-user"></i></span>
-                        <input type="text" name="username" id="username" class="form-control form-control-swift" placeholder="Enter username" required>
+                        <input type="text" name="username" id="username" class="form-control form-control-swift" placeholder="<?= __('enter_username', 'Enter username') ?>" required>
                     </div>
                 </div>
 
                 <div class="mb-4">
-                    <label for="email" class="form-label text-secondary small fw-semibold">Email Address</label>
+                    <label for="email" class="form-label text-secondary small fw-semibold"><?= __('email', 'Email Address') ?></label>
                     <div class="input-group">
                         <span class="input-group-text bg-dark border-secondary text-secondary"><i class="fa-solid fa-envelope"></i></span>
                         <input type="email" name="email" id="email" class="form-control form-control-swift" placeholder="name@domain.com" required>
@@ -108,23 +108,23 @@ require_once __DIR__ . '/includes/header.php';
 
                 <div class="row">
                     <div class="col-md-6 mb-4">
-                        <label for="password" class="form-label text-secondary small fw-semibold">Password</label>
-                        <input type="password" name="password" id="password" class="form-control form-control-swift" placeholder="Min. 6 chars" required>
+                        <label for="password" class="form-label text-secondary small fw-semibold"><?= __('password', 'Password') ?></label>
+                        <input type="password" name="password" id="password" class="form-control form-control-swift" placeholder="<?= __('password_placeholder', 'Min. 6 chars') ?>" required>
                     </div>
                     <div class="col-md-6 mb-4">
-                        <label for="confirm_password" class="form-label text-secondary small fw-semibold">Confirm Password</label>
-                        <input type="password" name="confirm_password" id="confirm_password" class="form-control form-control-swift" placeholder="Re-enter password" required>
+                        <label for="confirm_password" class="form-label text-secondary small fw-semibold"><?= __('confirm_password', 'Confirm Password') ?></label>
+                        <input type="password" name="confirm_password" id="confirm_password" class="form-control form-control-swift" placeholder="<?= __('confirm_password_placeholder', 'Re-enter password') ?>" required>
                     </div>
                 </div>
 
                 <div class="d-grid mb-3">
-                    <button type="submit" class="btn btn-primary-gradient py-3">Register Account</button>
+                    <button type="submit" class="btn btn-primary-gradient py-3"><?= __('create_account_btn', 'Create Account') ?></button>
                 </div>
             </form>
 
             <div class="text-center mt-4">
-                <span class="text-secondary small">Already have an account? </span>
-                <a href="<?= BASE_URL ?>/login.php" class="text-decoration-none small text-indigo" style="color: var(--accent); font-weight: 500;">Login here</a>
+                <span class="text-secondary small"><?= __('already_have_account', 'Already have an account?') ?> </span>
+                <a href="<?= BASE_URL ?>/login.php" class="text-decoration-none small text-indigo" style="color: var(--accent); font-weight: 500;"><?= __('login_here', 'Login here') ?></a>
             </div>
         </div>
     </div>

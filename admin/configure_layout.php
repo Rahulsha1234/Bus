@@ -16,7 +16,7 @@ $stmt->execute([$bus_id, $_SESSION['user_id']]);
 $bus = $stmt->fetch();
 
 if (!$bus) {
-    die("Bus not found or access denied.");
+    die(__('bus_not_found_denied', "Bus not found or access denied."));
 }
 
 
@@ -28,7 +28,7 @@ $success = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $csrf_token = $_POST['csrf_token'] ?? '';
     if (!verify_csrf_token($csrf_token)) {
-        $error = "Security token validation failed.";
+        $error = __('security_validation_failed', "Security token validation failed.");
     } else {
         $action = $_POST['action'];
 
@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $seats_data = $_POST['seats_data'] ?? '[]';
 
             if (empty($template_name)) {
-                $error = "Please enter a template name.";
+                $error = __('enter_template_name', "Please enter a template name.");
             } else {
                 try {
                     $stmt = $pdo->prepare("
@@ -49,10 +49,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         VALUES (?, ?, ?, ?, ?, ?)
                     ");
                     $stmt->execute([$_SESSION['user_id'], $template_name, $rows, $cols, $layout_type, $seats_data]);
-                    $success = "Template '$template_name' saved successfully!";
+                    $success = __('template_saved_success', "Template saved successfully!");
                     log_activity($pdo, $_SESSION['user_id'], 'LAYOUT_TEMPLATE_SAVE', "Saved template: $template_name");
                 } catch (Exception $e) {
-                    $error = "Failed to save template: " . $e->getMessage();
+                    $error = __('failed_save_template', "Failed to save template: ") . $e->getMessage();
                 }
             }
         }
@@ -67,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $template = $stmt->fetch();
 
                 if (!$template) {
-                    $error = "Template not found or access denied.";
+                    $error = __('template_not_found_denied', "Template not found or access denied.");
                 } else {
                     $rows = intval($template['rows_count']);
                     $cols = intval($template['cols_count']);
@@ -105,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     }
 
                     $pdo->commit();
-                    $success = "Template '{$template['template_name']}' successfully applied to this bus!";
+                    $success = __('template_applied_success', "Template successfully applied to this bus!");
                     log_activity($pdo, $_SESSION['user_id'], 'LAYOUT_TEMPLATE_APPLY', "Applied template ID $template_id to bus $bus_id");
                     
                     // JS redirect because headers already sent by header.php
@@ -113,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 }
             } catch (Exception $e) {
                 if ($pdo->inTransaction()) $pdo->rollBack();
-                $error = "Failed to apply template: " . $e->getMessage();
+                $error = __('failed_apply_template', "Failed to apply template: ") . $e->getMessage();
             }
         }
 
@@ -123,10 +123,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             try {
                 $stmt = $pdo->prepare("DELETE FROM layout_templates WHERE id = ? AND admin_id = ?");
                 $stmt->execute([$template_id, $_SESSION['user_id']]);
-                $success = "Template deleted successfully!";
+                $success = __('template_deleted_success', "Template deleted successfully!");
                 log_activity($pdo, $_SESSION['user_id'], 'LAYOUT_TEMPLATE_DELETE', "Deleted template ID $template_id");
             } catch (Exception $e) {
-                $error = "Failed to delete template: " . $e->getMessage();
+                $error = __('failed_delete_template', "Failed to delete template: ") . $e->getMessage();
             }
         }
 
@@ -173,11 +173,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 log_activity($pdo, $_SESSION['user_id'], 'BUS_LAYOUT_SAVE', "Saved visual layout for Bus ID: $bus_id. Type: $layout_type, Rows: $rows, Cols: $cols, Seats count: " . count($seats_data));
 
                 $pdo->commit();
-                $success = "Visual seating layout saved successfully!";
+                $success = __('visual_layout_saved_success', "Visual seating layout saved successfully!");
                 $js_redirect = "buses.php?success=" . urlencode($success);
             } catch (Exception $e) {
                 $pdo->rollBack();
-                $error = "Failed to save layout: " . $e->getMessage();
+                $error = __('failed_save_layout', "Failed to save layout: ") . $e->getMessage();
             }
         }
     }
@@ -253,9 +253,9 @@ $templates = $templates_stmt->fetchAll();
     <!-- Builder Controls -->
     <div class="col-md-4">
         <div class="glass-card p-4">
-            <h5 class="fw-bold mb-3"><i class="fa-solid fa-sliders text-indigo me-2"></i>Layout Dimensions</h5>
+            <h5 class="fw-bold mb-3"><i class="fa-solid fa-sliders text-indigo me-2"></i><?= __('layout_dimensions', 'Layout Dimensions') ?></h5>
             <div class="mb-3">
-                <label class="form-label text-secondary small fw-semibold">Class Classification</label>
+                <label class="form-label text-secondary small fw-semibold"><?= __('class_classification', 'Class Classification') ?></label>
                 <select id="layout_type" class="form-select form-control-swift">
                     <?php foreach (get_vehicle_classifications() as $val => $info): ?>
                         <option value="<?= htmlspecialchars($val) ?>" <?= $layout_type === $val ? 'selected' : '' ?>><?= htmlspecialchars($info['display']) ?></option>
@@ -263,22 +263,22 @@ $templates = $templates_stmt->fetchAll();
                 </select>
             </div>
             <div class="mb-3">
-                <label class="form-label text-secondary small fw-semibold">Grid Rows</label>
+                <label class="form-label text-secondary small fw-semibold"><?= __('grid_rows', 'Grid Rows') ?></label>
                 <select id="grid_rows" class="form-select form-control-swift"></select>
             </div>
             <div class="mb-3">
-                <label class="form-label text-secondary small fw-semibold">Grid Columns</label>
+                <label class="form-label text-secondary small fw-semibold"><?= __('grid_columns', 'Grid Columns') ?></label>
                 <select id="grid_cols" class="form-select form-control-swift"></select>
             </div>
 
             <hr class="border-secondary mb-4">
 
-            <h5 class="fw-bold mb-3"><i class="fa-solid fa-circle-info text-indigo me-2"></i>Instructions</h5>
+            <h5 class="fw-bold mb-3"><i class="fa-solid fa-circle-info text-indigo me-2"></i><?= __('instructions_header', 'Instructions') ?></h5>
             <ul class="small text-secondary ps-3 mb-4">
-                <li class="mb-2">Click on an empty cell to add a seat.</li>
-                <li class="mb-2">Drag a seat to duplicate it and auto-increment its number by +1.</li>
-                <li class="mb-2">Click on a seat to customize its number, type, pricing, or status.</li>
-                <li class="mb-2">For double berths (sleeper), align row placement and use prefixes U (Upper) and D (Lower).</li>
+                <li class="mb-2"><?= __('instruction_1', 'Click on an empty cell to add a seat.') ?></li>
+                <li class="mb-2"><?= __('instruction_2', 'Drag a seat to duplicate it and auto-increment its number by +1.') ?></li>
+                <li class="mb-2"><?= __('instruction_3', 'Click on a seat to customize its number, type, pricing, or status.') ?></li>
+                <li class="mb-2"><?= __('instruction_4', 'For double berths (sleeper), align row placement and use prefixes U (Upper) and D (Lower).') ?></li>
             </ul>
 
             <form action="" method="POST" id="layoutForm">
@@ -290,14 +290,14 @@ $templates = $templates_stmt->fetchAll();
                 <input type="hidden" name="seats_data" id="form_seats_data">
                 
                 <button type="submit" id="btnSaveLayout" class="btn btn-primary-gradient w-100 py-3 font-semibold">
-                    <i class="fa-solid fa-floppy-disk me-2"></i>Save Visual Layout
+                    <i class="fa-solid fa-floppy-disk me-2"></i><?= __('save_visual_layout_btn', 'Save Visual Layout') ?>
                 </button>
             </form>
 
             <hr class="border-secondary my-4">
 
             <!-- SAVE AS TEMPLATE FORM -->
-            <h5 class="fw-bold mb-3"><i class="fa-solid fa-file-export text-indigo me-2"></i>Save as Template</h5>
+            <h5 class="fw-bold mb-3"><i class="fa-solid fa-file-export text-indigo me-2"></i><?= __('save_as_template_header', 'Save as Template') ?></h5>
             <form action="" method="POST" id="templateSaveForm" class="mb-4">
                 <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
                 <input type="hidden" name="action" value="save_template">
@@ -307,20 +307,20 @@ $templates = $templates_stmt->fetchAll();
                 <input type="hidden" name="seats_data" id="tpl_seats_data">
                 
                 <div class="mb-3">
-                    <label class="form-label text-secondary small fw-semibold">Template Name</label>
-                    <input type="text" name="template_name" class="form-control form-control-swift" placeholder="e.g. Sleeper 2x1 Premium" required>
+                    <label class="form-label text-secondary small fw-semibold"><?= __('template_name_label', 'Template Name') ?></label>
+                    <input type="text" name="template_name" class="form-control form-control-swift" placeholder="<?= __('template_placeholder', 'e.g. Sleeper 2x1 Premium') ?>" required>
                 </div>
                 <button type="submit" id="btnSaveAsTemplate" class="btn btn-secondary-glass w-100 font-semibold">
-                    <i class="fa-solid fa-cloud-arrow-up me-2"></i>Save Template
+                    <i class="fa-solid fa-cloud-arrow-up me-2"></i><?= __('save_template_btn', 'Save Template') ?>
                 </button>
             </form>
 
             <hr class="border-secondary mb-4">
 
             <!-- APPLY SAVED TEMPLATES -->
-            <h5 class="fw-bold mb-3"><i class="fa-solid fa-folder-open text-indigo me-2"></i>Saved Templates</h5>
+            <h5 class="fw-bold mb-3"><i class="fa-solid fa-folder-open text-indigo me-2"></i><?= __('saved_templates_header', 'Saved Templates') ?></h5>
             <?php if (empty($templates)): ?>
-                <p class="text-secondary small">No templates saved yet.</p>
+                <p class="text-secondary small"><?= __('no_templates_saved', 'No templates saved yet.') ?></p>
             <?php else: ?>
                 <div class="d-grid gap-2">
                     <?php foreach ($templates as $tpl): ?>
@@ -338,7 +338,7 @@ $templates = $templates_stmt->fetchAll();
                                 <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
                                 <input type="hidden" name="action" value="delete_template">
                                 <input type="hidden" name="template_id" value="<?= $tpl['id'] ?>">
-                                <button type="submit" class="btn btn-danger-glass btn-sm h-100" title="Delete Template">
+                                <button type="submit" class="btn btn-danger-glass btn-sm h-100" title="<?= __('delete_template', 'Delete Template') ?>">
                                     <i class="fa-solid fa-trash-can"></i>
                                 </button>
                             </form>
@@ -349,7 +349,7 @@ $templates = $templates_stmt->fetchAll();
 
             <hr class="border-secondary my-4">
             
-            <a href="buses.php" class="btn btn-secondary-glass w-100">Back to Fleet</a>
+            <a href="buses.php" class="btn btn-secondary-glass w-100"><?= __('back_to_fleet_btn', 'Back to Fleet') ?></a>
         </div>
     </div>
 
@@ -359,9 +359,9 @@ $templates = $templates_stmt->fetchAll();
             <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom border-secondary border-opacity-30">
                 <div>
                     <h4 class="fw-bold text-white mb-0"><?= htmlspecialchars($bus['bus_name']) ?></h4>
-                    <span class="text-secondary small">Registration No: <?= htmlspecialchars($bus['bus_number']) ?></span>
+                    <span class="text-secondary small"><?= __('license_plate_number', 'Registration No') ?>: <?= htmlspecialchars($bus['bus_number']) ?></span>
                 </div>
-                <div class="legend-item"><span class="legend-dot bg-secondary border border-secondary"></span><span class="small text-secondary">Walkway/Empty space</span></div>
+                <div class="legend-item"><span class="legend-dot bg-secondary border border-secondary"></span><span class="small text-secondary"><?= __('walkway_empty_space', 'Walkway/Empty space') ?></span></div>
             </div>
 
             <!-- Canvas Grid Container -->
@@ -369,10 +369,10 @@ $templates = $templates_stmt->fetchAll();
                 <div id="deck-tabs-builder" style="display: none;">
                     <ul class="nav nav-pills justify-content-center mb-4 gap-2" role="tablist">
                         <li class="nav-item">
-                            <button class="nav-link btn-secondary-glass active px-4 py-2" id="builder-low-deck-tab" data-bs-toggle="pill" data-bs-target="#builder-low-deck-pane" type="button" role="tab" onclick="currentBuilderDeck = 'lower';">Lower Deck</button>
+                            <button class="nav-link btn-secondary-glass active px-4 py-2" id="builder-low-deck-tab" data-bs-toggle="pill" data-bs-target="#builder-low-deck-pane" type="button" role="tab" onclick="currentBuilderDeck = 'lower';"><?= __('lower_deck_tab', 'Lower Deck') ?></button>
                         </li>
                         <li class="nav-item">
-                            <button class="nav-link btn-secondary-glass px-4 py-2" id="builder-up-deck-tab" data-bs-toggle="pill" data-bs-target="#builder-up-deck-pane" type="button" role="tab" onclick="currentBuilderDeck = 'upper';">Upper Deck</button>
+                            <button class="nav-link btn-secondary-glass px-4 py-2" id="builder-up-deck-tab" data-bs-toggle="pill" data-bs-target="#builder-up-deck-pane" type="button" role="tab" onclick="currentBuilderDeck = 'upper';"><?= __('upper_deck_tab', 'Upper Deck') ?></button>
                         </li>
                     </ul>
                 </div>
@@ -395,7 +395,7 @@ $templates = $templates_stmt->fetchAll();
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content glass-card p-4" style="border-radius: 20px;">
             <div class="modal-header border-bottom border-secondary border-opacity-20 pb-3">
-                <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-chair text-indigo me-2"></i>Configure Seat</h5>
+                <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-chair text-indigo me-2"></i><?= __('configure_seat_title', 'Configure Seat') ?></h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body py-3">
@@ -404,37 +404,37 @@ $templates = $templates_stmt->fetchAll();
                 <input type="hidden" id="modal_seat_is_upper">
 
                 <div class="mb-3">
-                    <label class="form-label text-secondary small fw-semibold">Seat Number / Designation</label>
+                    <label class="form-label text-secondary small fw-semibold"><?= __('seat_number_designation', 'Seat Number / Designation') ?></label>
                     <input type="text" id="modal_seat_number" class="form-control form-control-swift" placeholder="e.g. A1, U1, D1" required>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label text-secondary small fw-semibold">Seat Type</label>
+                    <label class="form-label text-secondary small fw-semibold"><?= __('seat_type_label', 'Seat Type') ?></label>
                     <select id="modal_seat_type" class="form-select form-control-swift">
-                        <option value="Normal">Normal Seat</option>
-                        <option value="Sleeper">Sleeper</option>
-                        <option value="Upper Sleeper">Upper Sleeper</option>
-                        <option value="Lower Sleeper">Lower Sleeper</option>
-                        <option value="Double Sleeper Upper">Double Sleeper Upper (2 Pass)</option>
-                        <option value="Double Sleeper Lower">Double Sleeper Lower (2 Pass)</option>
+                        <option value="Normal"><?= __('normal_seat', 'Normal Seat') ?></option>
+                        <option value="Sleeper"><?= __('sleeper', 'Sleeper') ?></option>
+                        <option value="Upper Sleeper"><?= __('upper_sleeper', 'Upper Sleeper') ?></option>
+                        <option value="Lower Sleeper"><?= __('lower_sleeper', 'Lower Sleeper') ?></option>
+                        <option value="Double Sleeper Upper"><?= __('double_sleeper_upper', 'Double Sleeper Upper (2 Pass)') ?></option>
+                        <option value="Double Sleeper Lower"><?= __('double_sleeper_lower', 'Double Sleeper Lower (2 Pass)') ?></option>
                     </select>
                 </div>
 
                 <input type="hidden" id="modal_seat_price" value="500.00">
 
                 <div class="mb-3">
-                    <label class="form-label text-secondary small fw-semibold">Seat Status</label>
+                    <label class="form-label text-secondary small fw-semibold"><?= __('seat_status_label', 'Seat Status') ?></label>
                     <select id="modal_seat_active" class="form-select form-control-swift">
-                        <option value="1">Enabled (Available for booking)</option>
-                        <option value="0">Disabled (Blocked space)</option>
+                        <option value="1"><?= __('enabled_available', 'Enabled (Available for booking)') ?></option>
+                        <option value="0"><?= __('disabled_blocked', 'Disabled (Blocked space)') ?></option>
                     </select>
                 </div>
             </div>
             <div class="modal-footer border-0 pt-3 d-flex justify-content-between">
-                <button type="button" class="btn btn-secondary-glass" id="btnRemoveSeat">Remove Seat</button>
+                <button type="button" class="btn btn-secondary-glass" id="btnRemoveSeat"><?= __('remove_seat_btn', 'Remove Seat') ?></button>
                 <div>
-                    <button type="button" class="btn btn-secondary-glass" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary-gradient" id="btnApplySeat">Apply Details</button>
+                    <button type="button" class="btn btn-secondary-glass" data-bs-dismiss="modal"><?= __('cancel', 'Cancel') ?></button>
+                    <button type="button" class="btn btn-primary-gradient" id="btnApplySeat"><?= __('apply_details_btn', 'Apply Details') ?></button>
                 </div>
             </div>
         </div>
@@ -758,7 +758,7 @@ $(document).ready(function() {
 
             // Cannot drag between different decks
             if (dragSrcIsUpper !== getUpper) {
-                alert('You cannot drag seats between the Lower and Upper decks.');
+                alert('<?= __('cannot_drag_between_decks', "You cannot drag seats between the Lower and Upper decks.") ?>');
                 dragSrcRow = null;
                 dragSrcCol = null;
                 return;
@@ -767,7 +767,7 @@ $(document).ready(function() {
             // Check if drop target is shadowed by another sleeper
             var shadowed = getShadowedCells(getUpper);
             if (shadowed[row + ',' + col]) {
-                alert('This cell is occupied by the lower half of a sleeper above it. Choose a different cell.');
+                alert('<?= __('cell_occupied_sleeper_shadow', "This cell is occupied by the lower half of a sleeper above it. Choose a different cell.") ?>');
                 dragSrcRow = null;
                 dragSrcCol = null;
                 return;
@@ -779,19 +779,19 @@ $(document).ready(function() {
                 // Sleeper needs 2 rows
                 if (sleeperSeat) {
                     if (row + 1 >= rows) {
-                        alert('A sleeper berth needs 2 row-heights. This is the last row — not enough space.');
+                        alert('<?= __('sleeper_needs_two_rows', "A sleeper berth needs 2 row-heights. This is the last row — not enough space.") ?>');
                         dragSrcRow = null;
                         dragSrcCol = null;
                         return;
                     }
                     if (findSeat(row + 1, col, getUpper)) {
-                        alert('A sleeper berth needs 2 free consecutive vertical cells. The cell below is occupied.');
+                        alert('<?= __('sleeper_needs_free_cells', "A sleeper berth needs 2 free consecutive vertical cells. The cell below is occupied.") ?>');
                         dragSrcRow = null;
                         dragSrcCol = null;
                         return;
                     }
                     if (shadowed[(row + 1) + ',' + col]) {
-                        alert('A sleeper berth needs 2 free consecutive vertical cells. The cell below is occupied by another sleeper\'s shadow.');
+                        alert('<?= __('sleeper_below_occupied_shadow', "A sleeper berth needs 2 free consecutive vertical cells. The cell below is occupied by another sleeper\'s shadow.") ?>');
                         dragSrcRow = null;
                         dragSrcCol = null;
                         return;

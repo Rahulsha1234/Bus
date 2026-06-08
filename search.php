@@ -14,7 +14,7 @@ if (empty($source) || empty($destination) || empty($date)) {
     exit();
 }
 
-$page_title = "Search Results: $source to $destination";
+$page_title = __('search_results', 'Search Results') . ": $source " . __('to', 'to') . " $destination";
 
 // Fetch Matching Trips
 try {
@@ -78,7 +78,7 @@ require_once __DIR__ . '/includes/header.php';
             <span class="text-secondary small"><i class="fa-regular fa-calendar me-2"></i><?= date('D, d M Y', strtotime($date)) ?></span>
         </div>
         <button class="btn btn-secondary-glass py-2 px-3 small" style="font-size: 0.85rem;" type="button" data-bs-toggle="collapse" data-bs-target="#modifySearchCollapse" aria-expanded="false" aria-controls="modifySearchCollapse">
-            <i class="fa-solid fa-pen-to-square me-2"></i>Modify Search
+            <i class="fa-solid fa-pen-to-square me-2"></i><?= __('modify_search', 'Modify Search') ?>
         </button>
     </div>
 
@@ -87,11 +87,11 @@ require_once __DIR__ . '/includes/header.php';
         <form action="<?= BASE_URL ?>/search.php" method="GET" class="row g-3 align-items-end">
             <!-- Source dropdown -->
             <div class="col-md-3">
-                <label for="source_search" class="form-label text-secondary small fw-semibold">Leaving From</label>
+                <label for="source_search" class="form-label text-secondary small fw-semibold"><?= __('leaving_from', 'Leaving From') ?></label>
                 <div class="input-group">
                     <span class="input-group-text bg-dark border-secondary border-end-0 text-secondary" style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-location-dot"></i></span>
                     <div class="autocomplete-wrapper">
-                        <input type="text" id="source_search" class="form-control form-control-swift border-start-0" style="border-radius: 0 12px 12px 0;" placeholder="Select Origin..." value="<?= htmlspecialchars($source) ?>" autocomplete="off" required>
+                        <input type="text" id="source_search" class="form-control form-control-swift border-start-0" style="border-radius: 0 12px 12px 0;" placeholder="<?= __('select_origin', 'Select Origin...') ?>" value="<?= htmlspecialchars($source) ?>" autocomplete="off" required>
                         <input type="hidden" name="source" id="source" value="<?= htmlspecialchars($source) ?>">
                     </div>
                 </div>
@@ -106,20 +106,20 @@ require_once __DIR__ . '/includes/header.php';
 
             <!-- Destination dropdown -->
             <div class="col-md-3">
-                <label for="destination_search" class="form-label text-secondary small fw-semibold">Going To</label>
+                <label for="destination_search" class="form-label text-secondary small fw-semibold"><?= __('going_to', 'Going To') ?></label>
                 <div class="input-group">
                     <span class="input-group-text bg-dark border-secondary border-end-0 text-secondary" style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-location-crosshairs"></i></span>
                     <div class="autocomplete-wrapper">
-                        <input type="text" id="destination_search" class="form-control form-control-swift border-start-0" style="border-radius: 0 12px 12px 0;" placeholder="Select Destination..." value="<?= htmlspecialchars($destination) ?>" autocomplete="off" required>
+                        <input type="text" id="destination_search" class="form-control form-control-swift border-start-0" style="border-radius: 0 12px 12px 0;" placeholder="<?= __('select_destination', 'Select Destination...') ?>" value="<?= htmlspecialchars($destination) ?>" autocomplete="off" required>
                         <input type="hidden" name="destination" id="destination" value="<?= htmlspecialchars($destination) ?>">
                     </div>
                 </div>
-                <div id="dest-loading" class="small text-muted mt-1" style="display:none;"><i class="fa-solid fa-spinner fa-spin me-1"></i>Loading...</div>
+                <div id="dest-loading" class="small text-muted mt-1" style="display:none;"><i class="fa-solid fa-spinner fa-spin me-1"></i><?= __('loading', 'Loading...') ?></div>
             </div>
 
             <!-- Date Picker -->
             <div class="col-md-3">
-                <label for="date" class="form-label text-secondary small fw-semibold">Travel Date</label>
+                <label for="date" class="form-label text-secondary small fw-semibold"><?= __('travel_date', 'Travel Date') ?></label>
                 <div class="input-group">
                     <span class="input-group-text bg-dark border-secondary border-end-0 text-secondary" style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-calendar-days"></i></span>
                     <input type="date" name="date" id="date" class="form-control form-control-swift border-start-0" style="border-radius: 0 12px 12px 0;" min="<?= date('Y-m-d') ?>" value="<?= htmlspecialchars($date) ?>" required>
@@ -129,22 +129,22 @@ require_once __DIR__ . '/includes/header.php';
             <!-- Search Button -->
             <div class="col-md-2">
                 <div class="d-grid">
-                    <button type="submit" class="btn btn-primary-gradient py-2 fw-bold text-uppercase" style="font-size: 0.9rem;">Search</button>
+                    <button type="submit" class="btn btn-primary-gradient py-2 fw-bold text-uppercase" style="font-size: 0.9rem;"><?= __('btn_search', 'Search') ?></button>
                 </div>
             </div>
         </form>
     </div>
 </div>
 
-<h4 class="fw-bold mb-4 text-white">Available Services (<?= count($trips) ?> found)</h4>
+<h4 class="fw-bold mb-4 text-white"><?= __('available_buses', 'Available Services') ?> (<?= count($trips) ?> <?= __('found', 'found') ?>)</h4>
 
 <?php if (count($trips) === 0): ?>
     <div class="glass-card p-5 text-center my-5">
         <i class="fa-solid fa-circle-info text-secondary mb-3" style="font-size: 4rem;"></i>
-        <h3 class="text-white fw-bold">No Buses Found</h3>
-        <p class="text-secondary">We couldn't find any bus scheduled from <?= htmlspecialchars($source) ?> to <?= htmlspecialchars($destination) ?> on <?= date('d M Y', strtotime($date)) ?>.</p>
+        <h3 class="text-white fw-bold"><?= __('no_buses_found', 'No Buses Found') ?></h3>
+        <p class="text-secondary"><?= __('try_different_date', 'Try searching for a different date or route.') ?></p>
         <div class="d-flex justify-content-center gap-3 mt-4">
-            <a href="<?= BASE_URL ?>/index.php" class="btn btn-primary-gradient"><i class="fa-solid fa-arrow-left me-2"></i>Back to Home</a>
+            <a href="<?= BASE_URL ?>/index.php" class="btn btn-primary-gradient"><i class="fa-solid fa-arrow-left me-2"></i><?= __('go_home', 'Back to Home') ?></a>
         </div>
     </div>
 <?php else: ?>
@@ -199,10 +199,10 @@ require_once __DIR__ . '/includes/header.php';
                         <div class="col-md-2 text-center text-md-start">
                             <div class="dropdown">
                                 <button class="btn btn-light py-1 px-2 small text-secondary dropdown-toggle border" type="button" data-bs-toggle="dropdown" style="font-size: 0.8rem; background: var(--bg-secondary) !important;">
-                                    Pickup / Drop points
+                                    <?= __('pickup_drop', 'Pickup / Drop points') ?>
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-dark glass-card p-3 border-0 mt-2" style="min-width: 250px;">
-                                    <h6 class="text-success small fw-bold mb-2" style="color: var(--accent-primary) !important;">Pickups (<?= htmlspecialchars($source) ?>)</h6>
+                                    <h6 class="text-success small fw-bold mb-2" style="color: var(--accent-primary) !important;"><?= __('pickups', 'Pickups') ?> (<?= htmlspecialchars($source) ?>)</h6>
                                     <?php foreach ($pickups as $p):
                                         $pt = $p['time'] ?? '';
                                         $has_time = !empty($pt) && $pt !== '00:00' && $pt !== '00:00:00';
@@ -216,7 +216,7 @@ require_once __DIR__ . '/includes/header.php';
                                     <li>
                                         <hr class="dropdown-divider border-secondary my-2">
                                     </li>
-                                    <h6 class="text-success small fw-bold mb-2" style="color: var(--accent-secondary) !important;">Drops (<?= htmlspecialchars($destination) ?>)</h6>
+                                    <h6 class="text-success small fw-bold mb-2" style="color: var(--accent-secondary) !important;"><?= __('drops', 'Drops') ?> (<?= htmlspecialchars($destination) ?>)</h6>
                                     <?php foreach ($drops as $d):
                                         $dt = $d['time'] ?? '';
                                         $has_time = !empty($dt) && $dt !== '00:00' && $dt !== '00:00:00';
@@ -234,26 +234,26 @@ require_once __DIR__ . '/includes/header.php';
                         <!-- Price & Seats Display -->
                         <div class="col-md-3 text-center text-md-end">
                             <div class="mb-2">
-                                <span class="text-secondary small">Starting at </span>
+                                <span class="text-secondary small"><?= __('starting_at', 'Starting at') ?> </span>
                                 <span class="fs-4 fw-bold text-success" style="color: var(--accent-primary) !important;"><?= CURRENCY ?><?= number_format($trip['base_fare'], 2) ?></span>
                             </div>
 
                             <!-- Seat badge indicator -->
                             <div class="mb-3">
                                 <?php if ($trip['available_seats'] > 10): ?>
-                                    <span class="badge bg-success bg-opacity-10 text-success py-2 px-3 rounded-pill border border-success border-opacity-25"><?= htmlspecialchars($trip['available_seats']) ?> seats left</span>
+                                    <span class="badge bg-success bg-opacity-10 text-success py-2 px-3 rounded-pill border border-success border-opacity-25"><?= htmlspecialchars($trip['available_seats']) ?> <?= __('seats_left', 'seats left') ?></span>
                                 <?php elseif ($trip['available_seats'] > 0): ?>
-                                    <span class="badge bg-warning bg-opacity-10 text-warning py-2 px-3 rounded-pill border border-warning border-opacity-25"><?= htmlspecialchars($trip['available_seats']) ?> seats left</span>
+                                    <span class="badge bg-warning bg-opacity-10 text-warning py-2 px-3 rounded-pill border border-warning border-opacity-25"><?= htmlspecialchars($trip['available_seats']) ?> <?= __('seats_left', 'seats left') ?></span>
                                 <?php else: ?>
-                                    <span class="badge bg-danger bg-opacity-10 text-danger py-2 px-3 rounded-pill border border-danger border-opacity-25">SOLD OUT</span>
+                                    <span class="badge bg-danger bg-opacity-10 text-danger py-2 px-3 rounded-pill border border-danger border-opacity-25"><?= __('sold_out', 'SOLD OUT') ?></span>
                                 <?php endif; ?>
                             </div>
 
                             <div>
                                 <?php if ($trip['available_seats'] > 0): ?>
-                                    <a href="<?= BASE_URL ?>/book.php?trip_id=<?= $trip['trip_id'] ?>" class="btn btn-primary-gradient w-100 text-uppercase fw-bold py-2" style="font-size: 0.9rem;">Select Seats</a>
+                                    <a href="<?= BASE_URL ?>/book.php?trip_id=<?= $trip['trip_id'] ?>" class="btn btn-primary-gradient w-100 text-uppercase fw-bold py-2" style="font-size: 0.9rem;"><?= __('select_seats', 'Select Seats') ?></a>
                                 <?php else: ?>
-                                    <button class="btn btn-secondary w-100 py-2 text-uppercase fw-bold disabled" style="font-size: 0.9rem;">House Full</button>
+                                    <button class="btn btn-secondary w-100 py-2 text-uppercase fw-bold disabled" style="font-size: 0.9rem;"><?= __('house_full', 'House Full') ?></button>
                                 <?php endif; ?>
                             </div>
                         </div>

@@ -51,15 +51,15 @@ try {
 <div class="glass-card p-4 mb-4">
     <form action="" method="GET" class="row g-3 align-items-end">
         <div class="col-md-9">
-            <label class="form-label text-secondary small fw-semibold">Search Bookings</label>
+            <label class="form-label text-secondary small fw-semibold"><?= __('search_bookings', 'Search Bookings') ?></label>
             <div class="input-group">
                 <span class="input-group-text bg-dark border-secondary border-end-0 text-secondary" style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-magnifying-glass"></i></span>
-                <input type="text" name="search" class="form-control form-control-swift border-start-0" style="border-radius: 0 12px 12px 0;" placeholder="Search by Booking Reference, Customer Name or Phone..." value="<?= htmlspecialchars($search) ?>">
+                <input type="text" name="search" class="form-control form-control-swift border-start-0" style="border-radius: 0 12px 12px 0;" placeholder="<?= __('search_bookings_placeholder', 'Search by Booking Reference, Customer Name or Phone...') ?>" value="<?= htmlspecialchars($search) ?>">
             </div>
         </div>
         <div class="col-md-3">
             <div class="d-grid gap-2 d-md-flex">
-                <button type="submit" class="btn btn-primary-gradient py-2 w-100"><i class="fa-solid fa-filter me-2"></i>Filter</button>
+                <button type="submit" class="btn btn-primary-gradient py-2 w-100"><i class="fa-solid fa-filter me-2"></i><?= __('filter', 'Filter') ?></button>
                 <?php if (!empty($search)): ?>
                     <a href="bookings.php" class="btn btn-secondary-glass py-2"><i class="fa-solid fa-rotate-left"></i></a>
                 <?php endif; ?>
@@ -71,21 +71,21 @@ try {
 <!-- Bookings Table Grid -->
 <div class="glass-card p-4">
     <?php if (count($bookings) === 0): ?>
-        <div class="text-center py-5 text-secondary small">No bookings found matching filters.</div>
+        <div class="text-center py-5 text-secondary small"><?= __('no_bookings_found_filters', 'No bookings found matching filters.') ?></div>
     <?php else: ?>
         <div class="table-responsive">
             <table class="table table-swift table-dark table-hover table-borderless align-middle datatable-swift">
                 <thead>
                     <tr>
-                        <th>Booking Ref</th>
-                        <th>Fleet Detail</th>
-                        <th>Passenger Info</th>
-                        <th>Fare (Gross)</th>
-                        <th>Discount Margin</th>
-                        <th>Final Paid</th>
-                        <th>Payment Status</th>
-                        <th>Date & Time</th>
-                        <th class="text-end">Ticket</th>
+                        <th><?= __('booking_ref', 'Booking Ref') ?></th>
+                        <th><?= __('fleet_detail', 'Fleet Detail') ?></th>
+                        <th><?= __('passenger_info', 'Passenger Info') ?></th>
+                        <th><?= __('fare_gross', 'Fare (Gross)') ?></th>
+                        <th><?= __('discount_margin', 'Discount Margin') ?></th>
+                        <th><?= __('final_paid', 'Final Paid') ?></th>
+                        <th><?= __('payment_status', 'Payment Status') ?></th>
+                        <th><?= __('date_time', 'Date & Time') ?></th>
+                        <th class="text-end"><?= __('ticket', 'Ticket') ?></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -94,7 +94,7 @@ try {
                             <td class="font-monospace fw-bold text-indigo"><?= htmlspecialchars($b['booking_reference']) ?></td>
                             <td>
                                 <span class="d-block fw-semibold text-white"><?= htmlspecialchars($b['bus_name']) ?></span>
-                                <span class="text-secondary small"><?= htmlspecialchars($b['source']) ?> to <?= htmlspecialchars($b['destination']) ?></span>
+                                <span class="text-secondary small"><?= htmlspecialchars($b['source']) ?> <?= __('to', 'to') ?> <?= htmlspecialchars($b['destination']) ?></span>
                             </td>
                             <td>
                                 <span class="d-block fw-semibold text-white"><?= htmlspecialchars($b['customer_name']) ?></span>
@@ -105,14 +105,14 @@ try {
                             <td class="text-success fw-bold">₹<?= number_format($b['final_fare'], 2) ?></td>
                             <td>
                                 <?php if ($b['payment_status'] === 'paid'): ?>
-                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1">PAID</span>
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1"><?= __('paid', 'PAID') ?></span>
                                 <?php else: ?>
-                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1">FAILED</span>
+                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1"><?= __('failed', 'FAILED') ?></span>
                                 <?php endif; ?>
                             </td>
                             <td class="text-secondary small"><?= date('d M Y H:i', strtotime($b['created_at'])) ?></td>
                             <td class="text-end">
-                                <a href="<?= BASE_URL ?>/ticket.php?ref=<?= $b['booking_reference'] ?>" target="_blank" class="btn btn-secondary-glass py-1 px-2 small" title="Print Ticket"><i class="fa-solid fa-print text-indigo"></i></a>
+                                <a href="<?= BASE_URL ?>/ticket.php?ref=<?= $b['booking_reference'] ?>" target="_blank" class="btn btn-secondary-glass py-1 px-2 small" title="<?= __('print_ticket', 'Print Ticket') ?>"><i class="fa-solid fa-print text-indigo"></i></a>
                             </td>
                         </tr>
                     <?php endforeach; ?>

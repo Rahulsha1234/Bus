@@ -54,14 +54,14 @@ if ($selected_trip_id > 0) {
             if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $csrf_token = $_POST['csrf_token'] ?? '';
                 if (!verify_csrf_token($csrf_token)) {
-                    $error = "Security token validation failed.";
+                    $error = __('security_validation_failed', "Security token validation failed.");
                 } else {
                     $action = $_POST['action'];
                     $target_seats_str = $_POST['seats_list'] ?? '';
                     $target_seats = array_filter(array_map('trim', explode(',', $target_seats_str)));
 
                     if (empty($target_seats)) {
-                        $error = "No seats selected for allocation modification.";
+                        $error = __('no_seats_selected_allocation', "No seats selected for allocation modification.");
                     } else {
                         try {
                             $pdo->beginTransaction();
@@ -69,7 +69,7 @@ if ($selected_trip_id > 0) {
                             if ($action === 'price') {
                                 $final_price = floatval($_POST['final_price'] ?? 0.00);
                                 if ($final_price <= 0) {
-                                    $error = "Seat price must be a positive numeric value.";
+                                    $error = __('price_positive_numeric', "Seat price must be a positive numeric value.");
                                 } else {
                                     // 1. Insert/Update seat_price_overrides
                                     $stmt = $pdo->prepare("
@@ -91,7 +91,7 @@ if ($selected_trip_id > 0) {
                                         $stmt2->execute([$selected_trip_id, $seat, $final_price, $final_price, $final_price]);
                                     }
                                     
-                                    $success = "Successfully updated Final Seat Price to ₹" . number_format($final_price, 2) . " for " . count($target_seats) . " seat(s).";
+                                    $success = __('seat_price_updated_success_prefix', "Successfully updated Final Seat Price to ₹") . number_format($final_price, 2) . __('for_mid_label', " for ") . count($target_seats) . __('seats_suffix', " seat(s).");
                                     log_activity($pdo, $admin_id, 'SEAT_PRICE_OVERRIDE', "Set custom price ₹$final_price for seats (" . implode(',', $target_seats) . ") on Trip: $selected_trip_id");
                                 }
                             } 
@@ -125,7 +125,7 @@ if ($selected_trip_id > 0) {
                                         $blocked_seats_count++;
                                     }
                                 }
-                                $success = "Successfully updated " . count($target_seats) . " seat(s) status ($blocked_seats_count blocked, $unblocked_seats_count unblocked).";
+                                $success = __('seats_updated_success_prefix', "Successfully updated ") . count($target_seats) . __('seats_status_mid_label', " seat(s) status (") . $blocked_seats_count . __('blocked_mid_label', " blocked, ") . $unblocked_seats_count . __('unblocked_suffix', " unblocked).");
                                 log_activity($pdo, $admin_id, 'SEAT_BLOCK_TOGGLE', "Toggled block/unblock for seats (" . implode(',', $target_seats) . ") on Trip: $selected_trip_id");
                             }
 
@@ -138,7 +138,7 @@ if ($selected_trip_id > 0) {
                             if ($pdo->inTransaction()) {
                                 $pdo->rollBack();
                             }
-                            $error = "Allocation Action failed: " . $e->getMessage();
+                            $error = __('allocation_action_failed', "Allocation Action failed: ") . $e->getMessage();
                         }
                     }
                 }
@@ -228,7 +228,7 @@ if ($selected_trip_id > 0) {
             }
         }
     } catch (PDOException $e) {
-        $error = "Database Error: " . $e->getMessage();
+        $error = __('database_error', "Database Error: ") . $e->getMessage();
     }
 }
 ?>
@@ -249,13 +249,13 @@ if ($selected_trip_id > 0) {
     <!-- Configuration Side Panel -->
     <div class="col-md-4">
         <div class="glass-card p-4">
-            <h5 class="fw-bold text-white mb-4"><i class="fa-solid fa-compass text-indigo me-2"></i>Map Control Panel</h5>
+            <h5 class="fw-bold text-white mb-4"><i class="fa-solid fa-compass text-indigo me-2"></i><?= __('map_control_panel_hdr', 'Map Control Panel') ?></h5>
             
             <form action="" method="GET" class="mb-4">
                 <div class="mb-3">
-                    <label class="form-label text-secondary small fw-semibold">Choose Trip Voyage</label>
+                    <label class="form-label text-secondary small fw-semibold"><?= __('choose_trip_voyage_label', 'Choose Trip Voyage') ?></label>
                     <select name="trip_id" class="form-select form-control-swift" onchange="this.form.submit()" required>
-                        <option value="">Select Schedule...</option>
+                        <option value=""><?= __('select_schedule_placeholder', 'Select Schedule...') ?></option>
                         <?php foreach ($trips as $t): ?>
                             <option value="<?= $t['trip_id'] ?>" <?= ($selected_trip_id === intval($t['trip_id'])) ? 'selected' : '' ?>>
                                 <?= htmlspecialchars($t['source']) ?> to <?= htmlspecialchars($t['destination']) ?> (<?= date('d M, H:i', strtotime($t['departure_time'])) ?>)
@@ -273,30 +273,30 @@ if ($selected_trip_id > 0) {
                     <input type="hidden" name="seats_list" id="action_seats_list" value="">
                     
                     <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold">Selected Seats:</label>
+                        <label class="form-label text-secondary small fw-semibold"><?= __('selected_seats_lbl', 'Selected Seats:') ?></label>
                         <div id="selection_preview" class="p-2 border border-secondary border-opacity-10 rounded bg-dark bg-opacity-20 font-semibold small text-indigo">
-                            0 Seats Selected
+                            <?= __('zero_seats_selected_desc', '0 Seats Selected') ?>
                         </div>
                     </div>
 
                     <div class="mb-4">
-                        <label class="form-label text-secondary small fw-semibold">Execute Allocation Action</label>
+                        <label class="form-label text-secondary small fw-semibold"><?= __('execute_allocation_action_lbl', 'Execute Allocation Action') ?></label>
                         <select name="action" id="action_selector" class="form-select form-control-swift" required>
-                            <option value="price">Modify Seat Price</option>
-                            <option value="toggle_block">Block / Unblock Seat</option>
+                            <option value="price"><?= __('modify_seat_price_opt', 'Modify Seat Price') ?></option>
+                            <option value="toggle_block"><?= __('block_unblock_seat_opt', 'Block / Unblock Seat') ?></option>
                         </select>
                     </div>
 
                     <!-- Pricing Overrides block (Shown only if 'price' selected) -->
                     <div id="pricing_fields" class="p-3 mb-4 rounded border border-secondary border-opacity-20 bg-dark bg-opacity-10">
                         <div class="mb-0">
-                            <label class="form-label text-secondary small">Final Seat Price (₹)</label>
+                            <label class="form-label text-secondary small"><?= __('final_seat_price_label', 'Final Seat Price (₹)') ?></label>
                             <input type="number" name="final_price" class="form-control form-control-swift py-1" value="500" required>
                         </div>
                     </div>
 
                     <button type="submit" class="btn btn-primary-gradient w-100 py-3 font-semibold">
-                        Apply Allocations
+                        <?= __('apply_allocations_btn', 'Apply Allocations') ?>
                     </button>
                 </form>
             <?php endif; ?>
@@ -309,27 +309,27 @@ if ($selected_trip_id > 0) {
             <?php if (!$trip_details): ?>
                 <div class="text-center py-5 text-secondary small">
                     <i class="fa-solid fa-chair mb-3 d-block" style="font-size: 3.5rem; color:#475569;"></i>
-                    Please select an active voyage from the control panel to view allocations.
+                    <?= __('select_voyage_view_allocations_desc', 'Please select an active voyage from the control panel to view allocations.') ?>
                 </div>
             <?php else: ?>
                 <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom border-secondary border-opacity-20 flex-wrap gap-2">
                     <div>
-                        <h5 class="fw-bold mb-0 text-white">Seat Selection Layout</h5>
-                        <span class="text-secondary small">Click cells to select one / Hold Ctrl + click to select multiple.</span>
+                        <h5 class="fw-bold mb-0 text-white"><?= __('seat_selection_layout_hdr', 'Seat Selection Layout') ?></h5>
+                        <span class="text-secondary small"><?= __('seat_selection_instructions', 'Click cells to select one / Hold Ctrl + click to select multiple.') ?></span>
                     </div>
                     <div class="d-flex gap-1">
-                        <button type="button" id="btnSelectAll" class="btn btn-secondary-glass py-1 px-2 small">Select All</button>
-                        <button type="button" id="btnSelectNone" class="btn btn-secondary-glass py-1 px-2 small">Clear Selection</button>
+                        <button type="button" id="btnSelectAll" class="btn btn-secondary-glass py-1 px-2 small"><?= __('select_all_btn', 'Select All') ?></button>
+                        <button type="button" id="btnSelectNone" class="btn btn-secondary-glass py-1 px-2 small"><?= __('clear_selection_btn', 'Clear Selection') ?></button>
                     </div>
                 </div>
 
                 <!-- Legend details -->
                 <div class="d-flex gap-3 mb-4 justify-content-center flex-wrap small">
-                    <div class="legend-item"><span class="legend-dot" style="background:#198754; border:1px solid #146c43;"></span><span class="text-secondary">Available</span></div>
-                    <div class="legend-item"><span class="legend-dot" style="background:#dc3545; border:1px solid #b02a37;"></span><span class="text-secondary">Booked</span></div>
-                    <div class="legend-item"><span class="legend-dot" style="background:#343a40; border:1px solid #212529;"></span><span class="text-secondary">Blocked</span></div>
-                    <div class="legend-item"><span class="legend-dot" style="background:#f472b6; border:1px solid #db2777;"></span><span class="text-secondary">Female Booked</span></div>
-                    <div class="legend-item"><span class="legend-dot" style="background:transparent; border:2px dashed #db2777;"></span><span class="text-secondary">Female Adjacent Restricted</span></div>
+                    <div class="legend-item"><span class="legend-dot" style="background:#198754; border:1px solid #146c43;"></span><span class="text-secondary"><?= __('legend_available', 'Available') ?></span></div>
+                    <div class="legend-item"><span class="legend-dot" style="background:#dc3545; border:1px solid #b02a37;"></span><span class="text-secondary"><?= __('legend_booked', 'Booked') ?></span></div>
+                    <div class="legend-item"><span class="legend-dot" style="background:#343a40; border:1px solid #212529;"></span><span class="text-secondary"><?= __('legend_blocked', 'Blocked') ?></span></div>
+                    <div class="legend-item"><span class="legend-dot" style="background:#f472b6; border:1px solid #db2777;"></span><span class="text-secondary"><?= __('legend_female_booked', 'Female Booked') ?></span></div>
+                    <div class="legend-item"><span class="legend-dot" style="background:transparent; border:2px dashed #db2777;"></span><span class="text-secondary"><?= __('legend_female_adjacent_restricted', 'Female Adjacent Restricted') ?></span></div>
                 </div>
 
                 <div class="text-center overflow-auto py-2">
@@ -337,10 +337,10 @@ if ($selected_trip_id > 0) {
                     <div id="deck-tabs-container" style="display: none;">
                         <ul class="nav nav-pills justify-content-center mb-4 gap-2" role="tablist">
                             <li class="nav-item">
-                                <button class="nav-link btn-secondary-glass active px-4 py-2" id="admin-low-deck-tab" data-bs-toggle="pill" data-bs-target="#admin-low-deck-pane" type="button" role="tab">Lower Deck</button>
+                                <button class="nav-link btn-secondary-glass active px-4 py-2" id="admin-low-deck-tab" data-bs-toggle="pill" data-bs-target="#admin-low-deck-pane" type="button" role="tab"><?= __('lower_deck_tab', 'Lower Deck') ?></button>
                             </li>
                             <li class="nav-item">
-                                <button class="nav-link btn-secondary-glass px-4 py-2" id="admin-up-deck-tab" data-bs-toggle="pill" data-bs-target="#admin-up-deck-pane" type="button" role="tab">Upper Deck</button>
+                                <button class="nav-link btn-secondary-glass px-4 py-2" id="admin-up-deck-tab" data-bs-toggle="pill" data-bs-target="#admin-up-deck-pane" type="button" role="tab"><?= __('upper_deck_tab', 'Upper Deck') ?></button>
                             </li>
                         </ul>
                     </div>
@@ -452,7 +452,7 @@ $(document).ready(function() {
         });
 
         for (var r = 0; r < rows; r++) {
-            var rowHeaderCell = $('<div class="grid-cell" style="cursor: pointer; font-size: 0.7rem; color: var(--text-muted);" data-row-header="' + r + '">Row ' + (r + 1) + '</div>');
+            var rowHeaderCell = $('<div class="grid-cell" style="cursor: pointer; font-size: 0.7rem; color: var(--text-muted);" data-row-header="' + r + '"><?= __('row_label_grid', 'Row') ?> ' + (r + 1) + '</div>');
             rowHeaderCell.css({
                 'grid-row': (r + 1),
                 'grid-column': 1
@@ -507,7 +507,7 @@ $(document).ready(function() {
     function handleSeatToggle(seat) {
         return function(e) {
             if (seat.status === 'booked' || seat.status === 'female_booked') {
-                alert("Booked seats cannot be modified.");
+                alert("<?= __('booked_seats_not_modifiable_alert', 'Booked seats cannot be modified.') ?>");
                 return;
             }
             
@@ -559,7 +559,7 @@ $(document).ready(function() {
 
     function updateSelectionPreview() {
         $('#action_seats_list').val(selectedSeats.join(','));
-        $('#selection_preview').text(selectedSeats.length + " Seat(s) Selected (" + selectedSeats.join(', ') + ")");
+        $('#selection_preview').text(selectedSeats.length + " <?= __('seats_selected_summary_label', 'Seat(s) Selected') ?> (" + selectedSeats.join(', ') + ")");
     }
 
     $('#btnSelectAll').click(function() {

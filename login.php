@@ -8,7 +8,7 @@ header("Expires: 0");
 
 require_once __DIR__ . '/includes/auth_middleware.php';
 
-$page_title = "Login";
+$page_title = __('nav_login', 'Login');
 
 // Redirect if already logged in
 if (is_logged_in()) {
@@ -38,13 +38,13 @@ if (isset($_SESSION['timeout_message'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $csrf_token = $_POST['csrf_token'] ?? '';
     if (!verify_csrf_token($csrf_token)) {
-        $error = "Security validation failed. Please try again.";
+        $error = __('security_validation_failed', 'Security validation failed. Please try again.');
     } else {
         $login_input = trim($_POST['login_input'] ?? '');
         $password = $_POST['password'] ?? '';
 
         if (empty($login_input) || empty($password)) {
-            $error = "Please fill in all fields.";
+            $error = __('fill_all_fields', 'Please fill in all fields.');
         } else {
             // Find user by username or email
             $stmt = $pdo->prepare("SELECT * FROM users WHERE username = :username OR email = :email LIMIT 1");
@@ -56,13 +56,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ($user_row && password_verify($password, $user_row['password'])) {
                 if ($user_row['role'] === 'agent' && $user_row['status'] === 'pending') {
-                    $error = "Your agency account is pending approval by the selected Bus Operator.";
+                    $error = __('agency_pending_approval', 'Your agency account is pending approval by the selected Bus Operator.');
                 } elseif ($user_row['role'] === 'agent' && $user_row['status'] === 'suspended') {
-                    $error = "Your agency account is currently suspended.";
+                    $error = __('agency_suspended', 'Your agency account is currently suspended.');
                 } elseif ($user_row['role'] === 'admin' && $user_row['status'] === 'pending') {
-                    $error = "Your operator account is pending Super Admin approval. Please contact support.";
+                    $error = __('operator_pending_approval', 'Your operator account is pending Super Admin approval. Please contact support.');
                 } elseif ($user_row['role'] === 'admin' && $user_row['status'] === 'suspended') {
-                    $error = "Your operator account is currently suspended by the Super Admin.";
+                    $error = __('operator_suspended', 'Your operator account is currently suspended by the Super Admin.');
                 } else {
                     // Create Session
                     session_regenerate_id(true);
@@ -89,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     exit();
                 }
             } else {
-                $error = "Invalid username/email or password.";
+                $error = __('invalid_credentials', 'Invalid username/email or password.');
                 log_activity($pdo, null, 'LOGIN_FAILED', "Failed login attempt for: $login_input");
             }
         }
@@ -105,8 +105,8 @@ require_once __DIR__ . '/includes/header.php';
         <div class="glass-card p-5 mt-3">
             <div class="text-center mb-4">
                 <i class="fa-solid fa-bus text-indigo animate-pulse" id="login-icon" style="font-size: 3rem; color: #818cf8; filter: drop-shadow(0 0 15px rgba(129,140,248,0.4));"></i>
-                <h2 class="fw-bold mt-3 text-white" id="login-title">Sign In</h2>
-                <p class="text-secondary small" id="login-desc">Access your account, agent portal, or admin desk</p>
+                <h2 class="fw-bold mt-3 text-white" id="login-title"><?= __('sign_in_btn', 'Sign In') ?></h2>
+                <p class="text-secondary small" id="login-desc"><?= __('login_subtitle', 'Access your bookings, track passenger lists, and manage profiles.') ?></p>
             </div>
 
             <?php if (!empty($error)): ?>
@@ -126,35 +126,33 @@ require_once __DIR__ . '/includes/header.php';
                 <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
 
                 <div class="mb-4">
-                    <label for="login_input" class="form-label text-secondary small fw-semibold">Username or Email Address</label>
+                    <label for="login_input" class="form-label text-secondary small fw-semibold"><?= __('username_or_email', 'Username or Email Address') ?></label>
                     <div class="input-group">
                         <span class="input-group-text bg-dark border-secondary border-end-0 text-secondary" style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-user" id="input-icon"></i></span>
-                        <input type="text" name="login_input" id="login_input" class="form-control form-control-swift border-start-0" placeholder="Enter username or email" style="border-radius: 0 12px 12px 0;" autocomplete="new-username" required>
+                        <input type="text" name="login_input" id="login_input" class="form-control form-control-swift border-start-0" placeholder="<?= __('enter_username_or_email', 'Enter username or email') ?>" style="border-radius: 0 12px 12px 0;" autocomplete="new-username" required>
                     </div>
                 </div>
 
                 <div class="mb-4">
-                    <label for="password" class="form-label text-secondary small fw-semibold">Password</label>
+                    <label for="password" class="form-label text-secondary small fw-semibold"><?= __('password', 'Password') ?></label>
                     <div class="input-group">
                         <span class="input-group-text bg-dark border-secondary border-end-0 text-secondary" style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-key"></i></span>
-                        <input type="password" name="password" id="password" class="form-control form-control-swift border-start-0" placeholder="Enter password" style="border-radius: 0 12px 12px 0;" autocomplete="new-password" required>
+                        <input type="password" name="password" id="password" class="form-control form-control-swift border-start-0" placeholder="<?= __('enter_password', 'Enter password') ?>" style="border-radius: 0 12px 12px 0;" autocomplete="new-password" required>
                     </div>
                 </div>
 
                 <div class="d-grid mb-3">
-                    <button type="submit" class="btn btn-primary-gradient py-3 font-semibold" id="btn-submit">Sign In</button>
+                    <button type="submit" class="btn btn-primary-gradient py-3 font-semibold" id="btn-submit"><?= __('sign_in_btn', 'Sign In') ?></button>
                 </div>
             </form>
 
             <div class="text-center mt-4" id="register-link-container">
-                <span class="text-secondary small">Don't have an account? </span>
-                <a href="<?= BASE_URL ?>/register.php" class="text-decoration-none small text-indigo" style="color: #818cf8; font-weight: 500;">Register here</a>
+                <span class="text-secondary small"><?= __('dont_have_account', "Don't have an account?") ?> </span>
+                <a href="<?= BASE_URL ?>/register.php" class="text-decoration-none small text-indigo" style="color: #818cf8; font-weight: 500;"><?= __('register_here', 'Register here') ?></a>
             </div>
         </div>
     </div>
 </div>
-
-
 
 <?php
 // Include Footer

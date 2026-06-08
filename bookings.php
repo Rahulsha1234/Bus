@@ -11,7 +11,7 @@ if (!is_logged_in()) {
     exit();
 }
 
-$page_title = "My Booking History";
+$page_title = __('my_bookings_title', 'My Booking History');
 $customer_id = $_SESSION['user_id'];
 
 try {
@@ -58,30 +58,30 @@ require_once __DIR__ . '/includes/header.php';
 <div class="glass-card p-5 mb-5" style="border-radius: 20px;">
     <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
         <div>
-            <h3 class="fw-bold text-white mb-1"><i class="fa-solid fa-receipt text-indigo me-2"></i>My Bookings</h3>
-            <p class="text-secondary mb-0">View booking details, print boarding passes, and manage cancellations.</p>
+            <h3 class="fw-bold text-white mb-1"><i class="fa-solid fa-receipt text-indigo me-2"></i><?= __('my_bookings_title', 'My Bookings') ?></h3>
+            <p class="text-secondary mb-0"><?= __('my_bookings_subtitle', 'View booking details, print boarding passes, and manage cancellations.') ?></p>
         </div>
-        <a href="<?= BASE_URL ?>/index.php" class="btn btn-primary-gradient px-4 py-2"><i class="fa-solid fa-magnifying-glass me-2"></i>Book New Journey</a>
+        <a href="<?= BASE_URL ?>/index.php" class="btn btn-primary-gradient px-4 py-2"><i class="fa-solid fa-magnifying-glass me-2"></i><?= __('book_now_btn', 'Book New Journey') ?></a>
     </div>
 
     <?php if (empty($bookings)): ?>
         <div class="text-center py-5">
             <div class="text-secondary mb-3" style="font-size: 3rem;"><i class="fa-solid fa-ticket-simple"></i></div>
-            <h5 class="text-white fw-bold">No Bookings Found</h5>
-            <p class="text-secondary small">You have not booked any bus voyages yet.</p>
+            <h5 class="text-white fw-bold"><?= __('no_bookings', 'No Bookings Found') ?></h5>
+            <p class="text-secondary small"><?= __('no_bookings_desc', 'You have not booked any bus voyages yet.') ?></p>
         </div>
     <?php else: ?>
         <div class="table-responsive">
             <table class="table table-swift table-dark table-hover align-middle" style="background: transparent;">
                 <thead>
                     <tr class="border-bottom border-secondary border-opacity-35 text-secondary small">
-                        <th>Reference ID</th>
-                        <th>Fleet / Bus Name</th>
-                        <th>Journey Details</th>
-                        <th>Seats</th>
-                        <th>Amount</th>
-                        <th>Booking Status</th>
-                        <th class="text-end">Actions</th>
+                        <th><?= __('ticket_code', 'Reference ID') ?></th>
+                        <th><?= __('bus_details', 'Fleet / Bus Name') ?></th>
+                        <th><?= __('route', 'Journey Details') ?></th>
+                        <th><?= __('seats', 'Seats') ?></th>
+                        <th><?= __('amount', 'Amount') ?></th>
+                        <th><?= __('status', 'Booking Status') ?></th>
+                        <th class="text-end"><?= __('actions', 'Actions') ?></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -117,17 +117,17 @@ require_once __DIR__ . '/includes/header.php';
                              </td>
                             <td>
                                 <?php if ($b['booking_status'] === 'cancelled'): ?>
-                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25">CANCELLED</span>
+                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25"><?= __('cancelled', 'CANCELLED') ?></span>
                                 <?php elseif (!empty($b['cancel_req_status'])): ?>
                                     <?php if ($b['cancel_req_status'] === 'pending'): ?>
-                                        <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25" title="Request #: <?= $b['cancel_req_num'] ?>">CANCEL PENDING</span>
+                                        <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25" title="Request #: <?= $b['cancel_req_num'] ?>"><?= __('pending', 'CANCEL PENDING') ?></span>
                                     <?php elseif ($b['cancel_req_status'] === 'approved'): ?>
-                                        <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25">CANCEL APPROVED</span>
+                                        <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25"><?= __('cancelled', 'CANCEL APPROVED') ?></span>
                                     <?php else: ?>
-                                        <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">ACTIVE (REJECTED)</span>
+                                        <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25"><?= __('confirmed', 'ACTIVE (REJECTED)') ?></span>
                                     <?php endif; ?>
                                 <?php else: ?>
-                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">ACTIVE & PAID</span>
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25"><?= __('confirmed', 'ACTIVE & PAID') ?></span>
                                 <?php endif; ?>
                             </td>
                             <td class="text-end">
@@ -140,10 +140,10 @@ require_once __DIR__ . '/includes/header.php';
                                     </a>
                                     
                                     <?php if ($b['booking_status'] === 'active' && empty($b['cancel_req_status'])): ?>
-                                         <form action="<?= BASE_URL ?>/cancellations.php" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to request ticket cancellation?');">
+                                         <form action="<?= BASE_URL ?>/cancellations.php" method="POST" class="d-inline" onsubmit="return confirm(<?= htmlspecialchars(json_encode(__('confirm_cancel_msg', 'Are you sure you want to request ticket cancellation?')), ENT_QUOTES, 'UTF-8') ?>);">
                                              <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
                                              <input type="hidden" name="booking_id" value="<?= $b['booking_id'] ?>">
-                                             <button type="submit" class="btn btn-danger-glass btn-sm" title="Request Cancellation">
+                                             <button type="submit" class="btn btn-danger-glass btn-sm" title="<?= __('cancel_ticket', 'Request Cancellation') ?>">
                                                  <i class="fa-solid fa-ban"></i>
                                              </button>
                                          </form>

@@ -13,7 +13,7 @@
                         <span class="text-dark" style="color: var(--text-primary) !important;"><?= htmlspecialchars(SYSTEM_NAME) ?></span>
                     </h5>
                     <p class="small mb-4" style="line-height: 1.6; color: var(--text-secondary);">
-                        Providing safe, highly reliable, and premium bus ticketing systems across India. Experience the next level of intercity travel with smart routing and luxury amenities.
+                        <?= __('footer_desc', 'Providing safe, highly reliable, and premium bus ticketing systems across India. Experience the next level of intercity travel with smart routing and luxury amenities.') ?>
                     </p>
                     
                     <!-- Social Media Links -->
@@ -35,36 +35,36 @@
                 
                 <!-- Quick links -->
                 <div class="col-6 col-lg-2 offset-lg-1">
-                    <h6 class="text-dark mb-3 text-uppercase tracking-wider small fw-bold" style="color: var(--text-primary) !important; font-family: 'Plus Jakarta Sans', sans-serif;">Quick Navigation</h6>
+                    <h6 class="text-dark mb-3 text-uppercase tracking-wider small fw-bold" style="color: var(--text-primary) !important; font-family: 'Plus Jakarta Sans', sans-serif;"><?= __('quick_nav', 'Quick Navigation') ?></h6>
                     <ul class="list-unstyled d-flex flex-column gap-2">
-                        <li><a href="<?= BASE_URL ?>/index.php" class="footer-link small text-decoration-none" style="transition: color 0.2s ease;"><i class="fa-solid fa-chevron-right me-1 small" style="font-size: 0.7rem;"></i> Search Buses</a></li>
-                        <li><a href="<?= BASE_URL ?>/login.php" class="footer-link small text-decoration-none" style="transition: color 0.2s ease;"><i class="fa-solid fa-chevron-right me-1 small" style="font-size: 0.7rem;"></i> Login Portal</a></li>
-                        <li><a href="<?= BASE_URL ?>/register.php" class="footer-link small text-decoration-none" style="transition: color 0.2s ease;"><i class="fa-solid fa-chevron-right me-1 small" style="font-size: 0.7rem;"></i> Agent Join</a></li>
+                        <li><a href="<?= BASE_URL ?>/index.php" class="footer-link small text-decoration-none" style="transition: color 0.2s ease;"><i class="fa-solid fa-chevron-right me-1 small" style="font-size: 0.7rem;"></i> <?= __('nav_home', 'Home') ?></a></li>
+                        <li><a href="<?= BASE_URL ?>/login.php" class="footer-link small text-decoration-none" style="transition: color 0.2s ease;"><i class="fa-solid fa-chevron-right me-1 small" style="font-size: 0.7rem;"></i> <?= __('nav_login', 'Login') ?></a></li>
+                        <li><a href="<?= BASE_URL ?>/register.php" class="footer-link small text-decoration-none" style="transition: color 0.2s ease;"><i class="fa-solid fa-chevron-right me-1 small" style="font-size: 0.7rem;"></i> <?= __('nav_register', 'Register') ?></a></li>
                     </ul>
                 </div>
                 
                 <!-- Features -->
                 <div class="col-6 col-lg-2">
-                    <h6 class="text-dark mb-3 text-uppercase tracking-wider small fw-bold" style="color: var(--text-primary) !important; font-family: 'Plus Jakarta Sans', sans-serif;">Key Features</h6>
+                    <h6 class="text-dark mb-3 text-uppercase tracking-wider small fw-bold" style="color: var(--text-primary) !important; font-family: 'Plus Jakarta Sans', sans-serif;"><?= __('key_features', 'Key Features') ?></h6>
                     <ul class="list-unstyled d-flex flex-column gap-2" style="color: var(--text-secondary);">
-                        <li class="small"><i class="fa-solid fa-check text-success me-2"></i> Seat Selection</li>
-                        <li class="small"><i class="fa-solid fa-check text-success me-2"></i> Instant Booking</li>
-                        <li class="small"><i class="fa-solid fa-check text-success me-2"></i> Cancel & Refund</li>
+                        <li class="small"><i class="fa-solid fa-check text-success me-2"></i> <?= __('seat_selection', 'Seat Selection') ?></li>
+                        <li class="small"><i class="fa-solid fa-check text-success me-2"></i> <?= __('nav_my_bookings', 'My Bookings') ?></li>
+                        <li class="small"><i class="fa-solid fa-check text-success me-2"></i> <?= __('nav_cancellations', 'Cancellations') ?></li>
                     </ul>
                 </div>
                 
                 <!-- Support & Security -->
                 <div class="col-lg-3">
-                    <h6 class="text-dark mb-3 text-uppercase tracking-wider small fw-bold" style="color: var(--text-primary) !important; font-family: 'Plus Jakarta Sans', sans-serif;">Support & Security</h6>
+                    <h6 class="text-dark mb-3 text-uppercase tracking-wider small fw-bold" style="color: var(--text-primary) !important; font-family: 'Plus Jakarta Sans', sans-serif;"><?= __('support_security', 'Support & Security') ?></h6>
                     <div class="d-flex flex-column gap-2">
                         <p class="small mb-1 d-flex align-items-center" style="color: var(--text-secondary);">
-                            <i class="fa-solid fa-shield-halved text-success me-2"></i> Role-Based Access Controls
+                            <i class="fa-solid fa-shield-halved text-success me-2"></i> <?= __('footer_rbac', 'Role-Based Access Controls') ?>
                         </p>
                         <p class="small mb-1 d-flex align-items-center" style="color: var(--text-secondary);">
-                            <i class="fa-solid fa-lock text-success me-2"></i> Encrypted SQL Transactions
+                            <i class="fa-solid fa-lock text-success me-2"></i> <?= __('footer_sql', 'Encrypted SQL Transactions') ?>
                         </p>
                         <p class="small d-flex align-items-center" style="color: var(--text-secondary);">
-                            <i class="fa-solid fa-credit-card text-success me-2"></i> Secure Payment Gateways
+                            <i class="fa-solid fa-credit-card text-success me-2"></i> <?= __('footer_secure_pay', 'Secure Payment Gateways') ?>
                         </p>
                     </div>
                 </div>
@@ -75,10 +75,10 @@
             <!-- Lower footer -->
             <div class="row align-items-center">
                 <div class="col-md-6 text-center text-md-start small" style="color: #9ca3af;">
-                    &copy; <?= date('Y') ?> <?= htmlspecialchars(SYSTEM_NAME) ?>. All rights reserved.
+                    &copy; <?= date('Y') ?> <?= htmlspecialchars(SYSTEM_NAME) ?>. <?= __('all_rights_reserved', 'All rights reserved.') ?>
                 </div>
                 <div class="col-md-6 text-center text-md-end small mt-2 mt-md-0" style="color: #9ca3af;">
-                    Designed for visual excellence & premium security.
+                    <?= __('footer_tagline', 'Designed for visual excellence & premium security.') ?>
                 </div>
             </div>
         </div>

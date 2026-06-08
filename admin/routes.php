@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $csrf_token = $_POST['csrf_token'] ?? '';
 
     if (!verify_csrf_token($csrf_token)) {
-        $error = "Security token validation failed.";
+        $error = __('security_validation_failed', "Security token validation failed.");
     } else {
         $action = $_POST['action'] ?? '';
 
@@ -60,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if (empty($source) || empty($destination) || $distance === 0 || empty($pickups) || empty($drops)) {
-                $error = "Please fill in all route cities, mileage distance, and at least one pickup/drop milestone.";
+                $error = __('fill_all_route_fields', "Please fill in all route cities, mileage distance, and at least one pickup/drop milestone.");
             } else {
                 try {
                     $stmt = $pdo->prepare("
@@ -92,10 +92,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $d_stmt->execute([$route_id, $d['name'], $d['time']]);
                     }
 
-                    $success = "Route registered successfully!";
+                    $success = __('route_registered_success', "Route registered successfully!");
                     log_activity($pdo, $admin_id, 'ROUTE_ADD', "Added route $source to $destination ($distance km, $duration)");
                 } catch (PDOException $e) {
-                    $error = "Failed to add route: " . $e->getMessage();
+                    $error = __('failed_add_route', "Failed to add route: ") . $e->getMessage();
                 }
             }
         }
@@ -139,7 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if (empty($source) || empty($destination) || $distance === 0 || empty($pickups) || empty($drops) || $route_id === 0) {
-                $error = "Please fill in all route details and milestones.";
+                $error = __('fill_all_route_edit_fields', "Please fill in all route details and milestones.");
             } else {
                 $stmt = $pdo->prepare("
                     UPDATE routes 
@@ -172,7 +172,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $d_stmt->execute([$route_id, $d['name'], $d['time']]);
                 }
 
-                $success = "Route updated successfully!";
+                $success = __('route_updated_success', "Route updated successfully!");
                 log_activity($pdo, $admin_id, 'ROUTE_EDIT', "Updated route ID $route_id: $source to $destination");
             }
         }
@@ -186,10 +186,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$route_id, $admin_id]);
 
             if ($stmt->rowCount() > 0) {
-                $success = "Route removed successfully!";
+                $success = __('route_deleted_success', "Route removed successfully!");
                 log_activity($pdo, $admin_id, 'ROUTE_DELETE', "Soft deleted route ID: $route_id");
             } else {
-                $error = "Failed to delete route. Invalid ID or authorization conflict.";
+                $error = __('failed_delete_route', "Failed to delete route. Invalid ID or authorization conflict.");
             }
         }
     }
@@ -233,9 +233,9 @@ try {
 
 <!-- Actions Toolbar -->
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h4 class="text-white fw-bold mb-0">Scheduled Routes</h4>
+    <h4 class="text-white fw-bold mb-0"><?= __('scheduled_routes', 'Scheduled Routes') ?></h4>
     <button class="btn btn-primary-gradient" data-bs-toggle="modal" data-bs-target="#addRouteModal"><i
-            class="fa-solid fa-circle-plus me-2"></i>Schedule Route</button>
+            class="fa-solid fa-circle-plus me-2"></i><?= __('schedule_route', 'Schedule Route') ?></button>
 </div>
 
 <!-- Routes Table -->
@@ -243,19 +243,19 @@ try {
     <?php if (count($routes) === 0): ?>
         <div class="text-center py-5 text-secondary small">
             <i class="fa-solid fa-route mb-3 d-block" style="font-size: 3rem; color: #475569;"></i>
-            No routes configured yet. Setup a travel route to schedule active bus trips.
+            <?= __('no_routes_configured', 'No routes configured yet. Setup a travel route to schedule active bus trips.') ?>
         </div>
     <?php else: ?>
         <div class="table-responsive">
             <table class="table table-swift table-dark table-hover table-borderless align-middle datatable-swift">
                 <thead>
                     <tr>
-                        <th>Origin City</th>
-                        <th>Destination City</th>
-                        <th>Distance & Duration</th>
-                        <th>Boarding Stations</th>
-                        <th>Drop Stations</th>
-                        <th class="text-end">Actions</th>
+                        <th><?= __('origin_city', 'Origin City') ?></th>
+                        <th><?= __('destination_city', 'Destination City') ?></th>
+                        <th><?= __('distance_duration', 'Distance & Duration') ?></th>
+                        <th><?= __('boarding_stations', 'Boarding Stations') ?></th>
+                        <th><?= __('drop_stations', 'Drop Stations') ?></th>
+                        <th class="text-end"><?= __('actions', 'Actions') ?></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -312,7 +312,7 @@ try {
         <?php if ($total_pages > 1): ?>
             <div class="d-flex justify-content-between align-items-center mt-4">
                 <div class="text-secondary small">
-                    Showing <?= $offset + 1 ?> to <?= min($total_records, $offset + $limit) ?> of <?= $total_records ?> entries
+                    <?= __('showing_entries', 'Showing') ?> <?= $offset + 1 ?> <?= __('to_entries', 'to') ?> <?= min($total_records, $offset + $limit) ?> <?= __('of_entries', 'of') ?> <?= $total_records ?> <?= __('entries', 'entries') ?>
                 </div>
                 <nav aria-label="Page navigation">
                     <ul class="pagination pagination-swift mb-0">
@@ -344,8 +344,7 @@ try {
         <div class="modal-content glass-card text-white border-secondary border-opacity-30"
             style="background:#111111; border-radius: 20px;">
             <div class="modal-header border-secondary border-opacity-20 p-4">
-                <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-route me-2 text-indigo"></i>Setup Route
-                    Layout</h5>
+                <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-route me-2 text-indigo"></i><?= __('setup_route_layout', 'Setup Route Layout') ?></h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form action="" method="POST">
@@ -355,22 +354,22 @@ try {
 
                     <div class="row">
                         <div class="col-md-3 mb-3">
-                            <label class="form-label text-secondary small fw-semibold">Origin (Strating Point)</label>
+                            <label class="form-label text-secondary small fw-semibold"><?= __('origin_starting_point', 'Origin (Starting Point)') ?></label>
                             <input type="text" name="source" class="form-control form-control-swift"
-                                placeholder="e.g. Bangalore" required>
+                                placeholder="<?= __('select_origin', 'e.g. Bangalore') ?>" required>
                         </div>
                         <div class="col-md-3 mb-3">
-                            <label class="form-label text-secondary small fw-semibold">Going To (Destination)</label>
+                            <label class="form-label text-secondary small fw-semibold"><?= __('going_to_destination', 'Going To (Destination)') ?></label>
                             <input type="text" name="destination" class="form-control form-control-swift"
-                                placeholder="e.g. Mumbai" required>
+                                placeholder="<?= __('select_destination', 'e.g. Mumbai') ?>" required>
                         </div>
                         <div class="col-md-3 mb-3">
-                            <label class="form-label text-secondary small fw-semibold">Distance (km)</label>
+                            <label class="form-label text-secondary small fw-semibold"><?= __('distance_km', 'Distance (km)') ?></label>
                             <input type="number" name="distance_km" class="form-control form-control-swift"
                                 placeholder="e.g. 1000" min="10" required>
                         </div>
                         <div class="col-md-3 mb-3">
-                            <label class="form-label text-secondary small fw-semibold">Duration (hours)</label>
+                            <label class="form-label text-secondary small fw-semibold"><?= __('duration_hours', 'Duration (hours)') ?></label>
                             <input type="number" name="duration" class="form-control form-control-swift"
                                 placeholder="e.g. 6" min="1" max="100" required>
                         </div>
@@ -381,16 +380,16 @@ try {
                         <!-- Pickups -->
                         <div class="col-md-6 mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6 class="text-indigo fw-bold mb-0">Boarding Stations</h6>
+                                <h6 class="text-indigo fw-bold mb-0"><?= __('boarding_stations_header', 'Boarding Stations') ?></h6>
                                 <button type="button" class="btn btn-secondary-glass py-1 px-2 small"
                                     id="addPickupRowBtn" style="font-size:0.75rem;"><i
-                                        class="fa-solid fa-plus me-1"></i>Station</button>
+                                        class="fa-solid fa-plus me-1"></i><?= __('station', 'Station') ?></button>
                             </div>
                             <div id="pickupRowsContainer">
                                 <div class="row g-2 mb-2 alignment-row">
                                     <div class="col-12">
                                         <input type="text" name="pickup_name[]"
-                                            class="form-control form-control-swift py-1" placeholder="Station name"
+                                            class="form-control form-control-swift py-1" placeholder="<?= __('station_name', 'Station name') ?>"
                                             required>
                                         <input type="hidden" name="pickup_time[]" value="00:00">
                                     </div>
@@ -401,15 +400,15 @@ try {
                         <!-- Drops -->
                         <div class="col-md-6 mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6 class="text-pink fw-bold mb-0">Drop-off Stations</h6>
+                                <h6 class="text-pink fw-bold mb-0"><?= __('drop_off_stations_header', 'Drop-off Stations') ?></h6>
                                 <button type="button" class="btn btn-secondary-glass py-1 px-2 small" id="addDropRowBtn"
-                                    style="font-size:0.75rem;"><i class="fa-solid fa-plus me-1"></i>Station</button>
+                                    style="font-size:0.75rem;"><i class="fa-solid fa-plus me-1"></i><?= __('station', 'Station') ?></button>
                             </div>
                             <div id="dropRowsContainer">
                                 <div class="row g-2 mb-2 alignment-row">
                                     <div class="col-12">
                                         <input type="text" name="drop_name[]"
-                                            class="form-control form-control-swift py-1" placeholder="Station name"
+                                            class="form-control form-control-swift py-1" placeholder="<?= __('station_name', 'Station name') ?>"
                                             required>
                                         <input type="hidden" name="drop_time[]" value="00:00">
                                     </div>
@@ -420,8 +419,8 @@ try {
 
                 </div>
                 <div class="modal-footer border-secondary border-opacity-20 p-4">
-                    <button type="button" class="btn btn-secondary-glass" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary-gradient">Create Route</button>
+                    <button type="button" class="btn btn-secondary-glass" data-bs-dismiss="modal"><?= __('cancel', 'Cancel') ?></button>
+                    <button type="submit" class="btn btn-primary-gradient"><?= __('create_route', 'Create Route') ?></button>
                 </div>
             </form>
         </div>
@@ -434,8 +433,7 @@ try {
         <div class="modal-content glass-card text-white border-secondary border-opacity-30"
             style="background:#111111; border-radius: 20px;">
             <div class="modal-header border-secondary border-opacity-20 p-4">
-                <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-route me-2 text-indigo"></i>Modify
-                    Route</h5>
+                <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-route me-2 text-indigo"></i><?= __('modify_route', 'Modify Route') ?></h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form action="" method="POST">
@@ -446,32 +444,32 @@ try {
 
                     <div class="row">
                         <div class="col-md-3 mb-3">
-                            <label class="form-label text-secondary small fw-semibold">Leaving From (Source)</label>
+                            <label class="form-label text-secondary small fw-semibold"><?= __('leaving_from_source', 'Leaving From (Source)') ?></label>
                             <input type="text" name="source" id="edit_source" class="form-control form-control-swift"
                                 required>
                         </div>
                         <div class="col-md-3 mb-3">
-                            <label class="form-label text-secondary small fw-semibold">Going To (Destination)</label>
+                            <label class="form-label text-secondary small fw-semibold"><?= __('going_to_destination', 'Going To (Destination)') ?></label>
                             <input type="text" name="destination" id="edit_destination"
                                 class="form-control form-control-swift" required>
                         </div>
                         <div class="col-md-3 mb-3">
-                            <label class="form-label text-secondary small fw-semibold">Distance (km)</label>
+                            <label class="form-label text-secondary small fw-semibold"><?= __('distance_km', 'Distance (km)') ?></label>
                             <input type="number" name="distance_km" id="edit_distance"
                                 class="form-control form-control-swift" min="10" required>
                         </div>
                         <div class="col-md-3 mb-3">
-                            <label class="form-label text-secondary small fw-semibold">Duration (hours)</label>
+                            <label class="form-label text-secondary small fw-semibold"><?= __('duration_hours', 'Duration (hours)') ?></label>
                             <input type="number" name="duration" id="edit_duration"
                                 class="form-control form-control-swift" min="1" max="100" required>
                         </div>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold">Route Status</label>
+                        <label class="form-label text-secondary small fw-semibold"><?= __('route_status', 'Route Status') ?></label>
                         <select name="status" id="edit_status" class="form-select form-control-swift" required>
-                            <option value="active">Active (Visible)</option>
-                            <option value="inactive">Inactive (Hidden)</option>
+                            <option value="active"><?= __('active_visible', 'Active (Visible)') ?></option>
+                            <option value="inactive"><?= __('inactive_hidden', 'Inactive (Hidden)') ?></option>
                         </select>
                     </div>
 
@@ -480,10 +478,10 @@ try {
                         <!-- Pickups -->
                         <div class="col-md-6 mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6 class="text-indigo fw-bold mb-0">Boarding Stations</h6>
+                                <h6 class="text-indigo fw-bold mb-0"><?= __('boarding_stations_header', 'Boarding Stations') ?></h6>
                                 <button type="button" class="btn btn-secondary-glass py-1 px-2 small"
                                     id="editAddPickupRowBtn" style="font-size:0.75rem;"><i
-                                        class="fa-solid fa-plus me-1"></i>Station</button>
+                                        class="fa-solid fa-plus me-1"></i><?= __('station', 'Station') ?></button>
                             </div>
                             <div id="editPickupRowsContainer"></div>
                         </div>
@@ -491,10 +489,10 @@ try {
                         <!-- Drops -->
                         <div class="col-md-6 mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6 class="text-pink fw-bold mb-0">Drop-off Stations</h6>
+                                <h6 class="text-pink fw-bold mb-0"><?= __('drop_off_stations_header', 'Drop-off Stations') ?></h6>
                                 <button type="button" class="btn btn-secondary-glass py-1 px-2 small"
                                     id="editAddDropRowBtn" style="font-size:0.75rem;"><i
-                                        class="fa-solid fa-plus me-1"></i>Station</button>
+                                        class="fa-solid fa-plus me-1"></i><?= __('station', 'Station') ?></button>
                             </div>
                             <div id="editDropRowsContainer"></div>
                         </div>
@@ -502,8 +500,8 @@ try {
 
                 </div>
                 <div class="modal-footer border-secondary border-opacity-20 p-4">
-                    <button type="button" class="btn btn-secondary-glass" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary-gradient">Save Changes</button>
+                    <button type="button" class="btn btn-secondary-glass" data-bs-dismiss="modal"><?= __('cancel', 'Cancel') ?></button>
+                    <button type="submit" class="btn btn-primary-gradient"><?= __('save_changes', 'Save Changes') ?></button>
                 </div>
             </form>
         </div>
@@ -522,13 +520,12 @@ try {
                     <input type="hidden" name="route_id" id="delete_route_id">
 
                     <i class="fa-solid fa-circle-exclamation text-danger mb-3" style="font-size: 3rem;"></i>
-                    <h5 class="fw-bold mb-2">Delete Route?</h5>
-                    <p class="text-secondary small">Are you sure you want to delete this route? Deleting this route will
-                        delete all mapped active trips.</p>
+                    <h5 class="fw-bold mb-2"><?= __('delete_route_q', 'Delete Route?') ?></h5>
+                    <p class="text-secondary small"><?= __('delete_route_desc', 'Are you sure you want to delete this route? Deleting this route will delete all mapped active trips.') ?></p>
                 </div>
                 <div class="modal-footer border-0 p-3 d-flex justify-content-around">
-                    <button type="button" class="btn btn-secondary-glass w-45 py-2" data-bs-dismiss="modal">No</button>
-                    <button type="submit" class="btn btn-danger w-45 py-2">Yes, Delete</button>
+                    <button type="button" class="btn btn-secondary-glass w-45 py-2" data-bs-dismiss="modal"><?= __('no', 'No') ?></button>
+                    <button type="submit" class="btn btn-danger w-45 py-2"><?= __('yes_delete', 'Yes, Delete') ?></button>
                 </div>
             </form>
         </div>
@@ -595,7 +592,7 @@ try {
         // Dynamic row addition for Pickups (ADD)
         $('#addPickupRowBtn').click(function() {
             var $row = $('<div class="row g-2 mb-2 alignment-row">' +
-                '<div class="col-11"><input type="text" name="pickup_name[]" class="form-control form-control-swift py-1" placeholder="Station name" required><input type="hidden" name="pickup_time[]" value="00:00"></div>' +
+                '<div class="col-11"><input type="text" name="pickup_name[]" class="form-control form-control-swift py-1" placeholder="<?= __('station_name', 'Station name') ?>" required><input type="hidden" name="pickup_time[]" value="00:00"></div>' +
                 '<div class="col-1 d-flex align-items-center"><button type="button" class="btn btn-link text-danger p-0 delete-row-btn"><i class="fa-solid fa-trash-can"></i></button></div>' +
                 '</div>');
             $('#pickupRowsContainer').append($row);
@@ -604,7 +601,7 @@ try {
         // Dynamic row addition for Drops (ADD)
         $('#addDropRowBtn').click(function() {
             var $row = $('<div class="row g-2 mb-2 alignment-row">' +
-                '<div class="col-11"><input type="text" name="drop_name[]" class="form-control form-control-swift py-1" placeholder="Station name" required><input type="hidden" name="drop_time[]" value="00:00"></div>' +
+                '<div class="col-11"><input type="text" name="drop_name[]" class="form-control form-control-swift py-1" placeholder="<?= __('station_name', 'Station name') ?>" required><input type="hidden" name="drop_time[]" value="00:00"></div>' +
                 '<div class="col-1 d-flex align-items-center"><button type="button" class="btn btn-link text-danger p-0 delete-row-btn"><i class="fa-solid fa-trash-can"></i></button></div>' +
                 '</div>');
             $('#dropRowsContainer').append($row);
@@ -613,7 +610,7 @@ try {
         // Dynamic row addition for Pickups (EDIT)
         $('#editAddPickupRowBtn').click(function() {
             var $row = $('<div class="row g-2 mb-2 alignment-row">' +
-                '<div class="col-11"><input type="text" name="pickup_name[]" class="form-control form-control-swift py-1" placeholder="Station name" required><input type="hidden" name="pickup_time[]" value="00:00"></div>' +
+                '<div class="col-11"><input type="text" name="pickup_name[]" class="form-control form-control-swift py-1" placeholder="<?= __('station_name', 'Station name') ?>" required><input type="hidden" name="pickup_time[]" value="00:00"></div>' +
                 '<div class="col-1 d-flex align-items-center"><button type="button" class="btn btn-link text-danger p-0 delete-row-btn"><i class="fa-solid fa-trash-can"></i></button></div>' +
                 '</div>');
             $('#editPickupRowsContainer').append($row);
@@ -622,7 +619,7 @@ try {
         // Dynamic row addition for Drops (EDIT)
         $('#editAddDropRowBtn').click(function() {
             var $row = $('<div class="row g-2 mb-2 alignment-row">' +
-                '<div class="col-11"><input type="text" name="drop_name[]" class="form-control form-control-swift py-1" placeholder="Station name" required><input type="hidden" name="drop_time[]" value="00:00"></div>' +
+                '<div class="col-11"><input type="text" name="drop_name[]" class="form-control form-control-swift py-1" placeholder="<?= __('station_name', 'Station name') ?>" required><input type="hidden" name="drop_time[]" value="00:00"></div>' +
                 '<div class="col-1 d-flex align-items-center"><button type="button" class="btn btn-link text-danger p-0 delete-row-btn"><i class="fa-solid fa-trash-can"></i></button></div>' +
                 '</div>');
             $('#editDropRowsContainer').append($row);

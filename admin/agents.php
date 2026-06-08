@@ -13,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $csrf_token = $_POST['csrf_token'] ?? '';
     
     if (!verify_csrf_token($csrf_token)) {
-        $_SESSION['error'] = "Security token validation failed.";
+        $_SESSION['error'] = __('security_validation_failed', "Security token validation failed.");
     } else {
         $action = $_POST['action'] ?? '';
         $agent_user_id = intval($_POST['agent_id'] ?? 0);
@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $chk->execute([$agent_user_id, $admin_id]);
             
             if (!$chk->fetchColumn()) {
-                $_SESSION['error'] = "Unauthorized action. This agent does not belong to your agency.";
+                $_SESSION['error'] = __('unauthorized_agent_agency', "Unauthorized action. This agent does not belong to your agency.");
             } else {
                 $new_status = '';
                 if ($action === 'approve') {
@@ -41,13 +41,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $stmt->execute([$new_status, $agent_user_id]);
                         
                         if ($stmt->rowCount() > 0) {
-                            $_SESSION['success'] = "Agent status updated to " . strtoupper($new_status) . " successfully!";
+                            $_SESSION['success'] = __('agent_status_updated_prefix', "Agent status updated to ") . strtoupper($new_status) . __('successfully_suffix', " successfully!");
                             log_activity($pdo, $admin_id, 'AGENT_STATUS_CHANGE_BY_OPERATOR', "Updated status of agent user ID $agent_user_id to $new_status");
                         } else {
-                            $_SESSION['error'] = "Failed to update agent status. Verify agent user exists.";
+                            $_SESSION['error'] = __('agent_status_update_failed', "Failed to update agent status. Verify agent user exists.");
                         }
                     } catch (PDOException $e) {
-                        $_SESSION['error'] = "Database error during status update: " . $e->getMessage();
+                        $_SESSION['error'] = __('agent_status_db_error', "Database error during status update: ") . $e->getMessage();
                     }
                 }
             }
@@ -121,22 +121,22 @@ try {
 <?php endif; ?>
 
 <div class="glass-card p-4">
-    <h5 class="text-white fw-bold mb-4"><i class="fa-solid fa-users-gear text-indigo me-2"></i>Agency Management Control Desk</h5>
+    <h5 class="text-white fw-bold mb-4"><i class="fa-solid fa-users-gear text-indigo me-2"></i><?= __('agency_management_control_desk_hdr', 'Agency Management Control Desk') ?></h5>
     
     <?php if (count($agents) === 0): ?>
-        <div class="text-center py-5 text-secondary small">No travel agents registered under your operator account yet.</div>
+        <div class="text-center py-5 text-secondary small"><?= __('no_travel_agents_registered', 'No travel agents registered under your operator account yet.') ?></div>
     <?php else: ?>
         <div class="table-responsive">
             <table class="table table-swift table-dark table-hover table-borderless align-middle datatable-swift">
                 <thead>
                     <tr>
-                        <th>Agency name</th>
-                        <th>User Credentials</th>
-                        <th>Contact Email</th>
-                        <th>Phone Number</th>
-                        <th>Status</th>
-                        <th>Registered Date</th>
-                        <th class="text-end">Actions</th>
+                        <th><?= __('agency_name_col', 'Agency name') ?></th>
+                        <th><?= __('user_credentials_col', 'User Credentials') ?></th>
+                        <th><?= __('contact_email_col', 'Contact Email') ?></th>
+                        <th><?= __('phone_number_col', 'Phone Number') ?></th>
+                        <th><?= __('status_col', 'Status') ?></th>
+                        <th><?= __('registered_date_col', 'Registered Date') ?></th>
+                        <th class="text-end"><?= __('actions_col', 'Actions') ?></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -148,11 +148,11 @@ try {
                             <td><?= htmlspecialchars($agent['phone'] ?? 'N/A') ?></td>
                             <td>
                                 <?php if ($agent['status'] === 'approved'): ?>
-                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1">APPROVED / ACTIVE</span>
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1"><?= __('status_approved_active', 'APPROVED / ACTIVE') ?></span>
                                 <?php elseif ($agent['status'] === 'pending'): ?>
-                                    <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-2 py-1">PENDING APPROVAL</span>
+                                    <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-2 py-1"><?= __('status_pending_approval', 'PENDING APPROVAL') ?></span>
                                 <?php else: ?>
-                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1">SUSPENDED</span>
+                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1"><?= __('status_suspended', 'SUSPENDED') ?></span>
                                 <?php endif; ?>
                             </td>
                             <td class="text-secondary small"><?= date('d M Y', strtotime($agent['created_at'])) ?></td>
@@ -163,21 +163,21 @@ try {
                                             <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
                                             <input type="hidden" name="action" value="approve">
                                             <input type="hidden" name="agent_id" value="<?= $agent['user_id'] ?>">
-                                            <button type="submit" class="btn btn-success py-1 px-3 small" style="font-size:0.75rem;"><i class="fa-solid fa-circle-check me-1"></i>Approve</button>
+                                            <button type="submit" class="btn btn-success py-1 px-3 small" style="font-size:0.75rem;"><i class="fa-solid fa-circle-check me-1"></i><?= __('approve_btn', 'Approve') ?></button>
                                         </form>
                                     <?php elseif ($agent['status'] === 'approved'): ?>
                                         <form action="" method="POST" class="d-inline">
                                             <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
                                             <input type="hidden" name="action" value="suspend">
                                             <input type="hidden" name="agent_id" value="<?= $agent['user_id'] ?>">
-                                            <button type="submit" class="btn btn-danger py-1 px-3 small" style="font-size:0.75rem;" onclick="return confirm('Suspend operations for this travel agent?')"><i class="fa-solid fa-user-slash me-1"></i>Suspend</button>
+                                            <button type="submit" class="btn btn-danger py-1 px-3 small" style="font-size:0.75rem;" onclick="return confirm('<?= __('suspend_agent_confirm_q', 'Suspend operations for this travel agent?') ?>')"><i class="fa-solid fa-user-slash me-1"></i><?= __('suspend_btn', 'Suspend') ?></button>
                                         </form>
                                     <?php else: ?>
                                         <form action="" method="POST" class="d-inline">
                                             <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
                                             <input type="hidden" name="action" value="reactivate">
                                             <input type="hidden" name="agent_id" value="<?= $agent['user_id'] ?>">
-                                            <button type="submit" class="btn btn-indigo py-1 px-3 small" style="font-size:0.75rem;"><i class="fa-solid fa-user-check me-1"></i>Reactivate</button>
+                                            <button type="submit" class="btn btn-indigo py-1 px-3 small" style="font-size:0.75rem;"><i class="fa-solid fa-user-check me-1"></i><?= __('reactivate_btn', 'Reactivate') ?></button>
                                         </form>
                                     <?php endif; ?>
                                 </div>
@@ -191,7 +191,7 @@ try {
         <?php if ($total_pages > 1): ?>
             <div class="d-flex justify-content-between align-items-center mt-4">
                 <div class="text-secondary small">
-                    Showing <?= $offset + 1 ?> to <?= min($total_records, $offset + $limit) ?> of <?= $total_records ?> entries
+                    <?= __('showing_label', 'Showing ') ?><?= $offset + 1 ?><?= __('to_mid_label', ' to ') ?><?= min($total_records, $offset + $limit) ?><?= __('of_mid_label', ' of ') ?><?= $total_records ?><?= __('entries_label', ' entries') ?>
                 </div>
                 <nav aria-label="Page navigation">
                     <ul class="pagination pagination-swift mb-0">

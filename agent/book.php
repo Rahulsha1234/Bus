@@ -10,7 +10,7 @@ if ($trip_id === 0) {
     exit();
 }
 
-$page_title = "Select Seats";
+$page_title = __('select_seats', 'Select Seats');
 
 // Fetch Trip details and verify ownership (trip must belong to parent operator admin_id)
 try {
@@ -46,7 +46,7 @@ try {
     $trip = $stmt->fetch();
     
     if (!$trip) {
-        die("Trip not found or unauthorized.");
+        die(__('trip_unauthorized', 'Trip not found or unauthorized.'));
     }
     
     // Fetch Boarding and Dropping points
@@ -226,18 +226,18 @@ try {
         <div class="glass-card p-4">
             <div class="d-flex align-items-center justify-content-between mb-4 border-bottom border-secondary pb-3 flex-wrap gap-2">
                 <div>
-                    <h4 class="fw-bold text-white mb-1"><i class="fa-solid fa-chair text-indigo me-2"></i>Select Passenger Seat</h4>
-                    <span class="text-secondary small">Tap on seats to choose. Red/Orange/Black seats are unavailable.</span>
+                    <h4 class="fw-bold text-white mb-1"><i class="fa-solid fa-chair text-indigo me-2"></i><?= __('select_passenger_seat', 'Select Passenger Seat') ?></h4>
+                    <span class="text-secondary small"><?= __('seat_instructions_agent', 'Tap on seats to choose. Red/Orange/Black seats are unavailable.') ?></span>
                 </div>
             </div>
 
             <!-- Seat status legend -->
             <div class="d-flex gap-3 mb-4 justify-content-center flex-wrap small">
-                <div class="legend-item"><span class="legend-dot" style="background:#FFFDF8 !important; border:1px solid #D4C9B5 !important;"></span><span class="text-secondary">Available</span></div>
-                <div class="legend-item"><span class="legend-dot" style="background:#0F5132 !important; border:1px solid #0a3d22 !important;"></span><span class="text-secondary">Selected</span></div>
-                <div class="legend-item"><span class="legend-dot" style="background:#9CA3AF !important; border:1px solid #6B7280 !important;"></span><span class="text-secondary">Booked</span></div>
-                <div class="legend-item"><span class="legend-dot" style="background:#EAB308 !important; border:1px solid #B45309 !important;"></span><span class="text-secondary">Hold</span></div>
-                <div class="legend-item"><span class="legend-dot" style="background:#F472B6 !important; border:1px solid #EC4899 !important;"></span><span class="text-secondary">Female (Booked/Protected)</span></div>
+                <div class="legend-item"><span class="legend-dot" style="background:#FFFDF8 !important; border:1px solid #D4C9B5 !important;"></span><span class="text-secondary"><?= __('available', 'Available') ?></span></div>
+                <div class="legend-item"><span class="legend-dot" style="background:#0F5132 !important; border:1px solid #0a3d22 !important;"></span><span class="text-secondary"><?= __('selected', 'Selected') ?></span></div>
+                <div class="legend-item"><span class="legend-dot" style="background:#9CA3AF !important; border:1px solid #6B7280 !important;"></span><span class="text-secondary"><?= __('booked', 'Booked') ?></span></div>
+                <div class="legend-item"><span class="legend-dot" style="background:#EAB308 !important; border:1px solid #B45309 !important;"></span><span class="text-secondary"><?= __('hold', 'Hold') ?></span></div>
+                <div class="legend-item"><span class="legend-dot" style="background:#F472B6 !important; border:1px solid #EC4899 !important;"></span><span class="text-secondary"><?= __('female_legend', 'Female (Booked/Protected)') ?></span></div>
             </div>
 
             <!-- Seating Grid -->
@@ -246,10 +246,10 @@ try {
                 <div id="deck-tabs-container" style="display: none;">
                     <ul class="nav nav-pills justify-content-center mb-4 gap-2" role="tablist">
                         <li class="nav-item">
-                            <button class="nav-link btn-secondary-glass active px-4 py-2" id="agent-low-deck-tab" data-bs-toggle="pill" data-bs-target="#agent-low-deck-pane" type="button" role="tab">Lower Deck</button>
+                            <button class="nav-link btn-secondary-glass active px-4 py-2" id="agent-low-deck-tab" data-bs-toggle="pill" data-bs-target="#agent-low-deck-pane" type="button" role="tab"><?= __('lower_deck', 'Lower Deck') ?></button>
                         </li>
                         <li class="nav-item">
-                            <button class="nav-link btn-secondary-glass px-4 py-2" id="agent-up-deck-tab" data-bs-toggle="pill" data-bs-target="#agent-up-deck-pane" type="button" role="tab">Upper Deck</button>
+                            <button class="nav-link btn-secondary-glass px-4 py-2" id="agent-up-deck-tab" data-bs-toggle="pill" data-bs-target="#agent-up-deck-pane" type="button" role="tab"><?= __('upper_deck', 'Upper Deck') ?></button>
                         </li>
                     </ul>
                 </div>
@@ -274,16 +274,16 @@ try {
     <div class="col-lg-5">
         <div class="glass-card p-4 shadow-lg">
             <div class="d-flex align-items-center justify-content-between mb-4">
-                <h4 class="fw-bold text-white mb-0"><i class="fa-solid fa-receipt text-indigo me-2"></i>Reservation Details</h4>
-                <button type="button" id="btnAgentTooltip" class="btn btn-secondary-glass py-1 px-2 rounded-3 small" style="font-size: 0.8rem;" title="View Agent Pricing Breakdown">
-                    <i class="fa-solid fa-circle-info text-warning me-1"></i> Agent Info
+                <h4 class="fw-bold text-white mb-0"><i class="fa-solid fa-receipt text-indigo me-2"></i><?= __('reservation_details', 'Reservation Details') ?></h4>
+                <button type="button" id="btnAgentTooltip" class="btn btn-secondary-glass py-1 px-2 rounded-3 small" style="font-size: 0.8rem;" title="<?= __('view_agent_breakdown', 'View Agent Pricing Breakdown') ?>">
+                    <i class="fa-solid fa-circle-info text-warning me-1"></i> <?= __('agent_info', 'Agent Info') ?>
                 </button>
             </div>
             
             <div class="p-3 mb-4 rounded-4 bg-dark bg-opacity-30 border border-secondary border-opacity-15 small text-secondary">
-                <div class="d-flex justify-content-between mb-2"><span>Voyage Class</span><span class="text-white fw-bold"><?= htmlspecialchars($trip['bus_name']) ?></span></div>
-                <div class="d-flex justify-content-between mb-2"><span>Schedules</span><span class="text-white font-monospace"><?= date('d M Y, H:i', strtotime($trip['departure_time'])) ?></span></div>
-                <div class="d-flex justify-content-between"><span>Voyage Route</span><span class="text-white fw-semibold"><?= htmlspecialchars($trip['source']) ?> to <?= htmlspecialchars($trip['destination']) ?></span></div>
+                <div class="d-flex justify-content-between mb-2"><span><?= __('voyage_class', 'Voyage Class') ?></span><span class="text-white fw-bold"><?= htmlspecialchars($trip['bus_name']) ?></span></div>
+                <div class="d-flex justify-content-between mb-2"><span><?= __('schedules', 'Schedules') ?></span><span class="text-white font-monospace"><?= date('d M Y, H:i', strtotime($trip['departure_time'])) ?></span></div>
+                <div class="d-flex justify-content-between"><span><?= __('voyage_route', 'Voyage Route') ?></span><span class="text-white fw-semibold"><?= htmlspecialchars($trip['source']) ?> <?= __('to', 'to') ?> <?= htmlspecialchars($trip['destination']) ?></span></div>
             </div>
 
             <!-- Form parameters -->
@@ -292,9 +292,9 @@ try {
                 <input type="hidden" name="selected_seats" id="post_seats_value" value="">
 
                 <div class="mb-4">
-                    <label class="form-label text-secondary small fw-semibold">Choose Boarding point</label>
+                    <label class="form-label text-secondary small fw-semibold"><?= __('choose_boarding_point', 'Choose Boarding point') ?></label>
                     <select name="boarding_point" class="form-select form-control-swift" required>
-                        <option value="">Select pickup station...</option>
+                        <option value=""><?= __('select_pickup_station', 'Select pickup station...') ?></option>
                         <?php
                         $trip_dep_fmt = date('H:i', strtotime($trip['departure_time']));
                         $trip_arr_fmt = date('H:i', strtotime($trip['arrival_time']));
@@ -303,38 +303,38 @@ try {
                             $has_bt = !empty($bt) && $bt !== '00:00' && $bt !== '00:00:00';
                             $b_display = $has_bt ? date('H:i', strtotime($bt)) : $trip_dep_fmt;
                         ?>
-                            <option value="<?= htmlspecialchars($b['name']) ?>"><?= htmlspecialchars($b['name']) ?> (departs <?= $b_display ?>)</option>
+                            <option value="<?= htmlspecialchars($b['name']) ?>"><?= htmlspecialchars($b['name']) ?> (<?= __('departs_at', 'departs') ?> <?= $b_display ?>)</option>
                         <?php endforeach; ?>
                     </select>
                 </div>
 
                 <div class="mb-4">
-                    <label class="form-label text-secondary small fw-semibold">Choose Dropping point</label>
+                    <label class="form-label text-secondary small fw-semibold"><?= __('choose_dropping_point', 'Choose Dropping point') ?></label>
                     <select name="dropping_point" class="form-select form-control-swift" required>
-                        <option value="">Select dropping station...</option>
+                        <option value=""><?= __('select_dropping_station', 'Select dropping station...') ?></option>
                         <?php foreach ($droppings as $d):
                             $dt = $d['time'] ?? '';
                             $has_dt = !empty($dt) && $dt !== '00:00' && $dt !== '00:00:00';
                             $d_display = $has_dt ? date('H:i', strtotime($dt)) : $trip_arr_fmt;
                         ?>
-                            <option value="<?= htmlspecialchars($d['name']) ?>"><?= htmlspecialchars($d['name']) ?> (arrives <?= $d_display ?>)</option>
+                            <option value="<?= htmlspecialchars($d['name']) ?>"><?= htmlspecialchars($d['name']) ?> (<?= __('arrives_at', 'arrives') ?> <?= $d_display ?>)</option>
                         <?php endforeach; ?>
                     </select>
                 </div>
 
                 <div class="p-3 mb-4 rounded-4 bg-dark bg-opacity-20 border border-secondary border-opacity-15" id="agent_seats_preview" style="display: none;">
-                    <div class="d-flex justify-content-between text-secondary small mb-2"><span>Seats Selected</span><span class="text-white fw-bold font-monospace" id="lblSeatsList">--</span></div>
-                    <div class="d-flex justify-content-between text-secondary small mb-2"><span>Base Ticket Fare</span><span class="text-white" id="lblGrossFare">₹0.00</span></div>
-                    <div class="d-flex justify-content-between text-secondary small mb-2" style="display: none !important;"><span>Agent Discount</span><span class="text-warning fw-bold" id="lblDiscount">₹0.00</span></div>
+                    <div class="d-flex justify-content-between text-secondary small mb-2"><span><?= __('seats_selected', 'Seats Selected') ?></span><span class="text-white fw-bold font-monospace" id="lblSeatsList">--</span></div>
+                    <div class="d-flex justify-content-between text-secondary small mb-2"><span><?= __('base_ticket_fare', 'Base Ticket Fare') ?></span><span class="text-white" id="lblGrossFare">₹0.00</span></div>
+                    <div class="d-flex justify-content-between text-secondary small mb-2" style="display: none !important;"><span><?= __('agent_discount', 'Agent Discount') ?></span><span class="text-warning fw-bold" id="lblDiscount">₹0.00</span></div>
                     <div class="d-flex justify-content-between text-white fw-bold fs-5 pt-3 border-top border-secondary border-opacity-20">
-                        <span>Total Amount</span>
+                        <span><?= __('total_amount', 'Total Amount') ?></span>
                         <span class="text-success" id="lblFinalFare">₹0.00</span>
                     </div>
                 </div>
 
                 <div class="d-grid">
                     <button type="submit" id="btnGoCheckout" class="btn btn-primary-gradient py-3 text-uppercase fw-bold disabled" style="letter-spacing: 0.5px;">
-                        Proceed to Booking Details
+                        <?= __('proceed_booking_details', 'Proceed to Booking Details') ?>
                     </button>
                 </div>
             </form>
@@ -461,7 +461,7 @@ $(document).ready(function() {
     function handleSeatClick(seat) {
         return function() {
             if (seat.status === 'booked' || seat.status === 'hold' || seat.status === 'blocked' || seat.status === 'reserved' || seat.status === 'female_booked') {
-                alert("This seat is currently unavailable.");
+                alert("<?= __('seat_unavailable_alert', 'This seat is currently unavailable.') ?>");
                 return;
             }
 
@@ -493,7 +493,7 @@ $(document).ready(function() {
                     }
                 },
                 error: function() {
-                    alert("Communication with reservation manager failed.");
+                    alert("<?= __('lock_communication_failed', 'Communication with reservation manager failed.') ?>");
                 }
             });
         };
@@ -538,7 +538,7 @@ $(document).ready(function() {
 
     $('#btnAgentTooltip').click(function() {
         if (selectedSeats.length === 0) {
-            alert("Please select at least one seat first.");
+            alert("<?= __('select_at_least_one', 'Please select at least one seat first.') ?>");
             return;
         }
         $('#agentInfoModal').modal('show');
@@ -553,30 +553,30 @@ $(document).ready(function() {
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content glass-card border-secondary text-white shadow-2xl" style="border-radius: 20px; background: #121829;">
             <div class="modal-header border-secondary p-4">
-                <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-user-secret text-warning me-2"></i>Agent Pricing Details</h5>
+                <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-user-secret text-warning me-2"></i><?= __('agent_pricing_details', 'Agent Pricing Details') ?></h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4">
                 <div class="d-flex justify-content-between mb-2 text-secondary small">
-                    <span>Seats Selected:</span>
+                    <span><?= __('seats_selected_colon', 'Seats Selected:') ?></span>
                     <span class="text-white fw-bold font-monospace" id="modalSeats">--</span>
                 </div>
                 <div class="d-flex justify-content-between mb-2 text-secondary small">
-                    <span>Public Gross Fare:</span>
+                    <span><?= __('public_gross_fare', 'Public Gross Fare:') ?></span>
                     <span class="text-white" id="modalGross">₹0.00</span>
                 </div>
                 <div class="d-flex justify-content-between mb-2 text-warning small">
-                    <span>Agent Discount:</span>
+                    <span><?= __('agent_discount_colon', 'Agent Discount:') ?></span>
                     <span class="fw-bold" id="modalDiscount">₹0.00</span>
                 </div>
                 <hr class="border-secondary border-opacity-30 my-3">
                 <div class="d-flex justify-content-between align-items-center text-white fw-bold fs-5">
-                    <span>Net Payable (Agent):</span>
+                    <span><?= __('net_payable_agent', 'Net Payable (Agent):') ?></span>
                     <span class="text-success" id="modalNet">₹0.00</span>
                 </div>
             </div>
             <div class="modal-footer border-0 p-3 bg-dark bg-opacity-20 text-center text-secondary small" style="border-radius: 0 0 20px 20px; justify-content: center;">
-                <span><i class="fa-solid fa-shield-halved me-1"></i> Customer will only see public fare on checkout.</span>
+                <span><i class="fa-solid fa-shield-halved me-1"></i> <?= __('agent_checkout_note', 'Customer will only see public fare on checkout.') ?></span>
             </div>
         </div>
     </div>

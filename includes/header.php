@@ -6,7 +6,7 @@ require_once __DIR__ . '/auth_middleware.php';
 $user = get_logged_user();
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?= CURRENT_LANG ?>">
 
 <head>
     <meta charset="UTF-8">
@@ -215,13 +215,45 @@ $user = get_logged_user();
                 <div class="d-flex align-items-center gap-4 navbar-right-actions ms-auto">
                     <a href="<?= BASE_URL ?>/bookings.php" class="nav-action-link d-flex flex-column align-items-center justify-content-center">
                         <i class="fa-solid fa-ticket-simple action-icon"></i>
-                        <span class="action-label">My Trips</span>
+                        <span class="action-label"><?= __('nav_my_trips', 'My Trips') ?></span>
                     </a>
                     
                     <a href="#" class="nav-action-link d-flex flex-column align-items-center justify-content-center">
                         <i class="fa-solid fa-headset action-icon"></i>
-                        <span class="action-label">Support</span>
+                        <span class="action-label"><?= __('nav_support', 'Support') ?></span>
                     </a>
+
+                    <div class="divider-vertical"></div>
+
+                    <!-- Language Switcher Dropdown (Desktop & Mobile) -->
+                    <div class="dropdown">
+                        <button class="btn btn-secondary-glass py-2 px-3 d-flex align-items-center gap-2" type="button"
+                            id="langMenuButton" data-bs-toggle="dropdown" aria-expanded="false"
+                            style="border-radius: 10px; font-weight: 500; font-size: 0.9rem;">
+                            <i class="fa-solid fa-globe text-success"></i>
+                            <span class="d-none d-md-inline">
+                                <?php
+                                if (CURRENT_LANG === 'hi') echo 'हिन्दी';
+                                elseif (CURRENT_LANG === 'ne') echo 'नेपाली';
+                                else echo 'English';
+                                ?>
+                            </span>
+                            <span class="d-md-none">
+                                <?php
+                                if (CURRENT_LANG === 'hi') echo 'HI';
+                                elseif (CURRENT_LANG === 'ne') echo 'NE';
+                                else echo 'EN';
+                                ?>
+                            </span>
+                            <i class="fa-solid fa-chevron-down small opacity-75" style="font-size: 0.75rem;"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end glass-card mt-2 p-2 border-0 shadow-lg"
+                            aria-labelledby="langMenuButton" style="background: var(--bg-card); border: 1px solid var(--border-glass);">
+                            <li><a class="dropdown-item py-2 rounded <?= CURRENT_LANG === 'en' ? 'active bg-success text-white' : '' ?>" href="?lang=en">English</a></li>
+                            <li><a class="dropdown-item py-2 rounded <?= CURRENT_LANG === 'hi' ? 'active bg-success text-white' : '' ?>" href="?lang=hi">हिन्दी</a></li>
+                            <li><a class="dropdown-item py-2 rounded <?= CURRENT_LANG === 'ne' ? 'active bg-success text-white' : '' ?>" href="?lang=ne">नेपाली</a></li>
+                        </ul>
+                    </div>
 
                     <div class="divider-vertical"></div>
                     <?php if (is_logged_in()): ?>
@@ -273,13 +305,13 @@ $user = get_logged_user();
                                 <ul class="dropdown-menu dropdown-menu-end glass-card mt-2 p-2 border-0 shadow-lg"
                                     aria-labelledby="notifMenuButton" style="width: 300px; font-size: 0.85rem; background: var(--bg-card); border: 1px solid var(--border-glass);">
                                     <li class="dropdown-header border-bottom pb-2 mb-2 d-flex justify-content-between align-items-center" style="color: var(--text-muted); border-color: var(--border-glass) !important;">
-                                        <span>Notifications</span>
+                                        <span><?= __('nav_notifications', 'Notifications') ?></span>
                                         <?php if ($notif_count > 0): ?>
                                             <span class="badge bg-warning text-dark" style="font-size:0.65rem;">New</span>
                                         <?php endif; ?>
                                     </li>
                                     <?php if (empty($notifs)): ?>
-                                        <li class="text-center text-secondary py-3 small">No notifications found</li>
+                                        <li class="text-center text-secondary py-3 small"><?= __('nav_no_notifications', 'No notifications found') ?></li>
                                     <?php else: ?>
                                         <?php foreach ($notifs as $nt): ?>
                                             <li class="px-3 py-2 rounded mb-1"
@@ -328,28 +360,28 @@ $user = get_logged_user();
                                     <?php if ($user['role'] === 'super_admin'): ?>
                                         <a class="profile-dropdown-item" href="<?= BASE_URL ?>/super_admin/dashboard.php">
                                             <span class="profile-item-icon"><i class="fa-solid fa-gauge-high"></i></span>
-                                            <span>Admin Panel</span>
+                                            <span><?= __('nav_admin_panel', 'Admin Panel') ?></span>
                                         </a>
                                     <?php elseif ($user['role'] === 'admin'): ?>
                                         <a class="profile-dropdown-item" href="<?= BASE_URL ?>/admin/dashboard.php">
                                             <span class="profile-item-icon"><i class="fa-solid fa-briefcase"></i></span>
-                                            <span>Operator Panel</span>
+                                            <span><?= __('nav_operator_panel', 'Operator Panel') ?></span>
                                         </a>
                                     <?php elseif ($user['role'] === 'agent'): ?>
                                         <a class="profile-dropdown-item" href="<?= BASE_URL ?>/agent/dashboard.php">
                                             <span class="profile-item-icon"><i class="fa-solid fa-briefcase"></i></span>
-                                            <span>Agent Portal</span>
+                                            <span><?= __('nav_agent_portal', 'Agent Portal') ?></span>
                                         </a>
                                     <?php endif; ?>
 
                                     <a class="profile-dropdown-item" href="<?= BASE_URL ?>/bookings.php">
                                         <span class="profile-item-icon"><i class="fa-solid fa-ticket"></i></span>
-                                        <span>My Bookings</span>
+                                        <span><?= __('nav_my_bookings', 'My Bookings') ?></span>
                                     </a>
 
                                     <a class="profile-dropdown-item" href="<?= BASE_URL ?>/cancellations.php">
                                         <span class="profile-item-icon"><i class="fa-solid fa-rotate-left"></i></span>
-                                        <span>Cancellations</span>
+                                        <span><?= __('nav_cancellations', 'Cancellations') ?></span>
                                     </a>
                                 </div>
 
@@ -358,7 +390,7 @@ $user = get_logged_user();
                                 <div class="px-2 py-2">
                                     <a class="profile-dropdown-item profile-logout" href="<?= BASE_URL ?>/logout.php">
                                         <span class="profile-item-icon"><i class="fa-solid fa-right-from-bracket"></i></span>
-                                        <span>Sign Out</span>
+                                        <span><?= __('nav_sign_out', 'Sign Out') ?></span>
                                     </a>
                                 </div>
 
@@ -383,9 +415,9 @@ $user = get_logged_user();
                     <?php else: ?>
                         <a href="<?= BASE_URL ?>/login.php" class="nav-action-link d-flex flex-column align-items-center justify-content-center">
                             <i class="fa-solid fa-right-to-bracket action-icon"></i>
-                            <span class="action-label">Login</span>
+                            <span class="action-label"><?= __('nav_login', 'Login') ?></span>
                         </a>
-                        <a href="<?= BASE_URL ?>/register.php" class="btn-primary-gradient py-2 px-3 ms-2">Register</a>
+                        <a href="<?= BASE_URL ?>/register.php" class="btn-primary-gradient py-2 px-3 ms-2"><?= __('nav_register', 'Register') ?></a>
                     <?php endif; ?>
                 </div>
             </div>

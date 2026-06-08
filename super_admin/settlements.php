@@ -2,6 +2,7 @@
 /**
  * Super Admin Weekly Settlement Processor
  */
+$page_title = __('weekly_settlements_title', "Weekly Settlements");
 require_once __DIR__ . '/header.php';
 
 $error = '';
@@ -12,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $csrf_token = $_POST['csrf_token'] ?? '';
     
     if (!verify_csrf_token($csrf_token)) {
-        $error = "Security token validation failed.";
+        $error = __('security_validation_failed', "Security token validation failed.");
     } else {
         $action = $_POST['action'] ?? '';
 
@@ -69,14 +70,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 if ($generated_count > 0) {
-                    $success = "Weekly settlements generated successfully for $generated_count bus operators!";
+                    $success = __('weekly_settlements_generated_success_prefix', "Weekly settlements generated successfully for ") . $generated_count . __('weekly_settlements_generated_success_suffix', " bus operators!");
                     log_activity($pdo, $_SESSION['user_id'], 'SETTLEMENT_GENERATE', "Generated settlements for $generated_count operators.");
                 } else {
-                    $error = "All operator bookings are already accounted for in existing settlement cycles.";
+                    $error = __('all_bookings_accounted_for_settlement', "All operator bookings are already accounted for in existing settlement cycles.");
                 }
 
             } catch (Exception $e) {
-                $error = "Failed to run settlement engine: " . $e->getMessage();
+                $error = __('failed_to_run_settlement_engine', "Failed to run settlement engine: ") . $e->getMessage();
             }
         }
 
@@ -95,13 +96,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $stmt->execute([$admin_user_id, $settlement_id]);
 
                     if ($stmt->rowCount() > 0) {
-                        $success = "Settlement marked as PAID! Commission marked as received.";
+                        $success = __('settlement_marked_paid_success', "Settlement marked as PAID! Commission marked as received.");
                         log_activity($pdo, $admin_user_id, 'SETTLEMENT_PAY_CONFIRM', "Confirmed commission payment received for Settlement ID: $settlement_id");
                     } else {
-                        $error = "Settlement already processed or invalid ID.";
+                        $error = __('settlement_already_processed_or_invalid', "Settlement already processed or invalid ID.");
                     }
                 } catch (PDOException $e) {
-                    $error = "Database write error: " . $e->getMessage();
+                    $error = __('database_write_error', "Database write error: ") . $e->getMessage();
                 }
             }
         }
@@ -154,16 +155,16 @@ try {
 <!-- Actions Toolbar -->
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h4 class="text-white fw-bold mb-1">Weekly Settlements Desk</h4>
-        <span class="text-secondary small">Tally weekly travel agency gross seat sales and process 2% admin fee collections</span>
+        <h4 class="text-white fw-bold mb-1"><?= __('weekly_settlements_desk_title', 'Weekly Settlements Desk') ?></h4>
+        <span class="text-secondary small"><?= __('weekly_settlements_desk_subtitle', 'Tally weekly travel agency gross seat sales and process 2% admin fee collections') ?></span>
     </div>
     
     <div class="d-flex gap-2 align-items-center">
-        <a href="<?= BASE_URL ?>/generate_report.php?type=settlement" target="_blank" class="btn btn-secondary-glass"><i class="fa-solid fa-file-pdf me-2"></i>Export PDF Report</a>
+        <a href="<?= BASE_URL ?>/generate_report.php?type=settlement" target="_blank" class="btn btn-secondary-glass"><i class="fa-solid fa-file-pdf me-2"></i><?= __('export_pdf_report_btn', 'Export PDF Report') ?></a>
         <form action="<?= htmlspecialchars($_SERVER['PHP_SELF']) ?>" method="POST" class="m-0">
             <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
             <input type="hidden" name="action" value="generate">
-            <button type="submit" class="btn btn-primary-gradient"><i class="fa-solid fa-calculator me-2"></i>Execute Settlement Engine</button>
+            <button type="submit" class="btn btn-primary-gradient"><i class="fa-solid fa-calculator me-2"></i><?= __('execute_settlement_engine_btn', 'Execute Settlement Engine') ?></button>
         </form>
     </div>
 </div>
@@ -173,21 +174,21 @@ try {
     <?php if (count($settlements) === 0): ?>
         <div class="text-center py-5 text-secondary small">
             <i class="fa-solid fa-wallet mb-3 d-block" style="font-size: 3rem; color: #475569;"></i>
-            No weekly settlement logs found. Tap the button above to generate settlements for uncaptured ticket sales.
+            <?= __('no_weekly_settlements_found_desc', 'No weekly settlement logs found. Tap the button above to generate settlements for uncaptured ticket sales.') ?>
         </div>
     <?php else: ?>
         <div class="table-responsive">
             <table class="table table-swift table-dark table-hover table-borderless align-middle datatable-swift">
                 <thead>
                     <tr>
-                        <th>Cycle Period</th>
-                        <th>Travel Operator</th>
-                        <th>Total Gross Sales</th>
-                        <th>Commission Receivable (2%)</th>
-                        <th>Agent Share Kept</th>
-                        <th>Settlement Status</th>
-                        <th>Processed Date</th>
-                        <th class="text-end">Actions</th>
+                        <th><?= __('cycle_period_col', 'Cycle Period') ?></th>
+                        <th><?= __('travel_operator_col', 'Travel Operator') ?></th>
+                        <th><?= __('total_gross_sales_col', 'Total Gross Sales') ?></th>
+                        <th><?= __('payable_commission_col', 'Commission Receivable (2%)') ?></th>
+                        <th><?= __('agent_share_kept_col', 'Agent Share Kept') ?></th>
+                        <th><?= __('settlement_status_col', 'Settlement Status') ?></th>
+                        <th><?= __('processed_date_col', 'Processed Date') ?></th>
+                        <th class="text-end"><?= __('actions_col', 'Actions') ?></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -196,8 +197,8 @@ try {
                     ?>
                         <tr>
                             <td>
-                                <span class="fw-semibold text-white d-block">Weekly Cycle</span>
-                                <span class="text-secondary small font-monospace"><?= date('d M Y', strtotime($s['week_start'])) ?> to <?= date('d M Y', strtotime($s['week_end'])) ?></span>
+                                <span class="fw-semibold text-white d-block"><?= __('weekly_cycle_lbl', 'Weekly Cycle') ?></span>
+                                <span class="text-secondary small font-monospace"><?= date('d M Y', strtotime($s['week_start'])) ?> <?= __('to_label', 'to') ?> <?= date('d M Y', strtotime($s['week_end'])) ?></span>
                             </td>
                             <td><span class="fw-semibold text-white"><?= htmlspecialchars($s['agency_name']) ?></span></td>
                             <td>₹<?= number_format($s['total_sales'], 2) ?></td>
@@ -205,9 +206,9 @@ try {
                             <td class="text-success fw-bold">₹<?= number_format($agent_net, 2) ?></td>
                             <td>
                                 <?php if ($s['status'] === 'paid'): ?>
-                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1">PAID / RECEIVED</span>
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1"><?= __('status_paid_received', 'PAID / RECEIVED') ?></span>
                                 <?php else: ?>
-                                    <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-2 py-1">PENDING CLEARANCE</span>
+                                    <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-2 py-1"><?= __('status_pending_clearance', 'PENDING CLEARANCE') ?></span>
                                 <?php endif; ?>
                             </td>
                             <td class="text-secondary small">
@@ -219,10 +220,10 @@ try {
                                         <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
                                         <input type="hidden" name="action" value="mark_paid">
                                         <input type="hidden" name="settlement_id" value="<?= $s['id'] ?>">
-                                        <button type="submit" class="btn btn-success py-1 px-3 small font-monospace" style="font-size:0.75rem;"><i class="fa-solid fa-circle-dollar-to-slot me-1"></i>Confirm Paid</button>
+                                        <button type="submit" class="btn btn-success py-1 px-3 small font-monospace" style="font-size:0.75rem;"><i class="fa-solid fa-circle-dollar-to-slot me-1"></i><?= __('confirm_paid_btn', 'Confirm Paid') ?></button>
                                     </form>
                                 <?php else: ?>
-                                    <span class="text-secondary small"><i class="fa-solid fa-circle-check text-success me-1"></i>Settled</span>
+                                    <span class="text-secondary small"><i class="fa-solid fa-circle-check text-success me-1"></i><?= __('settled_lbl', 'Settled') ?></span>
                                 <?php endif; ?>
                             </td>
                         </tr>
@@ -234,7 +235,7 @@ try {
         <?php if ($total_pages > 1): ?>
             <div class="d-flex justify-content-between align-items-center mt-4">
                 <div class="text-secondary small">
-                    Showing <?= $offset + 1 ?> to <?= min($total_records, $offset + $limit) ?> of <?= $total_records ?> entries
+                    <?= __('showing_label', 'Showing ') ?><?= $offset + 1 ?><?= __('to_mid_label', ' to ') ?><?= min($total_records, $offset + $limit) ?><?= __('of_mid_label', ' of ') ?><?= $total_records ?><?= __('entries_label', ' entries') ?>
                 </div>
                 <nav aria-label="Page navigation">
                     <ul class="pagination pagination-swift mb-0">

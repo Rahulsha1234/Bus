@@ -109,7 +109,7 @@ try {
     ")->fetchAll();
 
 } catch (PDOException $e) {
-    die("Admin dashboard statistics loading failed: " . $e->getMessage());
+    die(__('admin_dashboard_stat_load_failed', "Admin dashboard statistics loading failed: ") . $e->getMessage());
 }
 ?>
 
@@ -119,11 +119,11 @@ try {
     <div class="col-md-6 col-lg-3">
         <div class="glass-card p-4 metric-card h-100">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <span class="text-secondary small fw-semibold text-uppercase">Today Gross Sale</span>
+                <span class="text-secondary small fw-semibold text-uppercase"><?= __('today_gross_sale_lbl', 'Today Gross Sale') ?></span>
                 <span class="metric-icon"><i class="fa-solid fa-coins"></i></span>
             </div>
             <h3 class="fw-bold text-white mb-1"><?= CURRENCY ?><?= number_format($today_metrics[0], 2) ?></h3>
-            <span class="text-secondary small">Admin Comm: <?= CURRENCY ?><?= number_format($today_metrics[1], 2) ?></span>
+            <span class="text-secondary small"><?= __('admin_comm_lbl', 'Admin Comm: ') ?><?= CURRENCY ?><?= number_format($today_metrics[1], 2) ?></span>
         </div>
     </div>
 
@@ -131,11 +131,11 @@ try {
     <div class="col-md-6 col-lg-3">
         <div class="glass-card p-4 metric-card h-100">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <span class="text-secondary small fw-semibold text-uppercase">Weekly Gross Sale</span>
+                <span class="text-secondary small fw-semibold text-uppercase"><?= __('weekly_gross_sale_lbl', 'Weekly Gross Sale') ?></span>
                 <span class="metric-icon" style="color: #db2777; border-color: rgba(219,39,119,0.2); background: rgba(219,39,119,0.1);"><i class="fa-solid fa-circle-dollar-to-slot"></i></span>
             </div>
             <h3 class="fw-bold text-white mb-1" style="background: linear-gradient(135deg, #f472b6 0%, #db2777 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"><?= CURRENCY ?><?= number_format($weekly_metrics[0], 2) ?></h3>
-            <span class="text-secondary small">Admin Comm: <?= CURRENCY ?><?= number_format($weekly_metrics[1], 2) ?></span>
+            <span class="text-secondary small"><?= __('admin_comm_lbl', 'Admin Comm: ') ?><?= CURRENCY ?><?= number_format($weekly_metrics[1], 2) ?></span>
         </div>
     </div>
 
@@ -143,11 +143,11 @@ try {
     <div class="col-md-6 col-lg-3">
         <div class="glass-card p-4 metric-card h-100">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <span class="text-secondary small fw-semibold text-uppercase">Admin Commission</span>
+                <span class="text-secondary small fw-semibold text-uppercase"><?= __('admin_commission_lbl', 'Admin Commission') ?></span>
                 <span class="metric-icon"><i class="fa-solid fa-piggy-bank"></i></span>
             </div>
             <h3 class="fw-bold text-indigo mb-1"><?= CURRENCY ?><?= number_format($lifetime_comm, 2) ?></h3>
-            <span class="text-secondary small">Lifetime earned at 2% rate</span>
+            <span class="text-secondary small"><?= __('lifetime_earned_2pct', 'Lifetime earned at 2% rate') ?></span>
         </div>
     </div>
 
@@ -155,11 +155,11 @@ try {
     <div class="col-md-6 col-lg-3">
         <div class="glass-card p-4 metric-card h-100">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <span class="text-secondary small fw-semibold text-uppercase">Unsettled Commission</span>
+                <span class="text-secondary small fw-semibold text-uppercase"><?= __('unsettled_commission_lbl', 'Unsettled Commission') ?></span>
                 <span class="metric-icon" style="color: #fbbf24; border-color: rgba(245,158,11,0.2); background: rgba(245,158,11,0.1);"><i class="fa-solid fa-scale-unbalanced"></i></span>
             </div>
             <h3 class="fw-bold text-warning mb-1"><?= CURRENCY ?><?= number_format($pending_comm, 2) ?></h3>
-            <span class="text-secondary small">Paid: <?= CURRENCY ?><?= number_format($paid_comm, 2) ?></span>
+            <span class="text-secondary small"><?= __('paid_lbl', 'Paid: ') ?><?= CURRENCY ?><?= number_format($paid_comm, 2) ?></span>
         </div>
     </div>
 </div>
@@ -170,8 +170,8 @@ try {
         <div class="glass-card p-3 d-flex align-items-center gap-3">
             <span class="metric-icon"><i class="fa-solid fa-ticket"></i></span>
             <div>
-                <span class="text-secondary small d-block">TOTAL TICKET BOOKINGS</span>
-                <h5 class="fw-bold text-white mb-0"><?= number_format($total_bookings) ?> Paid</h5>
+                <span class="text-secondary small d-block"><?= __('total_ticket_bookings_lbl', 'TOTAL TICKET BOOKINGS') ?></span>
+                <h5 class="fw-bold text-white mb-0"><?= number_format($total_bookings) ?><?= __('paid_suffix', ' Paid') ?></h5>
             </div>
         </div>
     </div>
@@ -179,8 +179,8 @@ try {
         <div class="glass-card p-3 d-flex align-items-center gap-3">
             <span class="metric-icon" style="color:#a5b4fc; border-color:rgba(165,180,252,0.2);"><i class="fa-solid fa-users"></i></span>
             <div>
-                <span class="text-secondary small d-block">BUS OPERATORS REGISTERED</span>
-                <h5 class="fw-bold text-white mb-0"><?= number_format($total_agents) ?> Operators</h5>
+                <span class="text-secondary small d-block"><?= __('bus_operators_registered_lbl', 'BUS OPERATORS REGISTERED') ?></span>
+                <h5 class="fw-bold text-white mb-0"><?= number_format($total_agents) ?><?= __('operators_suffix', ' Operators') ?></h5>
             </div>
         </div>
     </div>
@@ -188,8 +188,8 @@ try {
         <div class="glass-card p-3 d-flex align-items-center gap-3">
             <span class="metric-icon" style="color:#34d399; border-color:rgba(52,211,153,0.2);"><i class="fa-solid fa-user-check"></i></span>
             <div>
-                <span class="text-secondary small d-block">ACTIVE BUS OPERATORS</span>
-                <h5 class="fw-bold text-white mb-0"><?= number_format($active_agents) ?> Approved</h5>
+                <span class="text-secondary small d-block"><?= __('active_bus_operators_lbl', 'ACTIVE BUS OPERATORS') ?></span>
+                <h5 class="fw-bold text-white mb-0"><?= number_format($active_agents) ?><?= __('approved_suffix', ' Approved') ?></h5>
             </div>
         </div>
     </div>
@@ -200,7 +200,7 @@ try {
     <!-- Trend Chart -->
     <div class="col-lg-7">
         <div class="glass-card p-4 h-100">
-            <h5 class="fw-bold text-white mb-4"><i class="fa-solid fa-chart-area text-indigo me-2"></i>Global System Sales Trend (7 Days)</h5>
+            <h5 class="fw-bold text-white mb-4"><i class="fa-solid fa-chart-area text-indigo me-2"></i><?= __('global_system_sales_trend_7d', 'Global System Sales Trend (7 Days)') ?></h5>
             <div style="height: 300px; position: relative;">
                 <canvas id="systemTrendChart"></canvas>
             </div>
@@ -210,7 +210,7 @@ try {
     <!-- Agent Comparison Chart -->
     <div class="col-lg-5">
         <div class="glass-card p-4 h-100">
-            <h5 class="fw-bold text-white mb-4"><i class="fa-solid fa-chart-bar text-pink me-2"></i>Operator Performance (Gross Sold)</h5>
+            <h5 class="fw-bold text-white mb-4"><i class="fa-solid fa-chart-bar text-pink me-2"></i><?= __('operator_performance_gross_sold', 'Operator Performance (Gross Sold)') ?></h5>
             <div style="height: 300px; position: relative;">
                 <canvas id="agentPerformanceChart"></canvas>
             </div>
@@ -220,21 +220,21 @@ try {
 
 <!-- Recent bookings -->
 <div class="glass-card p-4">
-    <h5 class="fw-bold text-white mb-4"><i class="fa-solid fa-receipt text-indigo me-2"></i>System-wide Recent Bookings</h5>
+    <h5 class="fw-bold text-white mb-4"><i class="fa-solid fa-receipt text-indigo me-2"></i><?= __('system_wide_recent_bookings_hdr', 'System-wide Recent Bookings') ?></h5>
     <?php if (count($recent_bookings) === 0): ?>
-        <div class="text-center py-4 text-secondary small">No bookings registered in the system yet.</div>
+        <div class="text-center py-4 text-secondary small"><?= __('no_bookings_registered_yet', 'No bookings registered in the system yet.') ?></div>
     <?php else: ?>
         <div class="table-responsive">
             <table class="table table-swift table-dark table-hover table-borderless align-middle">
                 <thead>
                     <tr>
-                        <th>Booking Ref</th>
-                        <th>Operating Agency</th>
-                        <th>Customer</th>
-                        <th>Ticket Gross</th>
-                        <th>Admin Commission (2%)</th>
-                        <th>Agent Net</th>
-                        <th>Date & Time</th>
+                        <th><?= __('booking_ref_col', 'Booking Ref') ?></th>
+                        <th><?= __('operating_agency_col', 'Operating Agency') ?></th>
+                        <th><?= __('customer_col', 'Customer') ?></th>
+                        <th><?= __('ticket_gross_col', 'Ticket Gross') ?></th>
+                        <th><?= __('admin_commission_2pct_col', 'Admin Commission (2%)') ?></th>
+                        <th><?= __('agent_net_col', 'Agent Net') ?></th>
+                        <th><?= __('date_time_col', 'Date & Time') ?></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -267,7 +267,7 @@ $(document).ready(function() {
             labels: <?= json_encode($chart_days) ?>,
             datasets: [
                 {
-                    label: 'Gross Ticket Sales (₹)',
+                    label: '<?= __('gross_ticket_sales_chart_lbl', 'Gross Ticket Sales (₹)') ?>',
                     data: <?= json_encode($chart_sales) ?>,
                     borderColor: '#8b5cf6',
                     borderWidth: 3,
@@ -276,7 +276,7 @@ $(document).ready(function() {
                     pointBackgroundColor: '#8b5cf6'
                 },
                 {
-                    label: 'Admin Commission (₹)',
+                    label: '<?= __('admin_commission_chart_lbl', 'Admin Commission (₹)') ?>',
                     data: <?= json_encode($chart_comm) ?>,
                     borderColor: '#f59e0b',
                     borderWidth: 2,
@@ -303,7 +303,7 @@ $(document).ready(function() {
         data: {
             labels: <?= json_encode($perf_labels) ?>,
             datasets: [{
-                label: 'Gross Sold (₹)',
+                label: '<?= __('gross_sold_chart_lbl', 'Gross Sold (₹)') ?>',
                 data: <?= json_encode($perf_data) ?>,
                 backgroundColor: 'rgba(236, 72, 153, 0.25)',
                 borderColor: '#ec4899',

@@ -142,47 +142,47 @@ require_once __DIR__ . '/includes/header.php';
         <div class="glass-card p-5 text-center" style="border-radius: 20px;">
             <div class="text-warning mb-4" style="font-size: 4rem;"><i class="fa-solid fa-circle-exclamation"></i></div>
             
-            <h3 class="fw-bold text-white mb-2">Cancellation Request Submitted</h3>
-            <p class="text-secondary small mb-4">Your request has been successfully registered. The operations team will review and approve refund processing.</p>
+            <h3 class="fw-bold text-white mb-2"><?= __('cancel_request_submitted', 'Cancellation Request Submitted') ?></h3>
+            <p class="text-secondary small mb-4"><?= __('cancel_request_desc', 'Your request has been successfully registered. The operations team will review and approve refund processing.') ?></p>
 
             <div class="p-4 rounded-4 bg-dark bg-opacity-30 border border-secondary border-opacity-15 mb-4 text-start small">
                 <div class="d-flex justify-content-between mb-2">
-                    <span class="text-secondary">Cancellation Request No:</span>
+                    <span class="text-secondary"><?= __('cancellation_req_no', 'Cancellation Request No:') ?></span>
                     <span class="text-indigo fw-bold font-monospace"><?= htmlspecialchars($request_number) ?></span>
                 </div>
                 <div class="d-flex justify-content-between mb-2">
-                    <span class="text-secondary">Ticket Reference:</span>
+                    <span class="text-secondary"><?= __('ticket_no', 'Ticket Reference:') ?></span>
                     <span class="text-white fw-semibold font-monospace"><?= htmlspecialchars($booking['booking_reference']) ?></span>
                 </div>
                 <div class="d-flex justify-content-between mb-2">
-                    <span class="text-secondary">Voyage:</span>
-                    <span class="text-white fw-semibold"><?= htmlspecialchars($booking['source']) ?> to <?= htmlspecialchars($booking['destination']) ?></span>
+                    <span class="text-secondary"><?= __('route', 'Voyage:') ?></span>
+                    <span class="text-white fw-semibold"><?= htmlspecialchars($booking['source']) ?> <?= __('to', 'to') ?> <?= htmlspecialchars($booking['destination']) ?></span>
                 </div>
                 <div class="d-flex justify-content-between mb-2">
-                    <span class="text-secondary">Travel Date:</span>
+                    <span class="text-secondary"><?= __('travel_date', 'Travel Date:') ?></span>
                     <span class="text-white"><?= date('d M Y, H:i', strtotime($booking['departure_time'])) ?></span>
                 </div>
                 <div class="d-flex justify-content-between">
-                    <span class="text-secondary">Status:</span>
+                    <span class="text-secondary"><?= __('status', 'Status:') ?></span>
                     <span class="badge bg-warning text-uppercase"><?= htmlspecialchars($request_status) ?></span>
                 </div>
             </div>
 
             <!-- Operator support contacts -->
             <div class="p-4 rounded-4 border border-secondary border-opacity-15 text-start bg-dark bg-opacity-10 mb-4">
-                <h6 class="fw-bold text-indigo mb-3"><i class="fa-solid fa-headset me-2"></i>Bus Operator Support</h6>
+                <h6 class="fw-bold text-indigo mb-3"><i class="fa-solid fa-headset me-2"></i><?= __('support', 'Bus Operator Support') ?></h6>
                 <div class="small">
-                    <div class="mb-2"><strong>Operator:</strong> <?= htmlspecialchars($operator['operator_name']) ?></div>
-                    <div class="mb-2"><strong>Direct Helpline:</strong> <?= htmlspecialchars($operator['contact_number']) ?></div>
-                    <div class="mb-2"><strong>WhatsApp Support:</strong> <?= htmlspecialchars($operator['whatsapp_number']) ?></div>
-                    <div class="mb-2"><strong>Emergency Hot-Line:</strong> <span class="text-danger fw-bold"><?= htmlspecialchars($operator['emergency_number']) ?></span></div>
-                    <div><strong>Support Email:</strong> <?= htmlspecialchars($operator['support_email']) ?></div>
+                    <div class="mb-2"><strong><?= __('operator', 'Operator') ?>:</strong> <?= htmlspecialchars($operator['operator_name']) ?></div>
+                    <div class="mb-2"><strong><?= __('helpline', 'Direct Helpline') ?>:</strong> <?= htmlspecialchars($operator['contact_number']) ?></div>
+                    <div class="mb-2"><strong>WhatsApp <?= __('support', 'Support') ?>:</strong> <?= htmlspecialchars($operator['whatsapp_number']) ?></div>
+                    <div class="mb-2"><strong><?= __('emergency_line', 'Emergency Hot-Line') ?>:</strong> <span class="text-danger fw-bold"><?= htmlspecialchars($operator['emergency_number']) ?></span></div>
+                    <div><strong><?= __('support_email', 'Support Email') ?>:</strong> <?= htmlspecialchars($operator['support_email']) ?></div>
                 </div>
             </div>
 
             <div class="d-flex justify-content-center gap-3">
-                <a href="<?= BASE_URL ?>/bookings.php" class="btn btn-secondary-glass px-4 py-2"><i class="fa-solid fa-arrow-left me-2"></i>My Bookings</a>
-                <a href="<?= BASE_URL ?>/index.php" class="btn btn-primary-gradient px-4 py-2"><i class="fa-solid fa-house me-2"></i>Home</a>
+                <a href="<?= BASE_URL ?>/bookings.php" class="btn btn-secondary-glass px-4 py-2"><i class="fa-solid fa-arrow-left me-2"></i><?= __('nav_my_bookings', 'My Bookings') ?></a>
+                <a href="<?= BASE_URL ?>/index.php" class="btn btn-primary-gradient px-4 py-2"><i class="fa-solid fa-house me-2"></i><?= __('nav_home', 'Home') ?></a>
             </div>
         </div>
     </div>

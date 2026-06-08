@@ -32,11 +32,11 @@ try {
 }
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?= CURRENT_LANG ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= isset($page_title) ? $page_title . ' - ' : '' ?>Agent Portal</title>
+    <title><?= isset($page_title) ? $page_title . ' - ' : '' ?><?= __('nav_agent_portal', 'Agent Portal') ?></title>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Bootstrap 5 -->
@@ -216,7 +216,7 @@ try {
                     <i class="fa-solid fa-bus text-indigo" style="font-size: 1.5rem; color:#818cf8;"></i>
                     <span class="text-gradient fw-bold fs-5"><?= SYSTEM_NAME ?></span>
                 </a>
-                <span class="text-secondary" style="font-size: 0.75rem; letter-spacing: 0.5px;">AGENT PARTNER</span>
+                <span class="text-secondary" style="font-size: 0.75rem; letter-spacing: 0.5px;"><?= __('agent_partner', 'AGENT PARTNER') ?></span>
             </div>
 
             <nav>
@@ -224,19 +224,19 @@ try {
                 $cur = basename($_SERVER['SCRIPT_NAME']);
                 ?>
                 <a href="<?= BASE_URL ?>/agent/dashboard.php" class="sidebar-link <?= ($cur === 'dashboard.php') ? 'active' : '' ?>">
-                    <i class="fa-solid fa-chart-pie"></i>Dashboard
+                    <i class="fa-solid fa-chart-pie"></i><?= __('nav_dashboard', 'Dashboard') ?>
                 </a>
                 <a href="<?= BASE_URL ?>/agent/search.php" class="sidebar-link <?= ($cur === 'search.php' || $cur === 'book.php' || $cur === 'checkout.php') ? 'active' : '' ?>">
-                    <i class="fa-solid fa-magnifying-glass"></i>Search & Book
+                    <i class="fa-solid fa-magnifying-glass"></i><?= __('nav_search_book', 'Search & Book') ?>
                 </a>
                 <a href="<?= BASE_URL ?>/agent/bookings.php" class="sidebar-link <?= ($cur === 'bookings.php') ? 'active' : '' ?>">
-                    <i class="fa-solid fa-receipt"></i>My Bookings
+                    <i class="fa-solid fa-receipt"></i><?= __('nav_my_bookings', 'My Bookings') ?>
                 </a>
                 
                 <hr class="border-secondary my-4">
                 
                 <a href="<?= BASE_URL ?>/logout.php" class="sidebar-link text-danger">
-                    <i class="fa-solid fa-right-from-bracket"></i>Logout
+                    <i class="fa-solid fa-right-from-bracket"></i><?= __('nav_sign_out', 'Logout') ?>
                 </a>
             </nav>
         </div>
@@ -253,21 +253,49 @@ try {
                         <i class="fa-solid fa-bars"></i>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark glass-card p-2 border-0 mt-2">
-                        <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/agent/dashboard.php">Dashboard</a></li>
-                        <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/agent/search.php">Search & Book</a></li>
-                        <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/agent/bookings.php">My Bookings</a></li>
+                        <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/agent/dashboard.php"><?= __('nav_dashboard', 'Dashboard') ?></a></li>
+                        <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/agent/search.php"><?= __('nav_search_book', 'Search & Book') ?></a></li>
+                        <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/agent/bookings.php"><?= __('nav_my_bookings', 'My Bookings') ?></a></li>
                         <li><hr class="dropdown-divider border-secondary"></li>
-                        <li><a class="dropdown-item text-danger py-2" href="<?= BASE_URL ?>/logout.php">Logout</a></li>
+                        <!-- Mobile Language Switcer items -->
+                        <li><a class="dropdown-item py-2 rounded <?= CURRENT_LANG === 'en' ? 'text-success fw-bold' : '' ?>" href="?lang=en">English</a></li>
+                        <li><a class="dropdown-item py-2 rounded <?= CURRENT_LANG === 'hi' ? 'text-success fw-bold' : '' ?>" href="?lang=hi">हिन्दी</a></li>
+                        <li><a class="dropdown-item py-2 rounded <?= CURRENT_LANG === 'ne' ? 'text-success fw-bold' : '' ?>" href="?lang=ne">नेपाली</a></li>
+                        <li><hr class="dropdown-divider border-secondary"></li>
+                        <li><a class="dropdown-item text-danger py-2" href="<?= BASE_URL ?>/logout.php"><?= __('nav_sign_out', 'Logout') ?></a></li>
                     </ul>
                 </div>
             </div>
             
             <div class="d-flex justify-content-between align-items-center mb-5 flex-wrap gap-3">
                 <div>
-                    <h2 class="fw-bold text-white mb-0"><?= isset($page_title) ? htmlspecialchars($page_title) : 'Agent Portal' ?></h2>
-                    <span class="text-secondary small">Agency Workspace</span>
+                    <h2 class="fw-bold text-white mb-0"><?= isset($page_title) ? htmlspecialchars($page_title) : __('nav_agent_portal', 'Agent Portal') ?></h2>
+                    <span class="text-secondary small"><?= __('agency_workspace', 'Agency Workspace') ?></span>
                 </div>
                 <div class="d-flex align-items-center gap-3">
+                    <!-- Language switcher dropdown -->
+                    <div class="dropdown me-2">
+                        <button class="btn btn-secondary-glass py-2 px-3 d-flex align-items-center gap-2" type="button"
+                            id="langMenuButton" data-bs-toggle="dropdown" aria-expanded="false"
+                            style="border-radius: 10px; font-weight: 500; font-size: 0.9rem;">
+                            <i class="fa-solid fa-globe text-success"></i>
+                            <span>
+                                <?php
+                                if (CURRENT_LANG === 'hi') echo 'हिन्दी';
+                                elseif (CURRENT_LANG === 'ne') echo 'नेपाली';
+                                else echo 'English';
+                                ?>
+                            </span>
+                            <i class="fa-solid fa-chevron-down small opacity-75" style="font-size: 0.75rem;"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end glass-card mt-2 p-2 border-0 shadow-lg"
+                            aria-labelledby="langMenuButton" style="background: var(--bg-card); border: 1px solid var(--border-glass);">
+                            <li><a class="dropdown-item py-2 rounded <?= CURRENT_LANG === 'en' ? 'active bg-success text-white' : '' ?>" href="?lang=en">English</a></li>
+                            <li><a class="dropdown-item py-2 rounded <?= CURRENT_LANG === 'hi' ? 'active bg-success text-white' : '' ?>" href="?lang=hi">हिन्दी</a></li>
+                            <li><a class="dropdown-item py-2 rounded <?= CURRENT_LANG === 'ne' ? 'active bg-success text-white' : '' ?>" href="?lang=ne">नेपाली</a></li>
+                        </ul>
+                    </div>
+
                     <span class="small text-secondary"><i class="fa-solid fa-briefcase text-indigo me-2"></i><?= htmlspecialchars($agent_profile['agency_name'] ?? $user['username']) ?></span>
                 </div>
             </div>

@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $csrf_token = $_POST['csrf_token'] ?? '';
     
     if (!verify_csrf_token($csrf_token)) {
-        $error = "Security token validation failed.";
+        $error = __('security_validation_failed', "Security token validation failed.");
     } else {
         $action = $_POST['action'] ?? '';
 
@@ -34,9 +34,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $fixed = floatval($_POST['fixed'] ?? 0.00);
 
             if ($bus_id === 0 || $route_id === 0 || empty($dep_time) || empty($arr_time)) {
-                $error = "Please fill in all scheduling fields.";
+                $error = __('fill_all_scheduling_fields', "Please fill in all scheduling fields.");
             } elseif (strtotime($dep_time) >= strtotime($arr_time)) {
-                $error = "Departure date/time must be earlier than Arrival date/time.";
+                $error = __('dep_time_before_arr_time', "Departure date/time must be earlier than Arrival date/time.");
             } else {
                 try {
                     $pdo->beginTransaction();
@@ -53,10 +53,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     if (!$bus) {
                         $pdo->rollBack();
-                        $error = "Invalid bus selection or unauthorized ownership.";
+                        $error = __('invalid_bus_selection', "Invalid bus selection or unauthorized ownership.");
                     } elseif (!$route_exists) {
                         $pdo->rollBack();
-                        $error = "Invalid route selection or unauthorized ownership.";
+                        $error = __('invalid_route_selection', "Invalid route selection or unauthorized ownership.");
                     } else {
                         // 2. Schedule Trip
                         $stmt = $pdo->prepare("
@@ -133,7 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
 
                         $pdo->commit();
-                        $success = "Trip scheduled successfully and seats initialized!";
+                        $success = __('trip_scheduled_success', "Trip scheduled successfully and seats initialized!");
                         log_activity($pdo, $admin_id, 'TRIP_ADD', "Scheduled Trip ID: $trip_id (Bus ID $bus_id, Route ID $route_id)");
                     }
 
@@ -141,7 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if ($pdo->inTransaction()) {
                         $pdo->rollBack();
                     }
-                    $error = "Failed to schedule trip: " . $e->getMessage();
+                    $error = __('failed_schedule_trip', "Failed to schedule trip: ") . $e->getMessage();
                 }
             }
         }
@@ -160,9 +160,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $fixed = floatval($_POST['fixed'] ?? 0.00);
 
             if ($trip_id === 0 || $bus_id === 0 || $route_id === 0 || empty($dep_time) || empty($arr_time)) {
-                $error = "Please fill in all scheduling fields.";
+                $error = __('fill_all_scheduling_fields', "Please fill in all scheduling fields.");
             } elseif (strtotime($dep_time) >= strtotime($arr_time)) {
-                $error = "Departure date/time must be earlier than Arrival date/time.";
+                $error = __('dep_time_before_arr_time', "Departure date/time must be earlier than Arrival date/time.");
             } else {
                 // Verify target bus, route and trip ownership
                 $trip_chk = $pdo->prepare("SELECT 1 FROM trips WHERE id = ? AND admin_id = ? LIMIT 1");
@@ -178,11 +178,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $route_exists = $route_chk->fetchColumn();
 
                 if (!$trip_exists) {
-                    $error = "Unauthorized trip update request.";
+                    $error = __('unauthorized_trip_update', "Unauthorized trip update request.");
                 } elseif (!$bus_exists) {
-                    $error = "Invalid or unauthorized bus selection.";
+                    $error = __('invalid_unauthorized_bus', "Invalid or unauthorized bus selection.");
                 } elseif (!$route_exists) {
-                    $error = "Invalid or unauthorized route selection.";
+                    $error = __('invalid_unauthorized_route', "Invalid or unauthorized route selection.");
                 } else {
                     $stmt = $pdo->prepare("
                         UPDATE trips 
@@ -190,7 +190,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         WHERE id = ?
                     ");
                     $stmt->execute([$bus_id, $route_id, $dep_time, $arr_time, $fare, $discount_type, $percentage, $fixed, $status, $trip_id]);
-                    $success = "Trip details updated successfully!";
+                    $success = __('trip_updated_success', "Trip details updated successfully!");
                     log_activity($pdo, $admin_id, 'TRIP_EDIT', "Updated Trip ID: $trip_id");
                 }
             }
@@ -209,10 +209,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $del = $pdo->prepare("UPDATE trips SET status = 'CANCELLED' WHERE id = ?");
                 $del->execute([$trip_id]);
                 
-                $success = "Trip cancelled and removed successfully!";
+                $success = __('trip_cancelled_success', "Trip cancelled and removed successfully!");
                 log_activity($pdo, $admin_id, 'TRIP_DELETE', "Soft deleted Trip ID: $trip_id");
             } else {
-                $error = "Failed to cancel trip. Unauthorized deletion request.";
+                $error = __('failed_cancel_trip', "Failed to cancel trip. Unauthorized deletion request.");
             }
         }
     }
@@ -325,19 +325,19 @@ try {
 <div class="row g-4 mb-4 text-center">
     <div class="col-md-4">
         <div class="glass-card p-3" style="border-top: 3px solid #198754;">
-            <span class="text-secondary small d-block mb-1">UPCOMING TRIPS</span>
+            <span class="text-secondary small d-block mb-1"><?= __('upcoming_trips', 'UPCOMING TRIPS') ?></span>
             <span class="fs-4 fw-bold text-success font-monospace"><?= $upcoming_count ?></span>
         </div>
     </div>
     <div class="col-md-4">
         <div class="glass-card p-3" style="border-top: 3px solid #fbbf24;">
-            <span class="text-secondary small d-block mb-1">COMPLETED TRIPS</span>
+            <span class="text-secondary small d-block mb-1"><?= __('completed_trips', 'COMPLETED TRIPS') ?></span>
             <span class="fs-4 fw-bold text-warning font-monospace"><?= $completed_count ?></span>
         </div>
     </div>
     <div class="col-md-4">
         <div class="glass-card p-3" style="border-top: 3px solid #ef4444;">
-            <span class="text-secondary small d-block mb-1">CANCELLED TRIPS</span>
+            <span class="text-secondary small d-block mb-1"><?= __('cancelled_trips', 'CANCELLED TRIPS') ?></span>
             <span class="fs-4 fw-bold text-danger font-monospace"><?= $cancelled_count ?></span>
         </div>
     </div>
@@ -346,12 +346,12 @@ try {
 <!-- Actions & Filter Toolbar -->
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
     <div class="d-flex flex-wrap gap-2">
-        <a href="?filter=upcoming" class="btn <?= $filter === 'upcoming' ? 'btn-primary-gradient' : 'btn-secondary-glass' ?> py-2 px-3 small">Upcoming</a>
-        <a href="?filter=completed" class="btn <?= $filter === 'completed' ? 'btn-primary-gradient' : 'btn-secondary-glass' ?> py-2 px-3 small">Completed</a>
-        <a href="?filter=cancelled" class="btn <?= $filter === 'cancelled' ? 'btn-primary-gradient' : 'btn-secondary-glass' ?> py-2 px-3 small">Cancelled</a>
-        <a href="?filter=all" class="btn <?= $filter === 'all' ? 'btn-primary-gradient' : 'btn-secondary-glass' ?> py-2 px-3 small">All Trips</a>
+        <a href="?filter=upcoming" class="btn <?= $filter === 'upcoming' ? 'btn-primary-gradient' : 'btn-secondary-glass' ?> py-2 px-3 small"><?= __('upcoming', 'Upcoming') ?></a>
+        <a href="?filter=completed" class="btn <?= $filter === 'completed' ? 'btn-primary-gradient' : 'btn-secondary-glass' ?> py-2 px-3 small"><?= __('completed', 'Completed') ?></a>
+        <a href="?filter=cancelled" class="btn <?= $filter === 'cancelled' ? 'btn-primary-gradient' : 'btn-secondary-glass' ?> py-2 px-3 small"><?= __('cancelled', 'Cancelled') ?></a>
+        <a href="?filter=all" class="btn <?= $filter === 'all' ? 'btn-primary-gradient' : 'btn-secondary-glass' ?> py-2 px-3 small"><?= __('all_trips', 'All Trips') ?></a>
     </div>
-    <button class="btn btn-primary-gradient" data-bs-toggle="modal" data-bs-target="#scheduleTripModal"><i class="fa-solid fa-circle-plus me-2"></i>Schedule Trip</button>
+    <button class="btn btn-primary-gradient" data-bs-toggle="modal" data-bs-target="#scheduleTripModal"><i class="fa-solid fa-circle-plus me-2"></i><?= __('schedule_trip_btn', 'Schedule Trip') ?></button>
 </div>
 
 <!-- Trips Table -->
@@ -359,20 +359,20 @@ try {
     <?php if (count($trips) === 0): ?>
         <div class="text-center py-5 text-secondary small">
             <i class="fa-solid fa-calendar-xmark mb-3 d-block" style="font-size: 3rem; color: #475569;"></i>
-            No scheduled trips found matching the selected filter.
+            <?= __('no_trips_found', 'No scheduled trips found matching the selected filter.') ?>
         </div>
     <?php else: ?>
         <div class="table-responsive">
             <table class="table table-swift table-dark table-hover table-borderless align-middle datatable-swift">
                 <thead>
                     <tr>
-                        <th>Bus details</th>
-                        <th>Route details</th>
-                        <th>Departure Timing</th>
-                        <th>Arrival Timing</th>
-                        <th>Discount</th>
-                        <th>Status</th>
-                        <th class="text-end">Actions</th>
+                        <th><?= __('bus_details_col', 'Bus details') ?></th>
+                        <th><?= __('route_details_col', 'Route details') ?></th>
+                        <th><?= __('departure_timing_col', 'Departure Timing') ?></th>
+                        <th><?= __('arrival_timing_col', 'Arrival Timing') ?></th>
+                        <th><?= __('discount_col', 'Discount') ?></th>
+                        <th><?= __('status_col', 'Status') ?></th>
+                        <th class="text-end"><?= __('actions_col', 'Actions') ?></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -394,7 +394,7 @@ try {
                                     } elseif (($trip['discount_type'] ?? 'none') === 'fixed') {
                                         echo '₹' . htmlspecialchars($trip['fixed']);
                                     } else {
-                                        echo 'None';
+                                        echo __('none_discount', 'None');
                                     }
                                     ?>
                                 </span>
@@ -411,12 +411,12 @@ try {
                                 }
                                 ?>
                                 <span class="badge <?= $status_badge ?> text-uppercase" style="font-size: 0.75rem;">
-                                    <?= htmlspecialchars($trip['trip_status']) ?>
+                                    <?= htmlspecialchars(__('status_' . strtolower($trip['trip_status']), $trip['trip_status'])) ?>
                                 </span>
                             </td>
                             <td class="text-end">
                                 <div class="d-flex gap-2 justify-content-end">
-                                    <a href="trip_pricing.php?trip_id=<?= $trip['trip_id'] ?>" class="btn btn-secondary-glass py-1 px-2 small" title="Configure Seat Prices"><i class="fa-solid fa-tags text-indigo"></i></a>
+                                    <a href="trip_pricing.php?trip_id=<?= $trip['trip_id'] ?>" class="btn btn-secondary-glass py-1 px-2 small" title="<?= __('configure_seat_prices', 'Configure Seat Prices') ?>"><i class="fa-solid fa-tags text-indigo"></i></a>
                                     <button class="btn btn-secondary-glass py-1 px-2 edit-trip-btn" 
                                             data-id="<?= $trip['trip_id'] ?>" 
                                             data-bus="<?= $trip['bus_id'] ?>" 
@@ -428,8 +428,8 @@ try {
                                             data-discount="<?= htmlspecialchars($trip['discount_type'] ?? 'none') ?>"
                                             data-percentage="<?= htmlspecialchars($trip['percentage'] ?? '0.00') ?>"
                                             data-fixed="<?= htmlspecialchars($trip['fixed'] ?? '0.00') ?>"
-                                            data-bs-toggle="modal" data-bs-target="#editTripModal" title="Edit Trip"><i class="fa-solid fa-pen-to-square"></i></button>
-                                    <button class="btn btn-secondary-glass py-1 px-2 text-danger small delete-trip-btn" data-id="<?= $trip['trip_id'] ?>" data-bs-toggle="modal" data-bs-target="#deleteTripModal" title="Cancel Trip"><i class="fa-solid fa-ban"></i></button>
+                                            data-bs-toggle="modal" data-bs-target="#editTripModal" title="<?= __('edit_trip', 'Edit Trip') ?>"><i class="fa-solid fa-pen-to-square"></i></button>
+                                    <button class="btn btn-secondary-glass py-1 px-2 text-danger small delete-trip-btn" data-id="<?= $trip['trip_id'] ?>" data-bs-toggle="modal" data-bs-target="#deleteTripModal" title="<?= __('cancel_trip', 'Cancel Trip') ?>"><i class="fa-solid fa-ban"></i></button>
                                 </div>
                             </td>
                         </tr>
@@ -441,7 +441,7 @@ try {
         <?php if ($total_pages > 1): ?>
             <div class="d-flex justify-content-between align-items-center mt-4">
                 <div class="text-secondary small">
-                    Showing <?= $offset + 1 ?> to <?= min($total_records, $offset + $limit) ?> of <?= $total_records ?> entries
+                    <?= __('showing_entries', 'Showing') ?> <?= $offset + 1 ?> <?= __('to_entries', 'to') ?> <?= min($total_records, $offset + $limit) ?> <?= __('of_entries', 'of') ?> <?= $total_records ?> <?= __('entries', 'entries') ?>
                 </div>
                 <nav aria-label="Page navigation">
                     <ul class="pagination pagination-swift mb-0">
@@ -472,7 +472,7 @@ try {
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content glass-card text-white border-secondary border-opacity-30" style="border-radius: 20px;">
             <div class="modal-header border-secondary border-opacity-20 p-4">
-                <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-calendar-plus me-2 text-indigo"></i>Schedule New Trip</h5>
+                <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-calendar-plus me-2 text-indigo"></i><?= __('schedule_new_trip', 'Schedule New Trip') ?></h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form action="" method="POST">
@@ -481,9 +481,9 @@ try {
                     <input type="hidden" name="action" value="add">
                     
                     <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold">Select Bus</label>
+                        <label class="form-label text-secondary small fw-semibold"><?= __('select_bus', 'Select Bus') ?></label>
                         <select name="bus_id" class="form-select form-control-swift" required>
-                            <option value="">Choose Vehicle...</option>
+                            <option value=""><?= __('choose_vehicle', 'Choose Vehicle...') ?></option>
                             <?php foreach ($agent_buses as $ab): ?>
                                 <option value="<?= $ab['id'] ?>"><?= htmlspecialchars($ab['bus_name']) ?> (<?= htmlspecialchars($ab['bus_number']) ?> - <?= htmlspecialchars($ab['bus_type']) ?>)</option>
                             <?php endforeach; ?>
@@ -491,9 +491,9 @@ try {
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold">Select Route</label>
+                        <label class="form-label text-secondary small fw-semibold"><?= __('select_route', 'Select Route') ?></label>
                         <select name="route_id" class="form-select form-control-swift" required>
-                            <option value="">Choose Route...</option>
+                            <option value=""><?= __('choose_route', 'Choose Route...') ?></option>
                             <?php foreach ($agent_routes as $ar): ?>
                                 <option value="<?= $ar['id'] ?>"><?= htmlspecialchars($ar['source']) ?> to <?= htmlspecialchars($ar['destination']) ?> (<?= $ar['distance_km'] ?> km)</option>
                             <?php endforeach; ?>
@@ -502,11 +502,11 @@ try {
 
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label text-secondary small fw-semibold">Departure Date & Time</label>
+                            <label class="form-label text-secondary small fw-semibold"><?= __('departure_date_time', 'Departure Date & Time') ?></label>
                             <input type="text" name="departure_time" class="form-control form-control-swift datetime-picker-24h" placeholder="YYYY-MM-DD HH:MM" pattern="^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01]) (0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$" title="Please enter date and time in YYYY-MM-DD HH:MM format (e.g. 2026-05-26 15:30)" required>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label text-secondary small fw-semibold">Arrival Date & Time</label>
+                            <label class="form-label text-secondary small fw-semibold"><?= __('arrival_date_time', 'Arrival Date & Time') ?></label>
                             <input type="text" name="arrival_time" class="form-control form-control-swift datetime-picker-24h" placeholder="YYYY-MM-DD HH:MM" pattern="^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01]) (0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$" title="Please enter date and time in YYYY-MM-DD HH:MM format (e.g. 2026-05-26 15:30)" required>
                         </div>
                     </div>
@@ -515,28 +515,28 @@ try {
 
                     <!-- Agent Partner Discount Configuration -->
                     <div class="row border-top border-secondary border-opacity-20 pt-3 mt-3">
-                        <h6 class="text-white fw-bold mb-3 small text-uppercase">Agent Partner Discount</h6>
+                        <h6 class="text-white fw-bold mb-3 small text-uppercase"><?= __('agent_partner_discount', 'Agent Partner Discount') ?></h6>
                         <div class="col-md-4 mb-3">
-                            <label class="form-label text-secondary small fw-semibold">Discount Type</label>
+                            <label class="form-label text-secondary small fw-semibold"><?= __('discount_type', 'Discount Type') ?></label>
                             <select name="discount_type" id="add_discount_type" class="form-select form-control-swift">
-                                <option value="none">None</option>
-                                <option value="percentage">Percentage (%)</option>
-                                <option value="fixed">Fixed (₹)</option>
+                                <option value="none"><?= __('none_discount', 'None') ?></option>
+                                <option value="percentage"><?= __('percentage_label', 'Percentage (%)') ?></option>
+                                <option value="fixed"><?= __('fixed_label', 'Fixed (₹)') ?></option>
                             </select>
                         </div>
                         <div class="col-md-4 mb-3" id="add_percentage_wrapper">
-                            <label class="form-label text-secondary small fw-semibold">Percentage (%)</label>
+                            <label class="form-label text-secondary small fw-semibold"><?= __('percentage_label', 'Percentage (%)') ?></label>
                             <input type="number" name="percentage" class="form-control form-control-swift" min="0" max="100" step="0.01" value="0.00">
                         </div>
                         <div class="col-md-4 mb-3" id="add_fixed_wrapper">
-                            <label class="form-label text-secondary small fw-semibold">Fixed (₹)</label>
+                            <label class="form-label text-secondary small fw-semibold"><?= __('fixed_label', 'Fixed (₹)') ?></label>
                             <input type="number" name="fixed" class="form-control form-control-swift" min="0" step="0.01" value="0.00">
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer border-secondary border-opacity-20 p-4">
-                    <button type="button" class="btn btn-secondary-glass" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary-gradient">Schedule Operations</button>
+                    <button type="button" class="btn btn-secondary-glass" data-bs-dismiss="modal"><?= __('cancel', 'Cancel') ?></button>
+                    <button type="submit" class="btn btn-primary-gradient"><?= __('schedule_operations', 'Schedule Operations') ?></button>
                 </div>
             </form>
         </div>
@@ -548,7 +548,7 @@ try {
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content glass-card text-white border-secondary border-opacity-30" style="border-radius: 20px;">
             <div class="modal-header border-secondary border-opacity-20 p-4">
-                <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-calendar-check me-2 text-indigo"></i>Modify Trip Details</h5>
+                <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-calendar-check me-2 text-indigo"></i><?= __('modify_trip_details', 'Modify Trip Details') ?></h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form action="" method="POST">
@@ -558,7 +558,7 @@ try {
                     <input type="hidden" name="trip_id" id="edit_trip_id">
                     
                     <div class="mb-3">
-                         <label class="form-label text-secondary small fw-semibold">Select Bus</label>
+                         <label class="form-label text-secondary small fw-semibold"><?= __('select_bus', 'Select Bus') ?></label>
                         <select name="bus_id" id="edit_bus_id" class="form-select form-control-swift" required>
                             <?php foreach ($agent_buses as $ab): ?>
                                 <option value="<?= $ab['id'] ?>"><?= htmlspecialchars($ab['bus_name']) ?> (<?= htmlspecialchars($ab['bus_number']) ?>)</option>
@@ -567,7 +567,7 @@ try {
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold">Select Route</label>
+                        <label class="form-label text-secondary small fw-semibold"><?= __('select_route', 'Select Route') ?></label>
                         <select name="route_id" id="edit_route_id" class="form-select form-control-swift" required>
                             <?php foreach ($agent_routes as $ar): ?>
                                 <option value="<?= $ar['id'] ?>"><?= htmlspecialchars($ar['source']) ?> to <?= htmlspecialchars($ar['destination']) ?></option>
@@ -577,11 +577,11 @@ try {
 
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label text-secondary small fw-semibold">Departure Date & Time</label>
+                            <label class="form-label text-secondary small fw-semibold"><?= __('departure_date_time', 'Departure Date & Time') ?></label>
                             <input type="text" name="departure_time" id="edit_departure_time" class="form-control form-control-swift datetime-picker-24h" placeholder="YYYY-MM-DD HH:MM" pattern="^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01]) (0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$" title="Please enter date and time in YYYY-MM-DD HH:MM format (e.g. 2026-05-26 15:30)" required>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label text-secondary small fw-semibold">Arrival Date & Time</label>
+                            <label class="form-label text-secondary small fw-semibold"><?= __('arrival_date_time', 'Arrival Date & Time') ?></label>
                             <input type="text" name="arrival_time" id="edit_arrival_time" class="form-control form-control-swift datetime-picker-24h" placeholder="YYYY-MM-DD HH:MM" pattern="^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01]) (0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$" title="Please enter date and time in YYYY-MM-DD HH:MM format (e.g. 2026-05-26 15:30)" required>
                         </div>
                     </div>
@@ -590,37 +590,37 @@ try {
 
                     <!-- Agent Partner Discount Configuration -->
                     <div class="row border-top border-secondary border-opacity-20 pt-3 mt-3">
-                        <h6 class="text-white fw-bold mb-3 small text-uppercase">Agent Partner Discount</h6>
+                        <h6 class="text-white fw-bold mb-3 small text-uppercase"><?= __('agent_partner_discount', 'Agent Partner Discount') ?></h6>
                         <div class="col-md-4 mb-3">
-                            <label class="form-label text-secondary small fw-semibold">Discount Type</label>
+                            <label class="form-label text-secondary small fw-semibold"><?= __('discount_type', 'Discount Type') ?></label>
                             <select name="discount_type" id="edit_discount_type" class="form-select form-control-swift">
-                                <option value="none">None</option>
-                                <option value="percentage">Percentage (%)</option>
-                                <option value="fixed">Fixed (₹)</option>
+                                <option value="none"><?= __('none_discount', 'None') ?></option>
+                                <option value="percentage"><?= __('percentage_label', 'Percentage (%)') ?></option>
+                                <option value="fixed"><?= __('fixed_label', 'Fixed (₹)') ?></option>
                             </select>
                         </div>
                         <div class="col-md-4 mb-3" id="edit_percentage_wrapper">
-                            <label class="form-label text-secondary small fw-semibold">Percentage (%)</label>
+                            <label class="form-label text-secondary small fw-semibold"><?= __('percentage_label', 'Percentage (%)') ?></label>
                             <input type="number" name="percentage" id="edit_percentage" class="form-control form-control-swift" min="0" max="100" step="0.01">
                         </div>
                         <div class="col-md-4 mb-3" id="edit_fixed_wrapper">
-                            <label class="form-label text-secondary small fw-semibold">Fixed (₹)</label>
+                            <label class="form-label text-secondary small fw-semibold"><?= __('fixed_label', 'Fixed (₹)') ?></label>
                             <input type="number" name="fixed" id="edit_fixed" class="form-control form-control-swift" min="0" step="0.01">
                         </div>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold">Trip Status</label>
+                        <label class="form-label text-secondary small fw-semibold"><?= __('trip_status_label', 'Trip Status') ?></label>
                         <select name="status" id="edit_status" class="form-select form-control-swift" required>
-                            <option value="ACTIVE">Active (Available)</option>
-                            <option value="COMPLETED">Completed</option>
-                            <option value="CANCELLED">Cancelled</option>
+                            <option value="ACTIVE"><?= __('active_available', 'Active (Available)') ?></option>
+                            <option value="COMPLETED"><?= __('completed', 'Completed') ?></option>
+                            <option value="CANCELLED"><?= __('cancelled', 'Cancelled') ?></option>
                         </select>
                     </div>
                 </div>
                 <div class="modal-footer border-secondary border-opacity-20 p-4">
-                    <button type="button" class="btn btn-secondary-glass" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary-gradient">Save Changes</button>
+                    <button type="button" class="btn btn-secondary-glass" data-bs-dismiss="modal"><?= __('cancel', 'Cancel') ?></button>
+                    <button type="submit" class="btn btn-primary-gradient"><?= __('save_changes', 'Save Changes') ?></button>
                 </div>
             </form>
         </div>
@@ -638,12 +638,12 @@ try {
                     <input type="hidden" name="trip_id" id="delete_trip_id">
                     
                     <i class="fa-solid fa-circle-exclamation text-danger mb-3" style="font-size: 3rem;"></i>
-                    <h5 class="fw-bold mb-2">Cancel scheduled trip?</h5>
-                    <p class="text-secondary small">Are you sure you want to cancel this trip? Deleting it will release all ticket holds and seat allocations.</p>
+                    <h5 class="fw-bold mb-2"><?= __('cancel_scheduled_trip_q', 'Cancel scheduled trip?') ?></h5>
+                    <p class="text-secondary small"><?= __('cancel_scheduled_trip_desc', 'Are you sure you want to cancel this trip? Deleting it will release all ticket holds and seat allocations.') ?></p>
                 </div>
                 <div class="modal-footer border-0 p-3 d-flex justify-content-around">
-                    <button type="button" class="btn btn-secondary-glass w-45 py-2" data-bs-dismiss="modal">No</button>
-                    <button type="submit" class="btn btn-danger w-45 py-2">Yes, Cancel</button>
+                    <button type="button" class="btn btn-secondary-glass w-45 py-2" data-bs-dismiss="modal"><?= __('no', 'No') ?></button>
+                    <button type="submit" class="btn btn-danger w-45 py-2"><?= __('yes_cancel', 'Yes, Cancel') ?></button>
                 </div>
             </form>
         </div>

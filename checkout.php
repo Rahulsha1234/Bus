@@ -5,7 +5,7 @@
  */
 require_once __DIR__ . '/includes/auth_middleware.php';
 
-$page_title = "Checkout";
+$page_title = __('passenger_details', 'Checkout');
 
 // Process API Booking / Payment Transaction
 if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
@@ -398,9 +398,9 @@ try {
         if ($info['status'] === 'booked' || ($info['status'] === 'hold' && $info['session'] !== $session_id)) {
             $pdo->rollBack();
             die("<div style='font-family:sans-serif; text-align:center; padding: 50px;'>
-                <h2>Seat Reservation Expired or Conflicted</h2>
-                <p>One or more seats you selected (Seat $seat) are currently locked by another customer. Please choose different seats.</p>
-                <a href='" . BASE_URL . "/book.php?trip_id=$trip_id' style='display:inline-block; padding: 10px 20px; background:#0d6efd; color:#fff; text-decoration:none; border-radius:5px;'>Return to Seat Layout</a>
+                <h2><?= __('conflicted_seats_title', 'Seat Reservation Expired or Conflicted') ?></h2>
+                <p><?= __('conflicted_seats_desc', 'One or more seats you selected are currently locked by another customer. Please choose different seats.') ?></p>
+                <a href='" . BASE_URL . "/book.php?trip_id=$trip_id' style='display:inline-block; padding: 10px 20px; background:#0d6efd; color:#fff; text-decoration:none; border-radius:5px;'><?= __('select_seats', 'Return to Seat Layout') ?></a>
             </div>");
         }
     }
@@ -551,7 +551,7 @@ require_once __DIR__ . '/includes/header.php';
     <!-- Passenger Form Column -->
     <div class="col-lg-8">
         <div class="glass-card p-5" style="border-radius: 20px;">
-            <h4 class="fw-bold text-white mb-4"><i class="fa-solid fa-users text-indigo me-2"></i>Passenger Details</h4>
+            <h4 class="fw-bold text-white mb-4"><i class="fa-solid fa-users text-indigo me-2"></i><?= __('passenger_details', 'Passenger Details') ?></h4>
 
             <form id="paymentCheckForm" autocomplete="off">
                 <!-- CSRF Token -->
@@ -567,33 +567,33 @@ require_once __DIR__ . '/includes/header.php';
                 <?php foreach ($seats as $idx => $seat): ?>
                     <div class="p-4 rounded-4 mb-4 border border-secondary border-opacity-20 bg-dark bg-opacity-20">
                         <div class="d-flex align-items-center justify-content-between mb-3 border-bottom border-secondary border-opacity-10 pb-2">
-                            <h5 class="text-white fw-bold"><i class="fa-solid fa-chair text-indigo me-2"></i>Passenger #<?= $idx + 1 ?> <span class="text-secondary small font-monospace">(Seat <?= htmlspecialchars($seat) ?>)</span></h5>
+                            <h5 class="text-white fw-bold"><i class="fa-solid fa-chair text-indigo me-2"></i><?= __('passenger', 'Passenger') ?> #<?= $idx + 1 ?> <span class="text-secondary small font-monospace">(<?= __('seats', 'Seat') ?> <?= htmlspecialchars($seat) ?>)</span></h5>
                             <span class="badge bg-indigo">₹<?= number_format($seat_fares[$seat], 2) ?></span>
                         </div>
                         <div class="row">
                             <div class="col-md-5 mb-3">
-                                <label class="form-label text-secondary small fw-semibold">Full Name</label>
-                                <input type="text" name="passenger_name[]" class="form-control form-control-swift" placeholder="Passenger full name" required>
+                                <label class="form-label text-secondary small fw-semibold"><?= __('name', 'Full Name') ?></label>
+                                <input type="text" name="passenger_name[]" class="form-control form-control-swift" placeholder="<?= __('name', 'Passenger full name') ?>" required>
                             </div>
                             <div class="col-md-3 mb-3">
-                                <label class="form-label text-secondary small fw-semibold">Age</label>
-                                <input type="number" name="passenger_age[]" class="form-control form-control-swift" placeholder="Age" min="5" max="100" required>
+                                <label class="form-label text-secondary small fw-semibold"><?= __('age', 'Age') ?></label>
+                                <input type="number" name="passenger_age[]" class="form-control form-control-swift" placeholder="<?= __('age', 'Age') ?>" min="5" max="100" required>
                             </div>
                             <div class="col-md-4 mb-3">
-                                <label class="form-label text-secondary small fw-semibold">Gender</label>
+                                <label class="form-label text-secondary small fw-semibold"><?= __('gender', 'Gender') ?></label>
                                 <select name="passenger_gender[]" class="form-select form-control-swift" required>
                                     <?php if ($is_adjacent_to_female[$seat]): ?>
-                                        <option value="Female" selected>Female</option>
-                                        <option value="Other">Other</option>
+                                        <option value="Female" selected><?= __('female', 'Female') ?></option>
+                                        <option value="Other"><?= __('other', 'Other') ?></option>
                                     <?php else: ?>
-                                        <option value="Male">Male</option>
-                                        <option value="Female">Female</option>
-                                        <option value="Other">Other</option>
+                                        <option value="Male"><?= __('male', 'Male') ?></option>
+                                        <option value="Female"><?= __('female', 'Female') ?></option>
+                                        <option value="Other"><?= __('other', 'Other') ?></option>
                                     <?php endif; ?>
                                 </select>
                                 <?php if ($is_adjacent_to_female[$seat]): ?>
                                     <div class="text-warning small mt-1 font-semibold" style="font-size:0.75rem;">
-                                        <i class="fa-solid fa-triangle-exclamation me-1"></i> Adjacent to Female (Male not allowed)
+                                        <i class="fa-solid fa-triangle-exclamation me-1"></i> <?= __('adj_female_warning', 'Adjacent to Female (Male not allowed)') ?>
                                     </div>
                                 <?php endif; ?>
                             </div>
@@ -602,27 +602,27 @@ require_once __DIR__ . '/includes/header.php';
                 <?php endforeach; ?>
 
                 <!-- Primary Contact details -->
-                <h4 class="fw-bold text-white mt-5 mb-4"><i class="fa-solid fa-address-book text-pink me-2"></i>Contact Details</h4>
+                <h4 class="fw-bold text-white mt-5 mb-4"><i class="fa-solid fa-address-book text-pink me-2"></i><?= __('contact_info', 'Contact Details') ?></h4>
                 <div class="p-4 rounded-4 border border-secondary border-opacity-20 bg-dark bg-opacity-20 mb-4">
                     <div class="row">
                         <div class="col-md-4 mb-3">
-                            <label class="form-label text-secondary small fw-semibold">Contact Name</label>
-                            <input type="text" name="contact_name" class="form-control form-control-swift" value="<?= htmlspecialchars($default_name) ?>" placeholder="Full Name" required>
+                            <label class="form-label text-secondary small fw-semibold"><?= __('name', 'Contact Name') ?></label>
+                            <input type="text" name="contact_name" class="form-control form-control-swift" value="<?= htmlspecialchars($default_name) ?>" placeholder="<?= __('name', 'Full Name') ?>" required>
                         </div>
                         <div class="col-md-4 mb-3">
-                            <label class="form-label text-secondary small fw-semibold">Email Address</label>
-                            <input type="email" name="contact_email" class="form-control form-control-swift" value="<?= htmlspecialchars($default_email) ?>" placeholder="name@domain.com" required>
+                            <label class="form-label text-secondary small fw-semibold"><?= __('email', 'Email Address') ?></label>
+                            <input type="email" name="contact_email" class="form-control form-control-swift" value="<?= htmlspecialchars($default_email) ?>" placeholder="<?= __('email', 'name@domain.com') ?>" required>
                         </div>
                         <div class="col-md-4 mb-3">
-                            <label class="form-label text-secondary small fw-semibold">Mobile Number</label>
-                            <input type="tel" name="contact_phone" class="form-control form-control-swift" placeholder="10-digit number" required>
+                            <label class="form-label text-secondary small fw-semibold"><?= __('phone', 'Mobile Number') ?></label>
+                            <input type="tel" name="contact_phone" class="form-control form-control-swift" placeholder="<?= __('phone', '10-digit number') ?>" required>
                         </div>
                     </div>
                 </div>
 
                 <div class="d-grid mt-4">
                     <button type="button" id="btnInitiatePayment" class="btn btn-primary-gradient py-3 text-uppercase fw-bold" style="border-radius: 12px; letter-spacing: 0.5px;">
-                        <i class="fa-solid fa-credit-card me-2"></i>Initiate Checkout Securely
+                        <i class="fa-solid fa-credit-card me-2"></i><?= __('pay_now', 'Initiate Checkout Securely') ?>
                     </button>
                 </div>
             </form>
@@ -632,34 +632,34 @@ require_once __DIR__ . '/includes/header.php';
     <!-- Summary Panel -->
     <div class="col-lg-4">
         <div class="glass-card p-4 shadow-lg" style="border-radius: 20px; position: sticky; top: 100px;">
-            <h4 class="fw-bold text-white mb-4"><i class="fa-solid fa-receipt text-pink me-2"></i>Fare Details</h4>
+            <h4 class="fw-bold text-white mb-4"><i class="fa-solid fa-receipt text-pink me-2"></i><?= __('payment_summary', 'Fare Details') ?></h4>
             <div class="mb-4">
-                <span class="text-secondary small d-block">Voyage Operators</span>
+                <span class="text-secondary small d-block"><?= __('bus_details', 'Voyage Operators') ?></span>
                 <span class="text-white fw-bold"><?= htmlspecialchars($trip['bus_name']) ?></span>
             </div>
 
             <div class="mb-4">
-                <span class="text-secondary small d-block">Stations Route</span>
-                <span class="text-white fw-semibold"><?= htmlspecialchars($trip['source']) ?> to <?= htmlspecialchars($trip['destination']) ?></span>
+                <span class="text-secondary small d-block"><?= __('route', 'Stations Route') ?></span>
+                <span class="text-white fw-semibold"><?= htmlspecialchars($trip['source']) ?> <?= __('to', 'to') ?> <?= htmlspecialchars($trip['destination']) ?></span>
             </div>
 
             <div class="border-top border-secondary border-opacity-20 pt-3">
                 <div class="d-flex justify-content-between text-secondary small mb-2">
-                    <span>Seats (<?= count($seats) ?> berths)</span>
+                    <span><?= __('seats', 'Seats') ?> (<?= count($seats) ?> <?= __('seats_left', 'berths') ?>)</span>
                     <span class="text-white fw-semibold"><?= htmlspecialchars($selected_seats) ?></span>
                 </div>
                 <div class="d-flex justify-content-between text-secondary small mb-3">
-                    <span>Base Ticket Fare</span>
+                    <span><?= __('base_ticket_fare', 'Base Ticket Fare') ?></span>
                     <span>₹<?= number_format($total_fare, 2) ?></span>
                 </div>
                 <?php if ($discount_amount > 0): ?>
                     <div class="d-flex justify-content-between text-secondary small mb-3">
-                        <span>Discount Applied (<?= htmlspecialchars($applied_promo) ?>)</span>
+                        <span><?= __('discount_applied', 'Discount Applied') ?> (<?= htmlspecialchars($applied_promo) ?>)</span>
                         <span class="text-success">-₹<?= number_format($discount_amount, 2) ?></span>
                     </div>
                 <?php endif; ?>
                 <div class="d-flex justify-content-between text-white fw-bold fs-5 pt-3 border-top border-secondary border-opacity-30">
-                    <span>Total Price</span>
+                    <span><?= __('total_amount', 'Total Price') ?></span>
                     <span class="text-indigo">₹<?= number_format($final_fare, 2) ?></span>
                 </div>
             </div>

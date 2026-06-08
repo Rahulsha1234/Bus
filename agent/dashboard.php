@@ -125,11 +125,11 @@ try {
     <div class="col-md-6 col-lg-3">
         <div class="glass-card p-4 metric-card h-100">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <span class="text-secondary small fw-semibold text-uppercase">Today Sales</span>
+                <span class="text-secondary small fw-semibold text-uppercase"><?= __('today_sales', 'Today Sales') ?></span>
                 <span class="metric-icon"><i class="fa-solid fa-calendar-day"></i></span>
             </div>
             <h3 class="fw-bold text-white mb-1"><?= CURRENCY ?><?= number_format($today_metrics['total_sales'] ?? 0, 2) ?></h3>
-            <span class="text-secondary small">Net Yield: <?= CURRENCY ?><?= number_format($today_metrics['agent_net'] ?? 0, 2) ?></span>
+            <span class="text-secondary small"><?= __('net_yield', 'Net Yield') ?>: <?= CURRENCY ?><?= number_format($today_metrics['agent_net'] ?? 0, 2) ?></span>
         </div>
     </div>
 
@@ -137,11 +137,11 @@ try {
     <div class="col-md-6 col-lg-3">
         <div class="glass-card p-4 metric-card h-100">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <span class="text-secondary small fw-semibold text-uppercase">Weekly Sales</span>
+                <span class="text-secondary small fw-semibold text-uppercase"><?= __('weekly_sales', 'Weekly Sales') ?></span>
                 <span class="metric-icon" style="color: #db2777; border-color: rgba(219,39,119,0.2); background: rgba(219,39,119,0.1);"><i class="fa-solid fa-calendar-week"></i></span>
             </div>
             <h3 class="fw-bold text-white mb-1" style="background: linear-gradient(135deg, #f472b6 0%, #db2777 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"><?= CURRENCY ?><?= number_format($weekly_metrics['total_sales'] ?? 0, 2) ?></h3>
-            <span class="text-secondary small">Net Yield: <?= CURRENCY ?><?= number_format($weekly_metrics['agent_net'] ?? 0, 2) ?></span>
+            <span class="text-secondary small"><?= __('net_yield', 'Net Yield') ?>: <?= CURRENCY ?><?= number_format($weekly_metrics['agent_net'] ?? 0, 2) ?></span>
         </div>
     </div>
 
@@ -149,11 +149,11 @@ try {
     <div class="col-md-6 col-lg-3">
         <div class="glass-card p-4 metric-card h-100">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <span class="text-secondary small fw-semibold text-uppercase">Monthly Sales</span>
+                <span class="text-secondary small fw-semibold text-uppercase"><?= __('monthly_sales', 'Monthly Sales') ?></span>
                 <span class="metric-icon"><i class="fa-solid fa-chart-line"></i></span>
             </div>
             <h3 class="fw-bold text-white mb-1"><?= CURRENCY ?><?= number_format($monthly_metrics['total_sales'] ?? 0, 2) ?></h3>
-            <span class="text-secondary small">Net Yield: <?= CURRENCY ?><?= number_format($monthly_metrics['agent_net'] ?? 0, 2) ?></span>
+            <span class="text-secondary small"><?= __('net_yield', 'Net Yield') ?>: <?= CURRENCY ?><?= number_format($monthly_metrics['agent_net'] ?? 0, 2) ?></span>
         </div>
     </div>
 
@@ -161,11 +161,11 @@ try {
     <div class="col-md-6 col-lg-3">
         <div class="glass-card p-4 metric-card h-100">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <span class="text-secondary small fw-semibold text-uppercase">Total Discounts Received</span>
+                <span class="text-secondary small fw-semibold text-uppercase"><?= __('total_discounts_received', 'Total Discounts Received') ?></span>
                 <span class="metric-icon" style="color: #fbbf24; border-color: rgba(245,158,11,0.2); background: rgba(245,158,11,0.1);"><i class="fa-solid fa-tags"></i></span>
             </div>
             <h3 class="fw-bold text-warning mb-1"><?= CURRENCY ?><?= number_format($lifetime_metrics['total_discounts'] ?? 0, 2) ?></h3>
-            <span class="text-secondary small">Direct fleet operator margin</span>
+            <span class="text-secondary small"><?= __('operator_margin_desc', 'Direct fleet operator margin') ?></span>
         </div>
     </div>
 </div>
@@ -174,7 +174,7 @@ try {
     <!-- Chart Column -->
     <div class="col-lg-8">
         <div class="glass-card p-4 h-100">
-            <h5 class="fw-bold text-white mb-4"><i class="fa-solid fa-chart-area text-indigo me-2"></i>Daily Earnings Trend (7 Days)</h5>
+            <h5 class="fw-bold text-white mb-4"><i class="fa-solid fa-chart-area text-indigo me-2"></i><?= __('daily_earnings_trend', 'Daily Earnings Trend (7 Days)') ?></h5>
             <div style="height: 300px; position: relative;">
                 <canvas id="agentEarningsChart"></canvas>
             </div>
@@ -184,38 +184,38 @@ try {
     <!-- Right Summary Column -->
     <div class="col-lg-4">
         <div class="glass-card p-4 h-100">
-            <h5 class="fw-bold text-white mb-4"><i class="fa-solid fa-circle-check text-pink me-2"></i>Partner Desk Details</h5>
+            <h5 class="fw-bold text-white mb-4"><i class="fa-solid fa-circle-check text-pink me-2"></i><?= __('partner_desk_details', 'Partner Desk Details') ?></h5>
             <div class="p-3 rounded-4 bg-dark bg-opacity-20 border border-secondary border-opacity-25 mb-4">
-                <div class="d-flex justify-content-between text-secondary small mb-2"><span>Agency Name</span><span class="text-white fw-bold"><?= htmlspecialchars($agent_profile['agency_name'] ?? 'N/A') ?></span></div>
-                <div class="d-flex justify-content-between text-secondary small mb-2"><span>Commission Rate</span><span class="text-white fw-bold text-warning"><?= htmlspecialchars($agent_profile['commission_rate'] ?? '2.00') ?>%</span></div>
-                <div class="d-flex justify-content-between text-secondary small mb-3"><span>Lifetime Gross Sales</span><span class="text-white fw-bold text-success">₹<?= number_format($lifetime_metrics['total_sales'] ?? 0, 2) ?></span></div>
+                <div class="d-flex justify-content-between text-secondary small mb-2"><span><?= __('agency_name', 'Agency Name') ?></span><span class="text-white fw-bold"><?= htmlspecialchars($agent_profile['agency_name'] ?? 'N/A') ?></span></div>
+                <div class="d-flex justify-content-between text-secondary small mb-2"><span><?= __('commission_rate', 'Commission Rate') ?></span><span class="text-white fw-bold text-warning"><?= htmlspecialchars($agent_profile['commission_rate'] ?? '2.00') ?>%</span></div>
+                <div class="d-flex justify-content-between text-secondary small mb-3"><span><?= __('lifetime_gross_sales', 'Lifetime Gross Sales') ?></span><span class="text-white fw-bold text-success">₹<?= number_format($lifetime_metrics['total_sales'] ?? 0, 2) ?></span></div>
                 <div class="d-flex justify-content-between text-white fw-bold fs-5 pt-3 border-top border-secondary border-opacity-30">
-                    <span>Net Margin Saved</span>
+                    <span><?= __('net_margin_saved', 'Net Margin Saved') ?></span>
                     <span class="text-warning">₹<?= number_format($lifetime_metrics['total_discounts'] ?? 0, 2) ?></span>
                 </div>
             </div>
-            <p class="small text-secondary"><i class="fa-solid fa-circle-exclamation me-1"></i> Agent portal allows booking with direct discounts pre-configured per bus by the operator.</p>
+            <p class="small text-secondary"><i class="fa-solid fa-circle-exclamation me-1"></i> <?= __('agent_portal_discounts_desc', 'Agent portal allows booking with direct discounts pre-configured per bus by the operator.') ?></p>
         </div>
     </div>
 </div>
 
 <!-- Recent Bookings Table -->
 <div class="glass-card p-4">
-    <h5 class="fw-bold text-white mb-4"><i class="fa-solid fa-clock-rotate-left text-indigo me-2"></i>Recent Bookings</h5>
+    <h5 class="fw-bold text-white mb-4"><i class="fa-solid fa-clock-rotate-left text-indigo me-2"></i><?= __('recent_bookings', 'Recent Bookings') ?></h5>
     <?php if (count($recent_bookings) === 0): ?>
-        <div class="text-center py-4 text-secondary small">No bookings registered yet. Search trips to make a booking.</div>
+        <div class="text-center py-4 text-secondary small"><?= __('no_bookings_registered', 'No bookings registered yet. Search trips to make a booking.') ?></div>
     <?php else: ?>
         <div class="table-responsive">
             <table class="table table-swift table-dark table-hover table-borderless align-middle">
                 <thead>
                     <tr>
-                        <th>Booking Ref</th>
-                        <th>Bus / Route</th>
-                        <th>Passenger Name</th>
-                        <th>Original Fare</th>
-                        <th>Discount Applied</th>
-                        <th>Final Paid</th>
-                        <th>Date</th>
+                        <th><?= __('booking_ref', 'Booking Ref') ?></th>
+                        <th><?= __('bus_route', 'Bus / Route') ?></th>
+                        <th><?= __('passenger_name', 'Passenger Name') ?></th>
+                        <th><?= __('original_fare', 'Original Fare') ?></th>
+                        <th><?= __('discount_applied', 'Discount Applied') ?></th>
+                        <th><?= __('final_paid', 'Final Paid') ?></th>
+                        <th><?= __('date', 'Date') ?></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -254,7 +254,7 @@ $(document).ready(function() {
         data: {
             labels: <?= json_encode($chart_days) ?>,
             datasets: [{
-                label: 'Net Earnings (₹)',
+                label: '<?= __('net_earnings_chart', 'Net Earnings (₹)') ?>',
                 data: <?= json_encode($chart_earnings) ?>,
                 backgroundColor: gradient,
                 borderColor: '#6366f1',

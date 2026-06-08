@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $csrf_token = $_POST['csrf_token'] ?? '';
     
     if (!verify_csrf_token($csrf_token)) {
-        $error = "Security token validation failed.";
+        $error = __('security_validation_failed', "Security token validation failed.");
     } else {
         $action = $_POST['action'] ?? '';
 
@@ -35,24 +35,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if (empty($name) || empty($number) || empty($type)) {
-                $error = "Please fill in all fields.";
+                $error = __('fill_all_fields', "Please fill in all fields.");
             } elseif (!preg_match('/^[A-Z0-9]+$/', $number)) {
-                $error = "Invalid License Plate Number. Alphanumeric characters only, no spaces or special characters (e.g., DL01CA1234).";
+                $error = __('invalid_plate_number', "Invalid License Plate Number. Alphanumeric characters only, no spaces or special characters (e.g., DL01CA1234).");
             } else {
                 // Check if bus number already registered
                 $chk = $pdo->prepare("SELECT id FROM buses WHERE bus_number = ? AND status = 'active' LIMIT 1");
                 $chk->execute([$number]);
                 if ($chk->fetchColumn()) {
-                    $error = "Bus Number already registered.";
+                    $error = __('bus_num_registered', "Bus Number already registered.");
                 } else {
                     try {
                         // agent_id = admin_id (legacy column kept for compatibility)
                         $stmt = $pdo->prepare("INSERT INTO buses (agent_id, admin_id, bus_name, bus_number, bus_type, total_seats, seat_layout_type, discount_type, percentage, fixed) VALUES (?, ?, ?, ?, ?, ?, ?, 'none', 0.00, 0.00)");
                         $stmt->execute([$admin_id, $admin_id, $name, $number, $type, $total_seats, $layout]);
-                        $success = "Bus added successfully!";
+                        $success = __('bus_added_success', "Bus added successfully!");
                         log_activity($pdo, $admin_id, 'BUS_ADD', "Added bus $name ($number)");
                     } catch (PDOException $e) {
-                        $error = "Failed to add bus: " . $e->getMessage();
+                        $error = __('failed_add_bus', "Failed to add bus: ") . $e->getMessage();
                     }
                 }
             }
@@ -69,19 +69,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $total_seats = (strpos($type, 'Sleeper') !== false) ? 30 : 40;
 
             if (empty($name) || empty($number) || empty($type) || $bus_id === 0) {
-                $error = "Please fill in all fields.";
+                $error = __('fill_all_fields', "Please fill in all fields.");
             } elseif (!preg_match('/^[A-Z0-9]+$/', $number)) {
-                $error = "Invalid License Plate Number. Alphanumeric characters only, no spaces or special characters (e.g., DL01CA1234).";
+                $error = __('invalid_plate_number', "Invalid License Plate Number. Alphanumeric characters only, no spaces or special characters (e.g., DL01CA1234).");
             } else {
                 // Verify ownership & bus number availability
                 $chk = $pdo->prepare("SELECT id FROM buses WHERE bus_number = ? AND id != ? AND status = 'active' LIMIT 1");
                 $chk->execute([$number, $bus_id]);
                 if ($chk->fetchColumn()) {
-                    $error = "Bus Number already registered to another vehicle.";
+                    $error = __('bus_num_registered_other', "Bus Number already registered to another vehicle.");
                 } else {
                     $stmt = $pdo->prepare("UPDATE buses SET bus_name = ?, bus_number = ?, bus_type = ?, total_seats = ?, seat_layout_type = ? WHERE id = ? AND admin_id = ?");
                     $stmt->execute([$name, $number, $type, $total_seats, $layout, $bus_id, $admin_id]);
-                    $success = "Bus updated successfully!";
+                    $success = __('bus_updated_success', "Bus updated successfully!");
                     log_activity($pdo, $admin_id, 'BUS_EDIT', "Updated bus $name ($number)");
                 }
             }
@@ -96,10 +96,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$bus_id, $admin_id]);
             
             if ($stmt->rowCount() > 0) {
-                $success = "Bus removed successfully!";
+                $success = __('bus_deleted_success', "Bus removed successfully!");
                 log_activity($pdo, $admin_id, 'BUS_DELETE', "Soft deleted bus ID: $bus_id");
             } else {
-                $error = "Failed to delete bus. Ownership mismatch or invalid ID.";
+                $error = __('failed_delete_bus', "Failed to delete bus. Ownership mismatch or invalid ID.");
             }
         }
 
@@ -113,13 +113,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $op_email = trim($_POST['support_email'] ?? '');
 
             if (empty($op_name) || empty($op_phone) || empty($op_whatsapp) || empty($op_emergency) || empty($op_email) || $bus_id === 0) {
-                $error = "Please fill in all operator contact fields.";
+                $error = __('fill_all_operator_fields', "Please fill in all operator contact fields.");
             } else {
                 // Verify ownership of the bus
                 $owner_chk = $pdo->prepare("SELECT 1 FROM buses WHERE id = ? AND admin_id = ? AND status = 'active' LIMIT 1");
                 $owner_chk->execute([$bus_id, $admin_id]);
                 if (!$owner_chk->fetchColumn()) {
-                    $error = "Unauthorized operator contact settings request.";
+                    $error = __('unauthorized_contact_update', "Unauthorized operator contact settings request.");
                 } else {
                     $stmt = $pdo->prepare("
                         INSERT INTO operator_contacts (bus_id, operator_name, contact_number, whatsapp_number, emergency_number, support_email)
@@ -132,7 +132,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             support_email = VALUES(support_email)
                     ");
                     $stmt->execute([$bus_id, $op_name, $op_phone, $op_whatsapp, $op_emergency, $op_email]);
-                    $success = "Operator contacts updated successfully!";
+                    $success = __('operator_updated_success', "Operator contacts updated successfully!");
                     log_activity($pdo, $admin_id, 'BUS_OPERATOR_UPDATE', "Updated operator info for bus ID: $bus_id");
                 }
             }
@@ -185,8 +185,8 @@ try {
 
 <!-- Actions Toolbar -->
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h4 class="text-white fw-bold mb-0">Registered Fleet</h4>
-    <button class="btn btn-primary-gradient" data-bs-toggle="modal" data-bs-target="#addBusModal"><i class="fa-solid fa-circle-plus me-2"></i>Register New Bus</button>
+    <h4 class="text-white fw-bold mb-0"><?= __('registered_fleet', 'Registered Fleet') ?></h4>
+    <button class="btn btn-primary-gradient" data-bs-toggle="modal" data-bs-target="#addBusModal"><i class="fa-solid fa-circle-plus me-2"></i><?= __('register_new_bus', 'Register New Bus') ?></button>
 </div>
 
 <!-- Fleet Grid Table -->
@@ -194,20 +194,20 @@ try {
     <?php if (count($buses) === 0): ?>
         <div class="text-center py-5 text-secondary small">
             <i class="fa-solid fa-bus-simple mb-3 d-block" style="font-size: 3rem; color: #475569;"></i>
-            No vehicles registered. Add a bus to schedule operations.
+            <?= __('no_vehicles_registered', 'No vehicles registered. Add a bus to schedule operations.') ?>
         </div>
     <?php else: ?>
         <div class="table-responsive">
             <table class="table table-swift table-dark table-hover table-borderless align-middle datatable-swift">
                 <thead>
                     <tr>
-                        <th>Bus Name</th>
-                        <th>Plate Number</th>
-                        <th>Classification</th>
-                        <th>Capacity</th>
-                        <th>Layout Plan</th>
-                        <th>Registered Date</th>
-                        <th class="text-end">Actions</th>
+                        <th><?= __('bus_name_col', 'Bus Name') ?></th>
+                        <th><?= __('plate_number', 'Plate Number') ?></th>
+                        <th><?= __('classification', 'Classification') ?></th>
+                        <th><?= __('capacity', 'Capacity') ?></th>
+                        <th><?= __('layout_plan', 'Layout Plan') ?></th>
+                        <th><?= __('registered_date', 'Registered Date') ?></th>
+                        <th class="text-end"><?= __('actions', 'Actions') ?></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -216,15 +216,15 @@ try {
                             <td><span class="fw-semibold text-white fs-6"><?= htmlspecialchars($bus['bus_name']) ?></span></td>
                             <td><span class="font-monospace px-2 py-1 rounded bg-dark border border-secondary border-opacity-30 small"><?= htmlspecialchars($bus['bus_number']) ?></span></td>
                             <td><span class="badge bg-secondary"><?= htmlspecialchars($bus['bus_type']) ?></span></td>
-                            <td><?= htmlspecialchars($bus['total_seats']) ?> Berth Seats</td>
+                            <td><?= htmlspecialchars($bus['total_seats']) ?> <?= __('berth_seats', 'Berth Seats') ?></td>
                             <td><span class="font-monospace text-secondary small"><?= htmlspecialchars($bus['seat_layout_type']) ?></span></td>
                             <td class="text-secondary small"><?= date('d M Y', strtotime($bus['created_at'])) ?></td>
                             <td class="text-end">
                                 <div class="d-flex gap-2 justify-content-end align-items-center">
-                                    <a href="configure_layout.php?bus_id=<?= $bus['id'] ?>" class="btn btn-secondary-glass py-1 px-2 small" title="Configure Seats"><i class="fa-solid fa-table-cells text-indigo"></i></a>
-                                    <button class="btn btn-secondary-glass py-1 px-2 small operator-btn" data-id="<?= $bus['id'] ?>" data-name="<?= htmlspecialchars($bus['operator_name'] ?? '') ?>" data-phone="<?= htmlspecialchars($bus['contact_number'] ?? '') ?>" data-whatsapp="<?= htmlspecialchars($bus['whatsapp_number'] ?? '') ?>" data-emergency="<?= htmlspecialchars($bus['emergency_number'] ?? '') ?>" data-email="<?= htmlspecialchars($bus['support_email'] ?? '') ?>" data-bs-toggle="modal" data-bs-target="#operatorModal" title="Operator Contact Details"><i class="fa-solid fa-phone"></i></button>
-                                    <button class="btn btn-secondary-glass py-1 px-2 small edit-bus-btn" data-id="<?= $bus['id'] ?>" data-name="<?= htmlspecialchars($bus['bus_name']) ?>" data-number="<?= htmlspecialchars($bus['bus_number']) ?>" data-type="<?= htmlspecialchars($bus['bus_type']) ?>" data-discount="<?= htmlspecialchars($bus['discount_type']) ?>" data-percentage="<?= htmlspecialchars($bus['percentage']) ?>" data-fixed="<?= htmlspecialchars($bus['fixed']) ?>" data-bs-toggle="modal" data-bs-target="#editBusModal" title="Edit Bus"><i class="fa-solid fa-pen-to-square"></i></button>
-                                    <button class="btn btn-secondary-glass py-1 px-2 text-danger small delete-bus-btn" data-id="<?= $bus['id'] ?>" data-bs-toggle="modal" data-bs-target="#deleteBusModal" title="Delete Bus"><i class="fa-solid fa-trash-can"></i></button>
+                                    <a href="configure_layout.php?bus_id=<?= $bus['id'] ?>" class="btn btn-secondary-glass py-1 px-2 small" title="<?= __('configure_seats', 'Configure Seats') ?>"><i class="fa-solid fa-table-cells text-indigo"></i></a>
+                                    <button class="btn btn-secondary-glass py-1 px-2 small operator-btn" data-id="<?= $bus['id'] ?>" data-name="<?= htmlspecialchars($bus['operator_name'] ?? '') ?>" data-phone="<?= htmlspecialchars($bus['contact_number'] ?? '') ?>" data-whatsapp="<?= htmlspecialchars($bus['whatsapp_number'] ?? '') ?>" data-emergency="<?= htmlspecialchars($bus['emergency_number'] ?? '') ?>" data-email="<?= htmlspecialchars($bus['support_email'] ?? '') ?>" data-bs-toggle="modal" data-bs-target="#operatorModal" title="<?= __('operator_contact_details', 'Operator Contact Details') ?>"><i class="fa-solid fa-phone"></i></button>
+                                    <button class="btn btn-secondary-glass py-1 px-2 small edit-bus-btn" data-id="<?= $bus['id'] ?>" data-name="<?= htmlspecialchars($bus['bus_name']) ?>" data-number="<?= htmlspecialchars($bus['bus_number']) ?>" data-type="<?= htmlspecialchars($bus['bus_type']) ?>" data-discount="<?= htmlspecialchars($bus['discount_type']) ?>" data-percentage="<?= htmlspecialchars($bus['percentage']) ?>" data-fixed="<?= htmlspecialchars($bus['fixed']) ?>" data-bs-toggle="modal" data-bs-target="#editBusModal" title="<?= __('edit_bus', 'Edit Bus') ?>"><i class="fa-solid fa-pen-to-square"></i></button>
+                                    <button class="btn btn-secondary-glass py-1 px-2 text-danger small delete-bus-btn" data-id="<?= $bus['id'] ?>" data-bs-toggle="modal" data-bs-target="#deleteBusModal" title="<?= __('delete_bus', 'Delete Bus') ?>"><i class="fa-solid fa-trash-can"></i></button>
                                 </div>
                             </td>
                         </tr>
@@ -236,7 +236,7 @@ try {
         <?php if ($total_pages > 1): ?>
             <div class="d-flex justify-content-between align-items-center mt-4">
                 <div class="text-secondary small">
-                    Showing <?= $offset + 1 ?> to <?= min($total_records, $offset + $limit) ?> of <?= $total_records ?> entries
+                    <?= __('showing_entries', 'Showing') ?> <?= $offset + 1 ?> <?= __('to_entries', 'to') ?> <?= min($total_records, $offset + $limit) ?> <?= __('of_entries', 'of') ?> <?= $total_records ?> <?= __('entries', 'entries') ?>
                 </div>
                 <nav aria-label="Page navigation">
                     <ul class="pagination pagination-swift mb-0">
@@ -267,7 +267,7 @@ try {
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content glass-card text-white border-secondary border-opacity-30" style="background:#111111; border-radius: 20px;">
             <div class="modal-header border-secondary border-opacity-20 p-4">
-                <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-bus me-2 text-indigo"></i>Register Fleet</h5>
+                <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-bus me-2 text-indigo"></i><?= __('register_fleet', 'Register Fleet') ?></h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form action="" method="POST">
@@ -276,17 +276,17 @@ try {
                     <input type="hidden" name="action" value="add">
                     
                     <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold">Bus Name / Brand</label>
-                        <input type="text" name="bus_name" class="form-control form-control-swift" placeholder="e.g. SCANIA MULTIAXLE PREMIUM" oninput="this.value = this.value.toUpperCase()" required>
+                        <label class="form-label text-secondary small fw-semibold"><?= __('bus_name_brand', 'Bus Name / Brand') ?></label>
+                        <input type="text" name="bus_name" class="form-control form-control-swift" placeholder="<?= __('bus_name_brand', 'e.g. SCANIA MULTIAXLE PREMIUM') ?>" oninput="this.value = this.value.toUpperCase()" required>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold">License Plate Number</label>
+                        <label class="form-label text-secondary small fw-semibold"><?= __('license_plate_number', 'License Plate Number') ?></label>
                         <input type="text" name="bus_number" class="form-control form-control-swift" placeholder="e.g. KA01F1234" pattern="^[A-Za-z0-9]+$" title="Alphanumeric characters only, no spaces or special characters (e.g. KA01F1234)" oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '')" required>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold">Vehicle Classification</label>
+                        <label class="form-label text-secondary small fw-semibold"><?= __('vehicle_classification', 'Vehicle Classification') ?></label>
                         <select name="bus_type" class="form-select form-control-swift" required>
                             <?php foreach (get_vehicle_classifications() as $val => $info): ?>
                                 <option value="<?= htmlspecialchars($val) ?>"><?= htmlspecialchars($info['display']) ?></option>
@@ -297,8 +297,8 @@ try {
 
                 </div>
                 <div class="modal-footer border-secondary border-opacity-20 p-4">
-                    <button type="button" class="btn btn-secondary-glass" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary-gradient">Add Fleet</button>
+                    <button type="button" class="btn btn-secondary-glass" data-bs-dismiss="modal"><?= __('cancel', 'Cancel') ?></button>
+                    <button type="submit" class="btn btn-primary-gradient"><?= __('add_fleet', 'Add Fleet') ?></button>
                 </div>
             </form>
         </div>
@@ -310,7 +310,7 @@ try {
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content glass-card text-white border-secondary border-opacity-30" style="background:#111111; border-radius: 20px;">
             <div class="modal-header border-secondary border-opacity-20 p-4">
-                <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-pen-to-square me-2 text-indigo"></i>Modify Vehicle Settings</h5>
+                <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-pen-to-square me-2 text-indigo"></i><?= __('modify_vehicle_settings', 'Modify Vehicle Settings') ?></h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form action="" method="POST">
@@ -320,17 +320,17 @@ try {
                     <input type="hidden" name="bus_id" id="edit_bus_id">
                     
                     <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold">Bus Name / Brand</label>
+                        <label class="form-label text-secondary small fw-semibold"><?= __('bus_name_brand', 'Bus Name / Brand') ?></label>
                         <input type="text" name="bus_name" id="edit_bus_name" class="form-control form-control-swift" oninput="this.value = this.value.toUpperCase()" required>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold">License Plate Number</label>
+                        <label class="form-label text-secondary small fw-semibold"><?= __('license_plate_number', 'License Plate Number') ?></label>
                         <input type="text" name="bus_number" id="edit_bus_number" class="form-control form-control-swift" pattern="^[A-Za-z0-9]+$" title="Alphanumeric characters only, no spaces or special characters (e.g. KA01F1234)" oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '')" required>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold">Vehicle Classification</label>
+                        <label class="form-label text-secondary small fw-semibold"><?= __('vehicle_classification', 'Vehicle Classification') ?></label>
                         <select name="bus_type" id="edit_bus_type" class="form-select form-control-swift" required>
                             <?php foreach (get_vehicle_classifications() as $val => $info): ?>
                                 <option value="<?= htmlspecialchars($val) ?>"><?= htmlspecialchars($info['display']) ?></option>
@@ -341,8 +341,8 @@ try {
 
                 </div>
                 <div class="modal-footer border-secondary border-opacity-20 p-4">
-                    <button type="button" class="btn btn-secondary-glass" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary-gradient">Save Changes</button>
+                    <button type="button" class="btn btn-secondary-glass" data-bs-dismiss="modal"><?= __('cancel', 'Cancel') ?></button>
+                    <button type="submit" class="btn btn-primary-gradient"><?= __('save_changes', 'Save Changes') ?></button>
                 </div>
             </form>
         </div>
@@ -360,12 +360,12 @@ try {
                     <input type="hidden" name="bus_id" id="delete_bus_id">
                     
                     <i class="fa-solid fa-circle-exclamation text-danger mb-3" style="font-size: 3rem;"></i>
-                    <h5 class="fw-bold mb-2">Delete Vehicle?</h5>
-                    <p class="text-secondary small">Are you sure you want to delete this bus? Scheduled trips with this bus will be impacted.</p>
+                    <h5 class="fw-bold mb-2"><?= __('delete_vehicle_q', 'Delete Vehicle?') ?></h5>
+                    <p class="text-secondary small"><?= __('delete_vehicle_desc', 'Are you sure you want to delete this bus? Scheduled trips with this bus will be impacted.') ?></p>
                 </div>
                 <div class="modal-footer border-0 p-3 d-flex justify-content-around">
-                    <button type="button" class="btn btn-secondary-glass w-45 py-2" data-bs-dismiss="modal">No</button>
-                    <button type="submit" class="btn btn-danger w-45 py-2">Yes, Delete</button>
+                    <button type="button" class="btn btn-secondary-glass w-45 py-2" data-bs-dismiss="modal"><?= __('no', 'No') ?></button>
+                    <button type="submit" class="btn btn-danger w-45 py-2"><?= __('yes_delete', 'Yes, Delete') ?></button>
                 </div>
             </form>
         </div>
@@ -377,7 +377,7 @@ try {
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content glass-card text-white border-secondary border-opacity-30" style="background:#111111; border-radius: 20px;">
             <div class="modal-header border-secondary border-opacity-20 p-4">
-                <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-headset me-2 text-indigo"></i>Operator Contact Info</h5>
+                <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-headset me-2 text-indigo"></i><?= __('operator_contact_info', 'Operator Contact Info') ?></h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form action="" method="POST">
@@ -387,33 +387,33 @@ try {
                     <input type="hidden" name="bus_id" id="op_bus_id">
                     
                     <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold">Operator Name / Company</label>
+                        <label class="form-label text-secondary small fw-semibold"><?= __('operator_name_company', 'Operator Name / Company') ?></label>
                         <input type="text" name="operator_name" id="op_operator_name" class="form-control form-control-swift" placeholder="E.G. ROYAL TRAVELS" oninput="this.value = this.value.toUpperCase()" required>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold">Support Contact Number</label>
+                        <label class="form-label text-secondary small fw-semibold"><?= __('support_contact_number', 'Support Contact Number') ?></label>
                         <input type="text" name="contact_number" id="op_contact_number" class="form-control form-control-swift" placeholder="E.G. +91 9876543210" oninput="this.value = this.value.toUpperCase()" required>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold">WhatsApp Number</label>
+                        <label class="form-label text-secondary small fw-semibold"><?= __('whatsapp_number', 'WhatsApp Number') ?></label>
                         <input type="text" name="whatsapp_number" id="op_whatsapp_number" class="form-control form-control-swift" placeholder="E.G. +91 9876543210" oninput="this.value = this.value.toUpperCase()" required>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold">Emergency Helpline Number</label>
+                        <label class="form-label text-secondary small fw-semibold"><?= __('emergency_helpline_number', 'Emergency Helpline Number') ?></label>
                         <input type="text" name="emergency_number" id="op_emergency_number" class="form-control form-control-swift" placeholder="E.G. 1800-XXX-XXXX" oninput="this.value = this.value.toUpperCase()" required>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold">Support Email Address</label>
+                        <label class="form-label text-secondary small fw-semibold"><?= __('support_email_address', 'Support Email Address') ?></label>
                         <input type="email" name="support_email" id="op_support_email" class="form-control form-control-swift" placeholder="E.G. SUPPORT@ROYALTRAVELS.COM" oninput="this.value = this.value.toUpperCase()" required>
                     </div>
                 </div>
                 <div class="modal-footer border-secondary border-opacity-20 p-4">
-                    <button type="button" class="btn btn-secondary-glass" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary-gradient">Save Operator Info</button>
+                    <button type="button" class="btn btn-secondary-glass" data-bs-dismiss="modal"><?= __('cancel', 'Cancel') ?></button>
+                    <button type="submit" class="btn btn-primary-gradient"><?= __('save_operator_info', 'Save Operator Info') ?></button>
                 </div>
             </form>
         </div>

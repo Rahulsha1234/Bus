@@ -13,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $csrf_token = $_POST['csrf_token'] ?? '';
     
     if (!verify_csrf_token($csrf_token)) {
-        $_SESSION['error'] = "Security token validation failed.";
+        $_SESSION['error'] = __('security_validation_failed', "Security token validation failed.");
     } else {
         $action = $_POST['action'] ?? '';
         $id = intval($_POST['id'] ?? 0);
@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $del = $pdo->prepare("DELETE FROM buses WHERE id = ?");
                     $del->execute([$id]);
                     
-                    $_SESSION['success'] = "Bus $bus_info deleted successfully!";
+                    $_SESSION['success'] = __('bus_deleted_success_prefix', "Bus ") . $bus_info . __('deleted_success_suffix', " deleted successfully!");
                     log_activity($pdo, $_SESSION['user_id'], 'SUPER_ADMIN_BUS_DELETE', "Hard deleted bus: $bus_info");
                 } 
                 elseif ($action === 'delete_route') {
@@ -45,20 +45,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $del = $pdo->prepare("DELETE FROM routes WHERE id = ?");
                     $del->execute([$id]);
                     
-                    $_SESSION['success'] = "Route $route_info deleted successfully!";
+                    $_SESSION['success'] = __('route_deleted_success_prefix', "Route ") . $route_info . __('deleted_success_suffix', " deleted successfully!");
                     log_activity($pdo, $_SESSION['user_id'], 'SUPER_ADMIN_ROUTE_DELETE', "Hard deleted route: $route_info");
                 } 
                 elseif ($action === 'delete_trip') {
                     $del = $pdo->prepare("UPDATE trips SET status = 'CANCELLED' WHERE id = ?");
                     $del->execute([$id]);
                     
-                    $_SESSION['success'] = "Trip ID $id cancelled successfully!";
+                    $_SESSION['success'] = __('trip_cancelled_success_prefix', "Trip ID ") . $id . __('cancelled_success_suffix', " cancelled successfully!");
                     log_activity($pdo, $_SESSION['user_id'], 'SUPER_ADMIN_TRIP_CANCEL', "Cancelled trip ID: $id");
                 }
 
                 $pdo->exec("SET FOREIGN_KEY_CHECKS = 1");
             } catch (PDOException $e) {
-                $_SESSION['error'] = "Database error during deletion: " . $e->getMessage();
+                $_SESSION['error'] = __('db_error_deletion', "Database error during deletion: ") . $e->getMessage();
             }
         }
     }
@@ -108,10 +108,10 @@ try {
         $trips = $stmt->fetchAll();
     }
 } catch (PDOException $e) {
-    $error = "Error fetching data: " . $e->getMessage();
+    $error = __('error_fetching_data', "Error fetching data: ") . $e->getMessage();
 }
 
-$page_title = "Manage Operations";
+$page_title = __('manage_operations_title', "Manage Operations");
 ?>
 
 <?php if (!empty($error)): ?>
@@ -129,34 +129,34 @@ $page_title = "Manage Operations";
 <!-- Tabs navigation -->
 <div class="d-flex gap-2 mb-4">
     <a href="?tab=buses" class="btn <?= $active_tab === 'buses' ? 'btn-primary-gradient' : 'btn-secondary-glass' ?> px-4 py-2">
-        <i class="fa-solid fa-bus me-2"></i>Buses
+        <i class="fa-solid fa-bus me-2"></i><?= __('buses_tab', 'Buses') ?>
     </a>
     <a href="?tab=routes" class="btn <?= $active_tab === 'routes' ? 'btn-primary-gradient' : 'btn-secondary-glass' ?> px-4 py-2">
-        <i class="fa-solid fa-route me-2"></i>Routes
+        <i class="fa-solid fa-route me-2"></i><?= __('routes_tab', 'Routes') ?>
     </a>
     <a href="?tab=trips" class="btn <?= $active_tab === 'trips' ? 'btn-primary-gradient' : 'btn-secondary-glass' ?> px-4 py-2">
-        <i class="fa-solid fa-calendar-days me-2"></i>Trips
+        <i class="fa-solid fa-calendar-days me-2"></i><?= __('trips_tab', 'Trips') ?>
     </a>
 </div>
 
 <div class="glass-card p-4">
     <?php if ($active_tab === 'buses'): ?>
-        <h5 class="text-white fw-bold mb-4"><i class="fa-solid fa-bus text-indigo me-2"></i>All Registered Vehicles (Buses)</h5>
+        <h5 class="text-white fw-bold mb-4"><i class="fa-solid fa-bus text-indigo me-2"></i><?= __('all_registered_buses_hdr', 'All Registered Vehicles (Buses)') ?></h5>
         <?php if (count($buses) === 0): ?>
-            <div class="text-center py-5 text-secondary small">No buses registered yet.</div>
+            <div class="text-center py-5 text-secondary small"><?= __('no_buses_registered_yet', 'No buses registered yet.') ?></div>
         <?php else: ?>
             <div class="table-responsive">
                 <table class="table table-swift table-dark table-hover table-borderless align-middle">
                     <thead>
                         <tr>
-                            <th>ID</th>
-                            <th>Bus Name</th>
-                            <th>Plate Number</th>
-                            <th>Type</th>
-                            <th>Seats</th>
-                            <th>Status</th>
-                            <th>Operator</th>
-                            <th class="text-end">Actions</th>
+                            <th><?= __('id_col', 'ID') ?></th>
+                            <th><?= __('bus_name_col', 'Bus Name') ?></th>
+                            <th><?= __('plate_number_col', 'Plate Number') ?></th>
+                            <th><?= __('type_col', 'Type') ?></th>
+                            <th><?= __('seats_col', 'Seats') ?></th>
+                            <th><?= __('status_col', 'Status') ?></th>
+                            <th><?= __('operator_col', 'Operator') ?></th>
+                            <th class="text-end"><?= __('actions_col', 'Actions') ?></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -175,15 +175,15 @@ $page_title = "Manage Operations";
                                     </span>
                                 </td>
                                 <td>
-                                    <span class="small text-white"><i class="fa-solid fa-user-tie text-indigo me-1"></i><?= htmlspecialchars($bus['operator_name'] ?? 'System / Deleted') ?></span>
+                                    <span class="small text-white"><i class="fa-solid fa-user-tie text-indigo me-1"></i><?= htmlspecialchars($bus['operator_name'] ?? __('system_deleted_lbl', 'System / Deleted')) ?></span>
                                 </td>
                                 <td class="text-end">
-                                    <form action="?tab=buses" method="POST" onsubmit="return confirm('WARNING: Are you sure you want to PERMANENTLY delete this bus? This will cascade delete any associated trips/seats.');" style="display:inline;">
+                                    <form action="?tab=buses" method="POST" onsubmit="return confirm('<?= __('delete_bus_warn_confirm_q', 'WARNING: Are you sure you want to PERMANENTLY delete this bus? This will cascade delete any associated trips/seats.') ?>');" style="display:inline;">
                                         <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
                                         <input type="hidden" name="action" value="delete_bus">
                                         <input type="hidden" name="id" value="<?= $bus['id'] ?>">
                                         <button type="submit" class="btn btn-danger btn-sm px-3 rounded-pill">
-                                            <i class="fa-solid fa-trash-can me-1"></i>Delete
+                                            <i class="fa-solid fa-trash-can me-1"></i><?= __('delete_btn', 'Delete') ?>
                                         </button>
                                     </form>
                                 </td>
@@ -195,21 +195,21 @@ $page_title = "Manage Operations";
         <?php endif; ?>
 
     <?php elseif ($active_tab === 'routes'): ?>
-        <h5 class="text-white fw-bold mb-4"><i class="fa-solid fa-route text-indigo me-2"></i>All Scheduled Paths (Routes)</h5>
+        <h5 class="text-white fw-bold mb-4"><i class="fa-solid fa-route text-indigo me-2"></i><?= __('all_scheduled_routes_hdr', 'All Scheduled Paths (Routes)') ?></h5>
         <?php if (count($routes) === 0): ?>
-            <div class="text-center py-5 text-secondary small">No routes registered yet.</div>
+            <div class="text-center py-5 text-secondary small"><?= __('no_routes_registered_yet', 'No routes registered yet.') ?></div>
         <?php else: ?>
             <div class="table-responsive">
                 <table class="table table-swift table-dark table-hover table-borderless align-middle">
                     <thead>
                         <tr>
-                            <th>ID</th>
-                            <th>Source</th>
-                            <th>Destination</th>
-                            <th>Distance</th>
-                            <th>Status</th>
-                            <th>Operator</th>
-                            <th class="text-end">Actions</th>
+                            <th><?= __('id_col', 'ID') ?></th>
+                            <th><?= __('source_col', 'Source') ?></th>
+                            <th><?= __('destination_col', 'Destination') ?></th>
+                            <th><?= __('distance_col', 'Distance') ?></th>
+                            <th><?= __('status_col', 'Status') ?></th>
+                            <th><?= __('operator_col', 'Operator') ?></th>
+                            <th class="text-end"><?= __('actions_col', 'Actions') ?></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -225,15 +225,15 @@ $page_title = "Manage Operations";
                                     </span>
                                 </td>
                                 <td>
-                                    <span class="small text-white"><i class="fa-solid fa-user-tie text-indigo me-1"></i><?= htmlspecialchars($route['operator_name'] ?? 'System / Deleted') ?></span>
+                                    <span class="small text-white"><i class="fa-solid fa-user-tie text-indigo me-1"></i><?= htmlspecialchars($route['operator_name'] ?? __('system_deleted_lbl', 'System / Deleted')) ?></span>
                                 </td>
                                 <td class="text-end">
-                                    <form action="?tab=routes" method="POST" onsubmit="return confirm('WARNING: Are you sure you want to PERMANENTLY delete this route? This will delete all mapped trips.');" style="display:inline;">
+                                    <form action="?tab=routes" method="POST" onsubmit="return confirm('<?= __('delete_route_warn_confirm_q', 'WARNING: Are you sure you want to PERMANENTLY delete this route? This will delete all mapped trips.') ?>');" style="display:inline;">
                                         <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
                                         <input type="hidden" name="action" value="delete_route">
                                         <input type="hidden" name="id" value="<?= $route['id'] ?>">
                                         <button type="submit" class="btn btn-danger btn-sm px-3 rounded-pill">
-                                            <i class="fa-solid fa-trash-can me-1"></i>Delete
+                                            <i class="fa-solid fa-trash-can me-1"></i><?= __('delete_btn', 'Delete') ?>
                                         </button>
                                     </form>
                                 </td>
@@ -245,23 +245,23 @@ $page_title = "Manage Operations";
         <?php endif; ?>
 
     <?php elseif ($active_tab === 'trips'): ?>
-        <h5 class="text-white fw-bold mb-4"><i class="fa-solid fa-calendar-days text-indigo me-2"></i>All Scheduled Trips</h5>
+        <h5 class="text-white fw-bold mb-4"><i class="fa-solid fa-calendar-days text-indigo me-2"></i><?= __('all_scheduled_trips_hdr', 'All Scheduled Trips') ?></h5>
         <?php if (count($trips) === 0): ?>
-            <div class="text-center py-5 text-secondary small">No trips scheduled yet.</div>
+            <div class="text-center py-5 text-secondary small"><?= __('no_trips_scheduled_yet', 'No trips scheduled yet.') ?></div>
         <?php else: ?>
             <div class="table-responsive">
                 <table class="table table-swift table-dark table-hover table-borderless align-middle">
                     <thead>
                         <tr>
-                            <th>ID</th>
-                            <th>Bus Name / Number</th>
-                            <th>Route</th>
-                            <th>Departure</th>
-                            <th>Arrival</th>
-                            <th>Fare</th>
-                            <th>Status</th>
-                            <th>Operator</th>
-                            <th class="text-end">Actions</th>
+                            <th><?= __('id_col', 'ID') ?></th>
+                            <th><?= __('bus_name_number_col', 'Bus Name / Number') ?></th>
+                            <th><?= __('route_col', 'Route') ?></th>
+                            <th><?= __('departure_col', 'Departure') ?></th>
+                            <th><?= __('arrival_col', 'Arrival') ?></th>
+                            <th><?= __('fare_col', 'Fare') ?></th>
+                            <th><?= __('status_col', 'Status') ?></th>
+                            <th><?= __('operator_col', 'Operator') ?></th>
+                            <th class="text-end"><?= __('actions_col', 'Actions') ?></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -294,15 +294,15 @@ $page_title = "Manage Operations";
                                     </span>
                                 </td>
                                 <td>
-                                    <span class="small text-white"><i class="fa-solid fa-user-tie text-indigo me-1"></i><?= htmlspecialchars($trip['operator_name'] ?? 'System / Deleted') ?></span>
+                                    <span class="small text-white"><i class="fa-solid fa-user-tie text-indigo me-1"></i><?= htmlspecialchars($trip['operator_name'] ?? __('system_deleted_lbl', 'System / Deleted')) ?></span>
                                 </td>
                                 <td class="text-end">
-                                    <form action="?tab=trips" method="POST" onsubmit="return confirm('Are you sure you want to cancel this trip? This will preserve all historical bookings and mark the trip as CANCELLED.');" style="display:inline;">
+                                    <form action="?tab=trips" method="POST" onsubmit="return confirm('<?= __('cancel_trip_confirm_q', 'Are you sure you want to cancel this trip? This will preserve all historical bookings and mark the trip as CANCELLED.') ?>');" style="display:inline;">
                                         <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
                                         <input type="hidden" name="action" value="delete_trip">
                                         <input type="hidden" name="id" value="<?= $trip['id'] ?>">
                                         <button type="submit" class="btn btn-danger btn-sm px-3 rounded-pill">
-                                            <i class="fa-solid fa-ban me-1"></i>Cancel
+                                            <i class="fa-solid fa-ban me-1"></i><?= __('cancel', 'Cancel') ?>
                                         </button>
                                     </form>
                                 </td>

@@ -86,3 +86,7 @@ if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 
     $_SESSION['timeout_message'] = "Your session has expired due to inactivity. Please log in again.";
 }
 $_SESSION['LAST_ACTIVITY'] = time();
+
+// Initialize Multilingual system
+require_once __DIR__ . '/../includes/lang.php';
+

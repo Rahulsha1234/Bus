@@ -10,12 +10,12 @@ require_role('admin');
 $user = get_logged_user();
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?= CURRENT_LANG ?>">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= isset($page_title) ? $page_title . ' - ' : '' ?>Admin Portal</title>
+    <title><?= isset($page_title) ? $page_title . ' - ' : '' ?><?= __('nav_admin_panel', 'Admin Portal') ?></title>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
@@ -202,8 +202,7 @@ $user = get_logged_user();
                         <i class="fa-solid fa-bus text-indigo" style="font-size: 1.5rem; color:#818cf8;"></i>
                         <span class="text-gradient fw-bold fs-5"><?= SYSTEM_NAME ?></span>
                     </a>
-                    <span class="text-secondary" style="font-size: 0.75rem; letter-spacing: 0.5px;">OPERATOR
-                        PANEL</span>
+                    <span class="text-secondary" style="font-size: 0.75rem; letter-spacing: 0.5px;"><?= __('operator_panel', 'OPERATOR PANEL') ?></span>
                 </div>
 
                 <nav>
@@ -218,49 +217,49 @@ $user = get_logged_user();
                     ?>
                     <a href="<?= BASE_URL ?>/admin/dashboard.php"
                         class="sidebar-link <?= ($cur_nav === 'dashboard.php') ? 'active' : '' ?>">
-                        <i class="fa-solid fa-chart-pie"></i>Dashboard
+                        <i class="fa-solid fa-chart-pie"></i><?= __('nav_dashboard', 'Dashboard') ?>
                     </a>
                     <a href="<?= BASE_URL ?>/admin/buses.php"
                         class="sidebar-link <?= ($cur_nav === 'buses.php') ? 'active' : '' ?>">
-                        <i class="fa-solid fa-bus-simple"></i>Manage Buses
+                        <i class="fa-solid fa-bus-simple"></i><?= __('nav_manage_buses', 'Manage Buses') ?>
                     </a>
                     <a href="<?= BASE_URL ?>/admin/routes.php"
                         class="sidebar-link <?= ($cur_nav === 'routes.php') ? 'active' : '' ?>">
-                        <i class="fa-solid fa-route"></i>Manage Routes
+                        <i class="fa-solid fa-route"></i><?= __('nav_manage_routes', 'Manage Routes') ?>
                     </a>
                     <a href="<?= BASE_URL ?>/admin/trips.php"
                         class="sidebar-link <?= ($cur_nav === 'trips.php') ? 'active' : '' ?>">
-                        <i class="fa-solid fa-calendar-days"></i>Schedule Trips
+                        <i class="fa-solid fa-calendar-days"></i><?= __('nav_schedule_trips', 'Schedule Trips') ?>
                     </a>
                     <a href="<?= BASE_URL ?>/admin/seats.php"
                         class="sidebar-link <?= ($cur_nav === 'seats.php') ? 'active' : '' ?>">
-                        <i class="fa-solid fa-chair"></i>Modify Seats
+                        <i class="fa-solid fa-chair"></i><?= __('nav_modify_seats', 'Modify Seats') ?>
                     </a>
                     <a href="<?= BASE_URL ?>/admin/bookings.php"
                         class="sidebar-link <?= ($cur_nav === 'bookings.php') ? 'active' : '' ?>">
-                        <i class="fa-solid fa-receipt"></i>Bookings List
+                        <i class="fa-solid fa-receipt"></i><?= __('nav_bookings_list', 'Bookings List') ?>
                     </a>
                     <a href="<?= BASE_URL ?>/admin/manage_cancellations.php"
                         class="sidebar-link <?= ($cur_nav === 'manage_cancellations.php') ? 'active' : '' ?>">
-                        <i class="fa-solid fa-ban"></i>Cancellations
+                        <i class="fa-solid fa-ban"></i><?= __('nav_cancellations', 'Cancellations') ?>
                     </a>
                     <a href="<?= BASE_URL ?>/admin/pricing.php"
                         class="sidebar-link <?= ($cur_nav === 'pricing.php') ? 'active' : '' ?>">
-                        <i class="fa-solid fa-tags"></i>Pricing Engine
+                        <i class="fa-solid fa-tags"></i><?= __('nav_pricing_engine', 'Pricing Engine') ?>
                     </a>
                     <a href="<?= BASE_URL ?>/admin/settlements.php"
                         class="sidebar-link <?= ($cur_nav === 'settlements.php') ? 'active' : '' ?>">
-                        <i class="fa-solid fa-wallet"></i>Settlements
+                        <i class="fa-solid fa-wallet"></i><?= __('nav_settlements', 'Settlements') ?>
                     </a>
                     <a href="<?= BASE_URL ?>/admin/agents.php"
                         class="sidebar-link <?= ($cur_nav === 'agents.php') ? 'active' : '' ?>">
-                        <i class="fa-solid fa-users-gear"></i>Manage Agents
+                        <i class="fa-solid fa-users-gear"></i><?= __('nav_manage_agents', 'Manage Agents') ?>
                     </a>
 
                     <hr class="border-secondary my-4">
 
                     <a href="<?= BASE_URL ?>/logout.php" class="sidebar-link text-danger">
-                        <i class="fa-solid fa-right-from-bracket"></i>Logout
+                        <i class="fa-solid fa-right-from-bracket"></i><?= __('nav_sign_out', 'Logout') ?>
                     </a>
                 </nav>
             </div>
@@ -279,26 +278,33 @@ $user = get_logged_user();
                             <i class="fa-solid fa-bars"></i>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark glass-card p-2 border-0 mt-2">
-                            <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/admin/dashboard.php">Dashboard</a>
+                            <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/admin/dashboard.php"><?= __('nav_dashboard', 'Dashboard') ?></a>
                             </li>
-                            <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/admin/buses.php">Buses</a></li>
-                            <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/admin/routes.php">Routes</a></li>
-                            <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/admin/trips.php">Trips</a></li>
-                            <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/admin/seats.php">Modify Seats</a></li>
-                            <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/admin/bookings.php">Bookings</a>
+                            <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/admin/buses.php"><?= __('nav_manage_buses', 'Buses') ?></a></li>
+                            <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/admin/routes.php"><?= __('nav_manage_routes', 'Routes') ?></a></li>
+                            <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/admin/trips.php"><?= __('nav_schedule_trips', 'Trips') ?></a></li>
+                            <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/admin/seats.php"><?= __('nav_modify_seats', 'Modify Seats') ?></a></li>
+                            <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/admin/bookings.php"><?= __('nav_bookings_list', 'Bookings') ?></a>
                             </li>
                             <li><a class="dropdown-item py-2"
-                                    href="<?= BASE_URL ?>/admin/manage_cancellations.php">Cancellations</a></li>
+                                    href="<?= BASE_URL ?>/admin/manage_cancellations.php"><?= __('nav_cancellations', 'Cancellations') ?></a></li>
                             <li><a class="dropdown-item py-2"
-                                    href="<?= BASE_URL ?>/admin/settlements.php">Settlements</a></li>
+                                    href="<?= BASE_URL ?>/admin/settlements.php"><?= __('nav_settlements', 'Settlements') ?></a></li>
                             <li><a class="dropdown-item py-2"
-                                    href="<?= BASE_URL ?>/admin/pricing.php">Pricing Engine</a></li>
+                                    href="<?= BASE_URL ?>/admin/pricing.php"><?= __('nav_pricing_engine', 'Pricing Engine') ?></a></li>
                             <li><a class="dropdown-item py-2"
-                                    href="<?= BASE_URL ?>/admin/agents.php">Agents</a></li>
+                                    href="<?= BASE_URL ?>/admin/agents.php"><?= __('nav_manage_agents', 'Agents') ?></a></li>
                             <li>
                                 <hr class="dropdown-divider border-secondary">
                             </li>
-                            <li><a class="dropdown-item text-danger py-2" href="<?= BASE_URL ?>/logout.php">Logout</a>
+                            <!-- Mobile Language Switcher Items -->
+                            <li><a class="dropdown-item py-2 rounded <?= CURRENT_LANG === 'en' ? 'text-success fw-bold' : '' ?>" href="?lang=en">English</a></li>
+                            <li><a class="dropdown-item py-2 rounded <?= CURRENT_LANG === 'hi' ? 'text-success fw-bold' : '' ?>" href="?lang=hi">हिन्दी</a></li>
+                            <li><a class="dropdown-item py-2 rounded <?= CURRENT_LANG === 'ne' ? 'text-success fw-bold' : '' ?>" href="?lang=ne">नेपाली</a></li>
+                            <li>
+                                <hr class="dropdown-divider border-secondary">
+                            </li>
+                            <li><a class="dropdown-item text-danger py-2" href="<?= BASE_URL ?>/logout.php"><?= __('nav_sign_out', 'Logout') ?></a>
                             </li>
                         </ul>
                     </div>
@@ -307,10 +313,33 @@ $user = get_logged_user();
                 <div class="d-flex justify-content-between align-items-center mb-5 flex-wrap gap-3">
                     <div>
                         <h2 class="fw-bold text-white mb-0">
-                            <?= isset($page_title) ? htmlspecialchars($page_title) : 'Operator Panel' ?></h2>
-                        <span class="text-secondary small">Operator Workspace</span>
+                            <?= isset($page_title) ? htmlspecialchars($page_title) : __('nav_operator_panel', 'Operator Panel') ?></h2>
+                        <span class="text-secondary small"><?= __('operator_workspace', 'Operator Workspace') ?></span>
                     </div>
                     <div class="d-flex align-items-center gap-3">
+                        <!-- Language Switcher Dropdown -->
+                        <div class="dropdown me-2">
+                            <button class="btn btn-secondary-glass py-2 px-3 d-flex align-items-center gap-2" type="button"
+                                id="langMenuButton" data-bs-toggle="dropdown" aria-expanded="false"
+                                style="border-radius: 10px; font-weight: 500; font-size: 0.9rem;">
+                                <i class="fa-solid fa-globe text-success"></i>
+                                <span>
+                                    <?php
+                                    if (CURRENT_LANG === 'hi') echo 'हिन्दी';
+                                    elseif (CURRENT_LANG === 'ne') echo 'नेपाली';
+                                    else echo 'English';
+                                    ?>
+                                </span>
+                                <i class="fa-solid fa-chevron-down small opacity-75" style="font-size: 0.75rem;"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end glass-card mt-2 p-2 border-0 shadow-lg"
+                                aria-labelledby="langMenuButton" style="background: var(--bg-card); border: 1px solid var(--border-glass);">
+                                <li><a class="dropdown-item py-2 rounded <?= CURRENT_LANG === 'en' ? 'active bg-success text-white' : '' ?>" href="?lang=en">English</a></li>
+                                <li><a class="dropdown-item py-2 rounded <?= CURRENT_LANG === 'hi' ? 'active bg-success text-white' : '' ?>" href="?lang=hi">हिन्दी</a></li>
+                                <li><a class="dropdown-item py-2 rounded <?= CURRENT_LANG === 'ne' ? 'active bg-success text-white' : '' ?>" href="?lang=ne">नेपाली</a></li>
+                            </ul>
+                        </div>
+
                         <span class="small text-secondary"><i
                                 class="fa-solid fa-briefcase text-indigo me-2"></i><?= htmlspecialchars($user['username']) ?></span>
                     </div>

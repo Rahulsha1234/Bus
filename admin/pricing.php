@@ -12,7 +12,7 @@ $success = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $csrf = $_POST['csrf_token'] ?? '';
     if (!verify_csrf_token($csrf)) {
-        $error = "Security token mismatch.";
+        $error = __('security_token_mismatch', "Security token mismatch.");
     } else {
         $action = $_POST['action'] ?? '';
 
@@ -36,10 +36,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ':enable_update' => $enable,
                     ':mode_update' => $mode
                 ]);
-                $success = "Global dynamic pricing settings updated successfully!";
+                $success = __('global_pricing_updated_success', "Global dynamic pricing settings updated successfully!");
                 log_activity($pdo, $admin_id, 'PRICING_SETTINGS_UPDATE', "Updated pricing status: $enable, Mode: $mode");
             } catch (Exception $e) {
-                $error = "Failed to save settings: " . $e->getMessage();
+                $error = __('failed_save_settings', "Failed to save settings: ") . $e->getMessage();
             }
         }
 
@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $order = intval($_POST['sort_order'] ?? 0);
 
             if ($min_occ < 0 || $max_occ > 100 || $min_occ > $max_occ) {
-                $error = "Invalid occupancy range limits.";
+                $error = __('invalid_occupancy_limits', "Invalid occupancy range limits.");
             } else {
                 try {
                     $stmt = $pdo->prepare("
@@ -59,10 +59,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         VALUES (?, ?, ?, ?, ?, 'active')
                     ");
                     $stmt->execute([$admin_id, $min_occ, $max_occ, $increase, $order]);
-                    $success = "Occupancy rule created successfully.";
+                    $success = __('occupancy_rule_created_success', "Occupancy rule created successfully.");
                     log_activity($pdo, $admin_id, 'PRICING_RULE_ADD', "Added occupancy rule: $min_occ - $max_occ% -> $increase%");
                 } catch (Exception $e) {
-                    $error = "Failed to add occupancy rule: " . $e->getMessage();
+                    $error = __('failed_add_occupancy_rule', "Failed to add occupancy rule: ") . $e->getMessage();
                 }
             }
         }
@@ -82,10 +82,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     WHERE id = ? AND operator_id = ?
                 ");
                 $stmt->execute([$min_occ, $max_occ, $increase, $order, $status, $rule_id, $admin_id]);
-                $success = "Occupancy rule modified.";
+                $success = __('occupancy_rule_modified', "Occupancy rule modified.");
                 log_activity($pdo, $admin_id, 'PRICING_RULE_EDIT', "Modified occupancy rule ID $rule_id");
             } catch (Exception $e) {
-                $error = "Failed to edit rule: " . $e->getMessage();
+                $error = __('failed_edit_rule', "Failed to edit rule: ") . $e->getMessage();
             }
         }
 
@@ -94,10 +94,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 $stmt = $pdo->prepare("DELETE FROM occupancy_pricing_rules WHERE id = ? AND operator_id = ?");
                 $stmt->execute([$rule_id, $admin_id]);
-                $success = "Occupancy rule deleted.";
+                $success = __('occupancy_rule_deleted', "Occupancy rule deleted.");
                 log_activity($pdo, $admin_id, 'PRICING_RULE_DELETE', "Deleted occupancy rule ID $rule_id");
             } catch (Exception $e) {
-                $error = "Failed to delete rule: " . $e->getMessage();
+                $error = __('failed_delete_rule', "Failed to delete rule: ") . $e->getMessage();
             }
         }
 
@@ -109,7 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $order = intval($_POST['sort_order'] ?? 0);
 
             if ($min_days < 0 || $min_days > $max_days) {
-                $error = "Invalid time range parameters.";
+                $error = __('invalid_time_params', "Invalid time range parameters.");
             } else {
                 try {
                     $stmt = $pdo->prepare("
@@ -117,10 +117,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         VALUES (?, ?, ?, ?, ?, 'active')
                     ");
                     $stmt->execute([$admin_id, $min_days, $max_days, $increase, $order]);
-                    $success = "Time rule created successfully.";
+                    $success = __('time_rule_created_success', "Time rule created successfully.");
                     log_activity($pdo, $admin_id, 'TIME_RULE_ADD', "Added time rule: $min_days - $max_days days -> $increase%");
                 } catch (Exception $e) {
-                    $error = "Failed to add time rule: " . $e->getMessage();
+                    $error = __('failed_add_time_rule', "Failed to add time rule: ") . $e->getMessage();
                 }
             }
         }
@@ -140,10 +140,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     WHERE id = ? AND operator_id = ?
                 ");
                 $stmt->execute([$min_days, $max_days, $increase, $order, $status, $rule_id, $admin_id]);
-                $success = "Time rule modified.";
+                $success = __('time_rule_modified', "Time rule modified.");
                 log_activity($pdo, $admin_id, 'TIME_RULE_EDIT', "Modified time rule ID $rule_id");
             } catch (Exception $e) {
-                $error = "Failed to edit time rule: " . $e->getMessage();
+                $error = __('failed_edit_time_rule', "Failed to edit time rule: ") . $e->getMessage();
             }
         }
 
@@ -152,10 +152,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 $stmt = $pdo->prepare("DELETE FROM time_pricing_rules WHERE id = ? AND operator_id = ?");
                 $stmt->execute([$rule_id, $admin_id]);
-                $success = "Time rule deleted.";
+                $success = __('time_rule_deleted', "Time rule deleted.");
                 log_activity($pdo, $admin_id, 'TIME_RULE_DELETE', "Deleted time rule ID $rule_id");
             } catch (Exception $e) {
-                $error = "Failed to delete time rule: " . $e->getMessage();
+                $error = __('failed_delete_time_rule', "Failed to delete time rule: ") . $e->getMessage();
             }
         }
     }
@@ -194,16 +194,16 @@ $time_rules = $time_stmt->fetchAll();
 <!-- Tabs navigation -->
 <ul class="nav nav-tabs border-secondary border-opacity-25 mb-4" id="pricingTab" role="tablist">
     <li class="nav-item">
-        <button class="nav-link active text-white" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings-pane" type="button" role="tab"><i class="fa-solid fa-sliders me-2"></i>Global Settings</button>
+        <button class="nav-link active text-white" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings-pane" type="button" role="tab"><i class="fa-solid fa-sliders me-2"></i><?= __('global_settings_tab', 'Global Settings') ?></button>
     </li>
     <li class="nav-item">
-        <button class="nav-link text-white" id="occupancy-tab" data-bs-toggle="tab" data-bs-target="#occupancy-pane" type="button" role="tab"><i class="fa-solid fa-chart-bar me-2"></i>Occupancy Rules</button>
+        <button class="nav-link text-white" id="occupancy-tab" data-bs-toggle="tab" data-bs-target="#occupancy-pane" type="button" role="tab"><i class="fa-solid fa-chart-bar me-2"></i><?= __('occupancy_rules_tab', 'Occupancy Rules') ?></button>
     </li>
     <li class="nav-item">
-        <button class="nav-link text-white" id="time-tab" data-bs-toggle="tab" data-bs-target="#time-pane" type="button" role="tab"><i class="fa-solid fa-hourglass-half me-2"></i>Time Rules</button>
+        <button class="nav-link text-white" id="time-tab" data-bs-toggle="tab" data-bs-target="#time-pane" type="button" role="tab"><i class="fa-solid fa-hourglass-half me-2"></i><?= __('time_rules_tab', 'Time Rules') ?></button>
     </li>
     <li class="nav-item">
-        <button class="nav-link text-white" id="simulator-tab" data-bs-toggle="tab" data-bs-target="#simulator-pane" type="button" role="tab"><i class="fa-solid fa-laptop-code me-2"></i>Pricing Simulator</button>
+        <button class="nav-link text-white" id="simulator-tab" data-bs-toggle="tab" data-bs-target="#simulator-pane" type="button" role="tab"><i class="fa-solid fa-laptop-code me-2"></i><?= __('pricing_simulator_tab', 'Pricing Simulator') ?></button>
     </li>
 </ul>
 
@@ -211,30 +211,30 @@ $time_rules = $time_stmt->fetchAll();
     <!-- 1. GLOBAL SETTINGS -->
     <div class="tab-pane fade show active" id="settings-pane" role="tabpanel">
         <div class="glass-card p-5 mt-2">
-            <h5 class="text-white fw-bold mb-4">Dynamic Engine Configuration</h5>
+            <h5 class="text-white fw-bold mb-4"><?= __('dynamic_engine_config', 'Dynamic Engine Configuration') ?></h5>
             <form action="" method="POST">
                 <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
                 <input type="hidden" name="action" value="save_settings">
 
                 <div class="mb-4">
-                    <label class="form-label text-secondary small fw-semibold">Enable Dynamic Pricing Engine</label>
+                    <label class="form-label text-secondary small fw-semibold"><?= __('enable_dynamic_pricing_engine', 'Enable Dynamic Pricing Engine') ?></label>
                     <select name="enable_dynamic_pricing" class="form-select form-control-swift" required>
-                        <option value="1" <?= $settings['enable_dynamic_pricing'] == 1 ? 'selected' : '' ?>>Yes, modify prices dynamically</option>
-                        <option value="0" <?= $settings['enable_dynamic_pricing'] == 0 ? 'selected' : '' ?>>No, keep fixed base fares</option>
+                        <option value="1" <?= $settings['enable_dynamic_pricing'] == 1 ? 'selected' : '' ?>><?= __('yes_modify_prices_dynamically', 'Yes, modify prices dynamically') ?></option>
+                        <option value="0" <?= $settings['enable_dynamic_pricing'] == 0 ? 'selected' : '' ?>><?= __('no_keep_fixed_base fares', 'No, keep fixed base fares') ?></option>
                     </select>
                 </div>
 
                 <div class="mb-4">
-                    <label class="form-label text-secondary small fw-semibold">Dynamic Pricing Mode Presets</label>
+                    <label class="form-label text-secondary small fw-semibold"><?= __('dynamic_pricing_mode_presets', 'Dynamic Pricing Mode Presets') ?></label>
                     <select name="dynamic_pricing_mode" class="form-select form-control-swift" required>
-                        <option value="custom" <?= $settings['dynamic_pricing_mode'] === 'custom' ? 'selected' : '' ?>>Custom Mode (Uses database rules below)</option>
-                        <option value="conservative" <?= $settings['dynamic_pricing_mode'] === 'conservative' ? 'selected' : '' ?>>Conservative Preset (Up to +15% occupancy, +10% time)</option>
-                        <option value="balanced" <?= $settings['dynamic_pricing_mode'] === 'balanced' ? 'selected' : '' ?>>Balanced Preset (Up to +50% occupancy, +30% time)</option>
-                        <option value="aggressive" <?= $settings['dynamic_pricing_mode'] === 'aggressive' ? 'selected' : '' ?>>Aggressive Preset (Up to +75% occupancy, +50% time)</option>
+                        <option value="custom" <?= $settings['dynamic_pricing_mode'] === 'custom' ? 'selected' : '' ?>><?= __('custom_mode_desc', 'Custom Mode (Uses database rules below)') ?></option>
+                        <option value="conservative" <?= $settings['dynamic_pricing_mode'] === 'conservative' ? 'selected' : '' ?>><?= __('conservative_preset_desc', 'Conservative Preset (Up to +15% occupancy, +10% time)') ?></option>
+                        <option value="balanced" <?= $settings['dynamic_pricing_mode'] === 'balanced' ? 'selected' : '' ?>><?= __('balanced_preset_desc', 'Balanced Preset (Up to +50% occupancy, +30% time)') ?></option>
+                        <option value="aggressive" <?= $settings['dynamic_pricing_mode'] === 'aggressive' ? 'selected' : '' ?>><?= __('aggressive_preset_desc', 'Aggressive Preset (Up to +75% occupancy, +50% time)') ?></option>
                     </select>
                 </div>
 
-                <button type="submit" class="btn btn-primary-gradient py-2 px-4">Update Configuration</button>
+                <button type="submit" class="btn btn-primary-gradient py-2 px-4"><?= __('update_configuration_btn', 'Update Configuration') ?></button>
             </form>
         </div>
     </div>
@@ -242,27 +242,27 @@ $time_rules = $time_stmt->fetchAll();
     <!-- 2. OCCUPANCY RULES -->
     <div class="tab-pane fade" id="occupancy-pane" role="tabpanel">
         <div class="d-flex justify-content-between align-items-center mb-4 mt-2">
-            <h5 class="text-white fw-bold mb-0">Occupancy-based Price Escalation</h5>
-            <button class="btn btn-primary-gradient py-1 px-3 small" data-bs-toggle="modal" data-bs-target="#addOccModal"><i class="fa-solid fa-plus me-2"></i>Add Occupancy Rule</button>
+            <h5 class="text-white fw-bold mb-0"><?= __('occupancy_price_escalation', 'Occupancy-based Price Escalation') ?></h5>
+            <button class="btn btn-primary-gradient py-1 px-3 small" data-bs-toggle="modal" data-bs-target="#addOccModal"><i class="fa-solid fa-plus me-2"></i><?= __('add_occupancy_rule_btn', 'Add Occupancy Rule') ?></button>
         </div>
 
         <div class="glass-card p-4">
             <?php if (empty($occ_rules)): ?>
                 <div class="text-center py-5 text-secondary small">
                     <i class="fa-solid fa-chart-line mb-3 d-block" style="font-size: 3rem; color: #475569;"></i>
-                    No custom occupancy rules configured yet. The system will use global system defaults.
+                    <?= __('no_custom_occupancy_rules', 'No custom occupancy rules configured yet. The system will use global system defaults.') ?>
                 </div>
             <?php else: ?>
                 <div class="table-responsive">
                     <table class="table table-swift table-dark table-hover align-middle">
                         <thead>
                             <tr>
-                                <th>Min Occupancy %</th>
-                                <th>Max Occupancy %</th>
-                                <th>Price Increase %</th>
-                                <th>Sort Order</th>
-                                <th>Status</th>
-                                <th class="text-end">Actions</th>
+                                <th><?= __('min_occupancy_pct', 'Min Occupancy %') ?></th>
+                                <th><?= __('max_occupancy_pct', 'Max Occupancy %') ?></th>
+                                <th><?= __('price_increase_pct', 'Price Increase %') ?></th>
+                                <th><?= __('sort_order', 'Sort Order') ?></th>
+                                <th><?= __('status', 'Status') ?></th>
+                                <th class="text-end"><?= __('actions', 'Actions') ?></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -273,7 +273,7 @@ $time_rules = $time_stmt->fetchAll();
                                     <td><span class="font-monospace text-success fw-bold">+<?= htmlspecialchars($r['price_increase_percentage']) ?>%</span></td>
                                     <td><span class="font-monospace text-secondary"><?= htmlspecialchars($r['sort_order']) ?></span></td>
                                     <td>
-                                        <span class="badge bg-<?= $r['status'] === 'active' ? 'success' : 'secondary' ?> bg-opacity-10 text-<?= $r['status'] === 'active' ? 'success' : 'secondary' ?> border border-<?= $r['status'] === 'active' ? 'success' : 'secondary' ?> border-opacity-25"><?= strtoupper($r['status']) ?></span>
+                                        <span class="badge bg-<?= $r['status'] === 'active' ? 'success' : 'secondary' ?> bg-opacity-10 text-<?= $r['status'] === 'active' ? 'success' : 'secondary' ?> border border-<?= $r['status'] === 'active' ? 'success' : 'secondary' ?> border-opacity-25"><?= strtoupper(__('status_' . strtolower($r['status']), $r['status'])) ?></span>
                                     </td>
                                     <td class="text-end">
                                         <div class="btn-group gap-2">
@@ -300,38 +300,38 @@ $time_rules = $time_stmt->fetchAll();
     <!-- 3. TIME RULES -->
     <div class="tab-pane fade" id="time-pane" role="tabpanel">
         <div class="d-flex justify-content-between align-items-center mb-4 mt-2">
-            <h5 class="text-white fw-bold mb-0">Time-based Price Escalation</h5>
-            <button class="btn btn-primary-gradient py-1 px-3 small" data-bs-toggle="modal" data-bs-target="#addTimeModal"><i class="fa-solid fa-plus me-2"></i>Add Time Rule</button>
+            <h5 class="text-white fw-bold mb-0"><?= __('time_price_escalation', 'Time-based Price Escalation') ?></h5>
+            <button class="btn btn-primary-gradient py-1 px-3 small" data-bs-toggle="modal" data-bs-target="#addTimeModal"><i class="fa-solid fa-plus me-2"></i><?= __('add_time_rule_btn', 'Add Time Rule') ?></button>
         </div>
 
         <div class="glass-card p-4">
             <?php if (empty($time_rules)): ?>
                 <div class="text-center py-5 text-secondary small">
                     <i class="fa-solid fa-clock mb-3 d-block" style="font-size: 3rem; color: #475569;"></i>
-                    No custom time rules configured yet. The system will use global system defaults.
+                    <?= __('no_custom_time_rules', 'No custom time rules configured yet. The system will use global system defaults.') ?>
                 </div>
             <?php else: ?>
                 <div class="table-responsive">
                     <table class="table table-swift table-dark table-hover align-middle">
                         <thead>
                             <tr>
-                                <th>Min Days Before Dep.</th>
-                                <th>Max Days Before Dep.</th>
-                                <th>Price Increase %</th>
-                                <th>Sort Order</th>
-                                <th>Status</th>
-                                <th class="text-end">Actions</th>
+                                <th><?= __('min_days_before_dep', 'Min Days Before Dep.') ?></th>
+                                <th><?= __('max_days_before_dep', 'Max Days Before Dep.') ?></th>
+                                <th><?= __('price_increase_pct', 'Price Increase %') ?></th>
+                                <th><?= __('sort_order', 'Sort Order') ?></th>
+                                <th><?= __('status', 'Status') ?></th>
+                                <th class="text-end"><?= __('actions', 'Actions') ?></th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($time_rules as $r): ?>
                                 <tr>
-                                    <td><span class="font-monospace text-white"><?= htmlspecialchars($r['min_days']) ?> Days</span></td>
-                                    <td><span class="font-monospace text-white"><?= htmlspecialchars($r['max_days']) ?> Days</span></td>
+                                    <td><span class="font-monospace text-white"><?= htmlspecialchars($r['min_days']) ?> <?= __('days', 'Days') ?></span></td>
+                                    <td><span class="font-monospace text-white"><?= htmlspecialchars($r['max_days']) ?> <?= __('days', 'Days') ?></span></td>
                                     <td><span class="font-monospace text-success fw-bold">+<?= htmlspecialchars($r['price_increase_percentage']) ?>%</span></td>
                                     <td><span class="font-monospace text-secondary"><?= htmlspecialchars($r['sort_order']) ?></span></td>
                                     <td>
-                                        <span class="badge bg-<?= $r['status'] === 'active' ? 'success' : 'secondary' ?> bg-opacity-10 text-<?= $r['status'] === 'active' ? 'success' : 'secondary' ?> border border-<?= $r['status'] === 'active' ? 'success' : 'secondary' ?> border-opacity-25"><?= strtoupper($r['status']) ?></span>
+                                        <span class="badge bg-<?= $r['status'] === 'active' ? 'success' : 'secondary' ?> bg-opacity-10 text-<?= $r['status'] === 'active' ? 'success' : 'secondary' ?> border border-<?= $r['status'] === 'active' ? 'success' : 'secondary' ?> border-opacity-25"><?= strtoupper(__('status_' . strtolower($r['status']), $r['status'])) ?></span>
                                     </td>
                                     <td class="text-end">
                                         <div class="btn-group gap-2">
@@ -360,25 +360,25 @@ $time_rules = $time_stmt->fetchAll();
         <div class="row g-4 mt-2">
             <div class="col-md-5">
                 <div class="glass-card p-4">
-                    <h5 class="text-white fw-bold mb-4">Simulation Sandbox</h5>
+                    <h5 class="text-white fw-bold mb-4"><?= __('simulation_sandbox', 'Simulation Sandbox') ?></h5>
                     <form id="simulatorForm">
                         <div class="mb-3">
-                            <label class="form-label text-secondary small fw-semibold">Base Fare (₹)</label>
+                            <label class="form-label text-secondary small fw-semibold"><?= __('base_fare_label', 'Base Fare (₹)') ?></label>
                             <input type="number" id="sim_base_fare" class="form-control form-control-swift" value="500" min="50" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label text-secondary small fw-semibold">Total Active Seats</label>
+                            <label class="form-label text-secondary small fw-semibold"><?= __('total_active_seats', 'Total Active Seats') ?></label>
                             <input type="number" id="sim_total_seats" class="form-control form-control-swift" value="40" min="10" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label text-secondary small fw-semibold">Seats Booked / Sold</label>
+                            <label class="form-label text-secondary small fw-semibold"><?= __('seats_booked_sold', 'Seats Booked / Sold') ?></label>
                             <input type="number" id="sim_seats_sold" class="form-control form-control-swift" value="28" min="0" required>
                         </div>
                         <div class="mb-4">
-                            <label class="form-label text-secondary small fw-semibold">Days Remaining to Departure</label>
+                            <label class="form-label text-secondary small fw-semibold"><?= __('days_remaining_to_dep', 'Days Remaining to Departure') ?></label>
                             <input type="number" id="sim_days_left" class="form-control form-control-swift" value="2" min="0" required>
                         </div>
-                        <button type="button" id="btnRunSimulation" class="btn btn-primary-gradient w-100 py-2.5">Simulate Price Output</button>
+                        <button type="button" id="btnRunSimulation" class="btn btn-primary-gradient w-100 py-2.5"><?= __('simulate_price_output_btn', 'Simulate Price Output') ?></button>
                     </form>
                 </div>
             </div>
@@ -386,15 +386,15 @@ $time_rules = $time_stmt->fetchAll();
             <div class="col-md-7">
                 <div class="glass-card p-4 h-100 d-flex flex-column justify-content-between">
                     <div>
-                        <h5 class="text-white fw-bold mb-4">Calculated Outcome Preview</h5>
+                        <h5 class="text-white fw-bold mb-4"><?= __('calculated_outcome_preview', 'Calculated Outcome Preview') ?></h5>
                         <div class="p-3 rounded-3 bg-dark bg-opacity-35 border border-secondary border-opacity-15 mb-3">
                             <div class="row">
                                 <div class="col-6">
-                                    <span class="text-secondary small d-block">Occupancy Level</span>
+                                    <span class="text-secondary small d-block"><?= __('occupancy_level', 'Occupancy Level') ?></span>
                                     <span class="text-white fw-bold font-monospace" id="out_occ_percent">70.00%</span>
                                 </div>
                                 <div class="col-6">
-                                    <span class="text-secondary small d-block">Time Factor</span>
+                                    <span class="text-secondary small d-block"><?= __('time_factor', 'Time Factor') ?></span>
                                     <span class="text-white fw-bold font-monospace" id="out_days_left">2 Days Left</span>
                                 </div>
                             </div>
@@ -402,22 +402,22 @@ $time_rules = $time_stmt->fetchAll();
 
                         <div class="p-3 rounded-3 bg-dark bg-opacity-20 border border-secondary border-opacity-10 mb-3">
                             <div class="d-flex justify-content-between mb-2">
-                                <span class="text-secondary small">Base Ticket Fare:</span>
+                                <span class="text-secondary small"><?= __('base_ticket_fare_label', 'Base Ticket Fare:') ?></span>
                                 <span class="text-white font-monospace" id="out_base_fare">₹500.00</span>
                             </div>
                             <div class="d-flex justify-content-between mb-2">
-                                <span class="text-secondary small">Occupancy Price Scale adjustment:</span>
+                                <span class="text-secondary small"><?= __('occupancy_adjustment_label', 'Occupancy Price Scale adjustment:') ?></span>
                                 <span class="text-success font-monospace" id="out_occ_adjust">+₹100.00 (+20%)</span>
                             </div>
                             <div class="d-flex justify-content-between">
-                                <span class="text-secondary small">Time Threshold adjustment:</span>
+                                <span class="text-secondary small"><?= __('time_adjustment_label', 'Time Threshold adjustment:') ?></span>
                                 <span class="text-success font-monospace" id="out_time_adjust">+₹100.00 (+20%)</span>
                             </div>
                         </div>
                     </div>
 
                     <div class="text-end pt-3 border-top border-secondary border-opacity-15">
-                        <span class="text-secondary small d-block text-uppercase">Final Simulated Ticket Price</span>
+                        <span class="text-secondary small d-block text-uppercase"><?= __('final_simulated_price', 'Final Simulated Ticket Price') ?></span>
                         <span class="display-5 fw-bold text-success font-monospace" id="out_final_price">₹700.00</span>
                     </div>
                 </div>
@@ -427,12 +427,13 @@ $time_rules = $time_stmt->fetchAll();
 </div>
 
 <!-- MODALS SECTION -->
+<!-- MODALS SECTION -->
 <!-- Add Occupancy Modal -->
 <div class="modal fade" id="addOccModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content glass-card text-white border-secondary border-opacity-30" style="background:#111111; border-radius: 20px;">
             <div class="modal-header border-secondary border-opacity-20 p-4">
-                <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-plus me-2 text-indigo"></i>New Occupancy Rule</h5>
+                <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-plus me-2 text-indigo"></i><?= __('new_occupancy_rule', 'New Occupancy Rule') ?></h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form action="" method="POST">
@@ -441,25 +442,25 @@ $time_rules = $time_stmt->fetchAll();
                     <input type="hidden" name="action" value="add_occupancy_rule">
 
                     <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold">Minimum Occupancy %</label>
+                        <label class="form-label text-secondary small fw-semibold"><?= __('min_occupancy_label', 'Minimum Occupancy %') ?></label>
                         <input type="number" name="min_occupancy" class="form-control form-control-swift" placeholder="e.g. 50" min="0" max="100" step="1" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold">Maximum Occupancy %</label>
+                        <label class="form-label text-secondary small fw-semibold"><?= __('max_occupancy_label', 'Maximum Occupancy %') ?></label>
                         <input type="number" name="max_occupancy" class="form-control form-control-swift" placeholder="e.g. 70" min="0" max="100" step="1" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold">Price Increase %</label>
+                        <label class="form-label text-secondary small fw-semibold"><?= __('price_increase_pct', 'Price Increase %') ?></label>
                         <input type="number" name="price_increase_percentage" class="form-control form-control-swift" placeholder="e.g. 10" min="0" max="200" step="0.5" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold">Sort Evaluation Order</label>
+                        <label class="form-label text-secondary small fw-semibold"><?= __('sort_evaluation_order', 'Sort Evaluation Order') ?></label>
                         <input type="number" name="sort_order" class="form-control form-control-swift" value="1" min="1" required>
                     </div>
                 </div>
                 <div class="modal-footer border-secondary border-opacity-20 p-4">
-                    <button type="button" class="btn btn-secondary-glass" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary-gradient">Create Rule</button>
+                    <button type="button" class="btn btn-secondary-glass" data-bs-dismiss="modal"><?= __('cancel', 'Cancel') ?></button>
+                    <button type="submit" class="btn btn-primary-gradient"><?= __('create_rule_btn', 'Create Rule') ?></button>
                 </div>
             </form>
         </div>
@@ -471,7 +472,7 @@ $time_rules = $time_stmt->fetchAll();
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content glass-card text-white border-secondary border-opacity-30" style="background:#111111; border-radius: 20px;">
             <div class="modal-header border-secondary border-opacity-20 p-4">
-                <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-pen-to-square me-2 text-indigo"></i>Modify Occupancy Rule</h5>
+                <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-pen-to-square me-2 text-indigo"></i><?= __('modify_occupancy_rule', 'Modify Occupancy Rule') ?></h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form action="" method="POST">
@@ -481,32 +482,32 @@ $time_rules = $time_stmt->fetchAll();
                     <input type="hidden" name="rule_id" id="edit_occ_id">
 
                     <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold">Minimum Occupancy %</label>
+                        <label class="form-label text-secondary small fw-semibold"><?= __('min_occupancy_label', 'Minimum Occupancy %') ?></label>
                         <input type="number" name="min_occupancy" id="edit_occ_min" class="form-control form-control-swift" min="0" max="100" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold">Maximum Occupancy %</label>
+                        <label class="form-label text-secondary small fw-semibold"><?= __('max_occupancy_label', 'Maximum Occupancy %') ?></label>
                         <input type="number" name="max_occupancy" id="edit_occ_max" class="form-control form-control-swift" min="0" max="100" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold">Price Increase %</label>
+                        <label class="form-label text-secondary small fw-semibold"><?= __('price_increase_pct', 'Price Increase %') ?></label>
                         <input type="number" name="price_increase_percentage" id="edit_occ_inc" class="form-control form-control-swift" min="0" max="200" step="0.5" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold">Sort Evaluation Order</label>
+                        <label class="form-label text-secondary small fw-semibold"><?= __('sort_evaluation_order', 'Sort Evaluation Order') ?></label>
                         <input type="number" name="sort_order" id="edit_occ_order" class="form-control form-control-swift" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold">Status</label>
+                        <label class="form-label text-secondary small fw-semibold"><?= __('status', 'Status') ?></label>
                         <select name="status" id="edit_occ_status" class="form-select form-control-swift" required>
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
+                            <option value="active"><?= __('status_active', 'Active') ?></option>
+                            <option value="inactive"><?= __('status_inactive', 'Inactive') ?></option>
                         </select>
                     </div>
                 </div>
                 <div class="modal-footer border-secondary border-opacity-20 p-4">
-                    <button type="button" class="btn btn-secondary-glass" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary-gradient">Save Changes</button>
+                    <button type="button" class="btn btn-secondary-glass" data-bs-dismiss="modal"><?= __('cancel', 'Cancel') ?></button>
+                    <button type="submit" class="btn btn-primary-gradient"><?= __('save_changes', 'Save Changes') ?></button>
                 </div>
             </form>
         </div>
@@ -524,12 +525,12 @@ $time_rules = $time_stmt->fetchAll();
                     <input type="hidden" name="rule_id" id="delete_occ_id">
 
                     <i class="fa-solid fa-trash-can text-danger mb-3" style="font-size: 3rem;"></i>
-                    <h5 class="fw-bold mb-2">Delete Rule?</h5>
-                    <p class="text-secondary small">Are you sure you want to remove this occupancy pricing rule?</p>
+                    <h5 class="fw-bold mb-2"><?= __('delete_rule_q', 'Delete Rule?') ?></h5>
+                    <p class="text-secondary small"><?= __('remove_occupancy_rule_desc', 'Are you sure you want to remove this occupancy pricing rule?') ?></p>
                 </div>
                 <div class="modal-footer border-0 p-3 d-flex justify-content-around">
-                    <button type="button" class="btn btn-secondary-glass w-45 py-2" data-bs-dismiss="modal">No</button>
-                    <button type="submit" class="btn btn-danger w-45 py-2">Delete</button>
+                    <button type="button" class="btn btn-secondary-glass w-45 py-2" data-bs-dismiss="modal"><?= __('no', 'No') ?></button>
+                    <button type="submit" class="btn btn-danger w-45 py-2"><?= __('delete_btn', 'Delete') ?></button>
                 </div>
             </form>
         </div>
@@ -541,7 +542,7 @@ $time_rules = $time_stmt->fetchAll();
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content glass-card text-white border-secondary border-opacity-30" style="background:#111111; border-radius: 20px;">
             <div class="modal-header border-secondary border-opacity-20 p-4">
-                <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-plus me-2 text-indigo"></i>New Time Rule</h5>
+                <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-plus me-2 text-indigo"></i><?= __('new_time_rule', 'New Time Rule') ?></h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form action="" method="POST">
@@ -550,25 +551,25 @@ $time_rules = $time_stmt->fetchAll();
                     <input type="hidden" name="action" value="add_time_rule">
 
                     <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold">Minimum Days Before Departure</label>
+                        <label class="form-label text-secondary small fw-semibold"><?= __('min_days_before_dep_label', 'Minimum Days Before Departure') ?></label>
                         <input type="number" name="min_days" class="form-control form-control-swift" placeholder="e.g. 1" min="0" max="365" step="1" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold">Maximum Days Before Departure</label>
+                        <label class="form-label text-secondary small fw-semibold"><?= __('max_days_before_dep_label', 'Maximum Days Before Departure') ?></label>
                         <input type="number" name="max_days" class="form-control form-control-swift" placeholder="e.g. 3" min="0" max="365" step="1" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold">Price Increase %</label>
+                        <label class="form-label text-secondary small fw-semibold"><?= __('price_increase_pct', 'Price Increase %') ?></label>
                         <input type="number" name="price_increase_percentage" class="form-control form-control-swift" placeholder="e.g. 20" min="0" max="200" step="0.5" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold">Sort Evaluation Order</label>
+                        <label class="form-label text-secondary small fw-semibold"><?= __('sort_evaluation_order', 'Sort Evaluation Order') ?></label>
                         <input type="number" name="sort_order" class="form-control form-control-swift" value="1" min="1" required>
                     </div>
                 </div>
                 <div class="modal-footer border-secondary border-opacity-20 p-4">
-                    <button type="button" class="btn btn-secondary-glass" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary-gradient">Create Rule</button>
+                    <button type="button" class="btn btn-secondary-glass" data-bs-dismiss="modal"><?= __('cancel', 'Cancel') ?></button>
+                    <button type="submit" class="btn btn-primary-gradient"><?= __('create_rule_btn', 'Create Rule') ?></button>
                 </div>
             </form>
         </div>
@@ -580,7 +581,7 @@ $time_rules = $time_stmt->fetchAll();
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content glass-card text-white border-secondary border-opacity-30" style="background:#111111; border-radius: 20px;">
             <div class="modal-header border-secondary border-opacity-20 p-4">
-                <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-pen-to-square me-2 text-indigo"></i>Modify Time Rule</h5>
+                <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-pen-to-square me-2 text-indigo"></i><?= __('modify_time_rule', 'Modify Time Rule') ?></h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form action="" method="POST">
@@ -590,32 +591,32 @@ $time_rules = $time_stmt->fetchAll();
                     <input type="hidden" name="rule_id" id="edit_time_id">
 
                     <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold">Minimum Days Before Departure</label>
+                        <label class="form-label text-secondary small fw-semibold"><?= __('min_days_before_dep_label', 'Minimum Days Before Departure') ?></label>
                         <input type="number" name="min_days" id="edit_time_min" class="form-control form-control-swift" min="0" max="365" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold">Maximum Days Before Departure</label>
+                        <label class="form-label text-secondary small fw-semibold"><?= __('max_days_before_dep_label', 'Maximum Days Before Departure') ?></label>
                         <input type="number" name="max_days" id="edit_time_max" class="form-control form-control-swift" min="0" max="365" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold">Price Increase %</label>
+                        <label class="form-label text-secondary small fw-semibold"><?= __('price_increase_pct', 'Price Increase %') ?></label>
                         <input type="number" name="price_increase_percentage" id="edit_time_inc" class="form-control form-control-swift" min="0" max="200" step="0.5" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold">Sort Evaluation Order</label>
+                        <label class="form-label text-secondary small fw-semibold"><?= __('sort_evaluation_order', 'Sort Evaluation Order') ?></label>
                         <input type="number" name="sort_order" id="edit_time_order" class="form-control form-control-swift" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold">Status</label>
+                        <label class="form-label text-secondary small fw-semibold"><?= __('status', 'Status') ?></label>
                         <select name="status" id="edit_time_status" class="form-select form-control-swift" required>
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
+                            <option value="active"><?= __('status_active', 'Active') ?></option>
+                            <option value="inactive"><?= __('status_inactive', 'Inactive') ?></option>
                         </select>
                     </div>
                 </div>
                 <div class="modal-footer border-secondary border-opacity-20 p-4">
-                    <button type="button" class="btn btn-secondary-glass" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary-gradient">Save Changes</button>
+                    <button type="button" class="btn btn-secondary-glass" data-bs-dismiss="modal"><?= __('cancel', 'Cancel') ?></button>
+                    <button type="submit" class="btn btn-primary-gradient"><?= __('save_changes', 'Save Changes') ?></button>
                 </div>
             </form>
         </div>
@@ -633,12 +634,12 @@ $time_rules = $time_stmt->fetchAll();
                     <input type="hidden" name="rule_id" id="delete_time_id">
 
                     <i class="fa-solid fa-trash-can text-danger mb-3" style="font-size: 3rem;"></i>
-                    <h5 class="fw-bold mb-2">Delete Rule?</h5>
-                    <p class="text-secondary small">Are you sure you want to remove this time pricing rule?</p>
+                    <h5 class="fw-bold mb-2"><?= __('delete_rule_q', 'Delete Rule?') ?></h5>
+                    <p class="text-secondary small"><?= __('remove_time_rule_desc', 'Are you sure you want to remove this time pricing rule?') ?></p>
                 </div>
                 <div class="modal-footer border-0 p-3 d-flex justify-content-around">
-                    <button type="button" class="btn btn-secondary-glass w-45 py-2" data-bs-dismiss="modal">No</button>
-                    <button type="submit" class="btn btn-danger w-45 py-2">Delete</button>
+                    <button type="button" class="btn btn-secondary-glass w-45 py-2" data-bs-dismiss="modal"><?= __('no', 'No') ?></button>
+                    <button type="submit" class="btn btn-danger w-45 py-2"><?= __('delete_btn', 'Delete') ?></button>
                 </div>
             </form>
         </div>
@@ -686,7 +687,10 @@ $(document).ready(function() {
 
         var occ_percent = (seats_sold / total_seats) * 100;
         $('#out_occ_percent').text(occ_percent.toFixed(2) + '%');
-        $('#out_days_left').text(days_left + ' Days Left');
+        
+        var daysLeftText = '<?= __('days_left_preview', '{days} Days Left') ?>';
+        $('#out_days_left').text(daysLeftText.replace('{days}', days_left));
+        
         $('#out_base_fare').text('₹' + base_fare.toFixed(2));
 
         // Selected Mode calculation mimicking PHP engine

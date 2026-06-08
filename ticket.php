@@ -6,10 +6,10 @@ require_once __DIR__ . '/includes/auth_middleware.php';
 
 $ref = $_GET['ref'] ?? '';
 if (empty($ref)) {
-    die("Invalid reference.");
+    die(__('invalid_reference', 'Invalid reference.'));
 }
 
-$page_title = "Ticket Invoice - $ref";
+$page_title = __('ticket_invoice', 'Ticket Invoice') . " - $ref";
 
 // Fetch Booking details
 try {
@@ -19,7 +19,7 @@ try {
     }
     if (!isset($_SESSION['user_id'])) {
         $_SESSION['redirect_url'] = $_SERVER['REQUEST_URI'];
-        $_SESSION['login_error'] = "Please log in to view this ticket receipt.";
+        $_SESSION['login_error'] = __('login_to_view_ticket', 'Please log in to view this ticket receipt.');
         header("Location: " . BASE_URL . "/login.php");
         exit();
     }
@@ -66,12 +66,12 @@ try {
     $booking = $stmt->fetch();
 
     if (!$booking) {
-        die("Ticket Reference not found.");
+        die(__('ticket_not_found', 'Ticket Reference not found.'));
     }
 
     // 0.5. Verify ownership for customers
     if ($curr_user_role === 'customer' && intval($booking['customer_id']) !== $curr_user_id) {
-        die("Access Denied: You do not have permission to view this ticket receipt.");
+        die(__('access_denied_ticket', 'Access Denied: You do not have permission to view this ticket receipt.'));
     }
 
     // Fetch Seats/Passengers
@@ -95,7 +95,7 @@ try {
     ];
 
 } catch (PDOException $e) {
-    die("Error retrieving booking details: " . $e->getMessage());
+    die(__('error_retrieving_booking', 'Error retrieving booking details: ') . $e->getMessage());
 }
 
 require_once __DIR__ . '/includes/header.php';
@@ -141,19 +141,21 @@ require_once __DIR__ . '/includes/header.php';
             $book_another_url = $is_agent_booking
                 ? BASE_URL . '/agent/search.php'
                 : BASE_URL . '/index.php';
-            $book_another_label = $is_agent_booking ? 'Search Another Trip' : 'Book Another';
+            $book_another_label = $is_agent_booking 
+                ? __('search_another_trip', 'Search Another Trip') 
+                : __('book_another', 'Book Another');
         ?>
         <div class="d-flex justify-content-between align-items-center mb-4 no-print flex-wrap gap-2">
             <a href="<?= $book_another_url ?>" class="btn btn-secondary-glass py-2 px-3 small"><i class="fa-solid fa-<?= $is_agent_booking ? 'arrow-left' : 'house' ?> me-2"></i><?= $book_another_label ?></a>
             <div class="d-flex gap-2">
                 <?php if ($curr_user_role !== 'customer'): ?>
                     <?php if ($is_customer_copy): ?>
-                        <a href="?ref=<?= urlencode($ref) ?>&view=agent" class="btn btn-secondary-glass py-2 px-3 small"><i class="fa-solid fa-user-secret me-2"></i>Agent Copy</a>
+                        <a href="?ref=<?= urlencode($ref) ?>&view=agent" class="btn btn-secondary-glass py-2 px-3 small"><i class="fa-solid fa-user-secret me-2"></i><?= __('agent_copy', 'Agent Copy') ?></a>
                     <?php else: ?>
-                        <a href="?ref=<?= urlencode($ref) ?>&view=customer" class="btn btn-secondary-glass py-2 px-3 small"><i class="fa-solid fa-users me-2"></i>Customer Copy</a>
+                        <a href="?ref=<?= urlencode($ref) ?>&view=customer" class="btn btn-secondary-glass py-2 px-3 small"><i class="fa-solid fa-users me-2"></i><?= __('customer_copy', 'Customer Copy') ?></a>
                     <?php endif; ?>
                 <?php endif; ?>
-                <a href="<?= BASE_URL ?>/ticket_pdf.php?ref=<?= urlencode($ref) ?><?= $is_customer_copy ? '&view=customer' : '' ?>" target="_blank" class="btn btn-primary-gradient py-2 px-4 fw-bold"><i class="fa-solid fa-file-pdf me-2"></i>Download E-Ticket PDF</a>
+                <a href="<?= BASE_URL ?>/ticket_pdf.php?ref=<?= urlencode($ref) ?><?= $is_customer_copy ? '&view=customer' : '' ?>" target="_blank" class="btn btn-primary-gradient py-2 px-4 fw-bold"><i class="fa-solid fa-file-pdf me-2"></i><?= __('download_pdf', 'Download Ticket PDF') ?></a>
             </div>
         </div>
 
@@ -171,18 +173,18 @@ require_once __DIR__ . '/includes/header.php';
                         <i class="fa-solid fa-bus text-indigo" style="color:#818cf8;"></i>
                         <span class="text-gradient"><?= SYSTEM_NAME ?></span>
                     </h3>
-                    <span class="text-secondary small font-monospace">E-Ticket & Boarding Pass</span>
+                    <span class="text-secondary small font-monospace"><?= __('e_ticket_boarding_pass', 'E-Ticket & Boarding Pass') ?></span>
                 </div>
                 <div class="text-md-end">
-                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 py-2 px-4 rounded-pill fs-6 fw-bold">CONFIRMED & PAID</span>
-                    <div class="text-secondary small mt-2">Booked on: <?= date('d M Y H:i', strtotime($booking['created_at'])) ?></div>
+                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 py-2 px-4 rounded-pill fs-6 fw-bold"><?= __('confirmed_paid', 'CONFIRMED & PAID') ?></span>
+                    <div class="text-secondary small mt-2"><?= __('booked_on', 'Booked on:') ?> <?= date('d M Y H:i', strtotime($booking['created_at'])) ?></div>
                 </div>
             </div>
 
             <!-- Booking reference layout card -->
             <div class="row g-4 mb-4">
                 <div class="col-md-6 col-sm-6">
-                    <span class="text-secondary small d-block">TICKET REFERENCE</span>
+                    <span class="text-secondary small d-block"><?= __('ticket_ref', 'TICKET REFERENCE') ?></span>
                     <span class="fs-4 fw-bold text-white font-monospace" style="color:#a5b4fc;"><?= htmlspecialchars($booking['booking_reference']) ?></span>
                 </div>
                 <div class="col-md-6 col-sm-6 text-md-end">
@@ -194,19 +196,19 @@ require_once __DIR__ . '/includes/header.php';
             </div>
 
             <!-- Trip Schedule Cards -->
-            <h5 class="text-indigo fw-bold mb-3 small text-uppercase"><i class="fa-solid fa-route me-2"></i>Trip Details</h5>
+            <h5 class="text-indigo fw-bold mb-3 small text-uppercase"><i class="fa-solid fa-route me-2"></i><?= __('trip_details', 'Trip Details') ?></h5>
             <div class="p-4 rounded-4 bg-dark bg-opacity-20 border border-secondary border-opacity-20 mb-4">
                 <div class="row g-3">
                     <div class="col-md-4">
-                        <span class="text-secondary small d-block">ROUTE</span>
+                        <span class="text-secondary small d-block"><?= __('route', 'Route') ?></span>
                         <span class="text-white fw-bold fs-5"><?= htmlspecialchars($booking['source']) ?> <i class="fa-solid fa-arrow-right text-indigo" style="font-size:0.8rem;"></i> <?= htmlspecialchars($booking['destination']) ?></span>
                     </div>
                     <div class="col-md-4 text-md-center">
-                        <span class="text-secondary small d-block">BOARDING TIME</span>
+                        <span class="text-secondary small d-block"><?= __('boarding_time', 'BOARDING TIME') ?></span>
                         <span class="text-white fw-semibold fs-5"><?= date('d M Y, H:i', strtotime($booking['departure_time'])) ?></span>
                     </div>
                     <div class="col-md-4 text-md-end">
-                        <span class="text-secondary small d-block">FLEET INFORMATION</span>
+                        <span class="text-secondary small d-block"><?= __('fleet_info', 'FLEET INFORMATION') ?></span>
                         <span class="text-white fw-bold d-block"><?= htmlspecialchars($booking['bus_name']) ?></span>
                         <span class="badge bg-secondary text-uppercase small" style="font-size:0.7rem;"><?= htmlspecialchars($booking['bus_type']) ?></span>
                     </div>
@@ -214,30 +216,30 @@ require_once __DIR__ . '/includes/header.php';
             </div>
 
             <!-- Boarding & Dropping Points -->
-            <h5 class="text-indigo fw-bold mb-3 small text-uppercase"><i class="fa-solid fa-location-dot me-2"></i>Milestones Selected</h5>
+            <h5 class="text-indigo fw-bold mb-3 small text-uppercase"><i class="fa-solid fa-location-dot me-2"></i><?= __('milestones_selected', 'Milestones Selected') ?></h5>
             <div class="p-4 rounded-4 bg-dark bg-opacity-20 border border-secondary border-opacity-20 mb-4">
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <span class="text-secondary small d-block">BOARDING POINT</span>
+                        <span class="text-secondary small d-block"><?= __('boarding_point', 'BOARDING POINT') ?></span>
                         <span class="text-white fw-semibold"><?= htmlspecialchars($booking['boarding_point']) ?></span>
                     </div>
                     <div class="col-md-6 text-md-end">
-                        <span class="text-secondary small d-block">DROPPING POINT</span>
+                        <span class="text-secondary small d-block"><?= __('dropping_point', 'DROPPING POINT') ?></span>
                         <span class="text-white fw-semibold"><?= htmlspecialchars($booking['dropping_point']) ?></span>
                     </div>
                 </div>
             </div>
 
             <!-- Passenger Details Grid -->
-            <h5 class="text-indigo fw-bold mb-3 small text-uppercase"><i class="fa-solid fa-users me-2"></i>Passenger Information</h5>
+            <h5 class="text-indigo fw-bold mb-3 small text-uppercase"><i class="fa-solid fa-users me-2"></i><?= __('passenger_info', 'Passenger Info') ?></h5>
             <div class="table-responsive mb-4">
                 <table class="table table-swift table-dark table-borderless align-middle" style="background:transparent;">
                     <thead>
                         <tr class="border-bottom border-secondary border-opacity-20">
-                            <th>Seat</th>
-                            <th>Passenger Name</th>
-                            <th>Age / Gender</th>
-                            <th class="text-end">Ticket Price</th>
+                            <th><?= __('seat', 'Seat') ?></th>
+                            <th><?= __('passenger_name', 'Passenger Name') ?></th>
+                            <th><?= __('age_gender', 'Age / Gender') ?></th>
+                            <th class="text-end"><?= __('ticket_price', 'Ticket Price') ?></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -245,7 +247,19 @@ require_once __DIR__ . '/includes/header.php';
                             <tr class="border-bottom border-secondary border-opacity-10">
                                 <td class="font-monospace fw-bold text-indigo" style="color:#818cf8;"><?= htmlspecialchars($p['seat_number']) ?></td>
                                 <td class="text-white fw-semibold"><?= htmlspecialchars($p['passenger_name']) ?></td>
-                                <td class="text-secondary"><?= htmlspecialchars($p['passenger_age']) ?> yrs / <?= htmlspecialchars($p['passenger_gender']) ?></td>
+                                <td class="text-secondary">
+                                    <?= htmlspecialchars($p['passenger_age']) ?> <?= __('yrs', 'yrs') ?> / 
+                                    <?php
+                                        $g_lower = strtolower($p['passenger_gender']);
+                                        if ($g_lower === 'male') {
+                                            echo __('male', 'Male');
+                                        } elseif ($g_lower === 'female') {
+                                            echo __('female', 'Female');
+                                        } else {
+                                            echo __('other', 'Other');
+                                        }
+                                    ?>
+                                </td>
                                 <td class="text-end text-white fw-semibold">₹<?= number_format($p['price'], 2) ?></td>
                             </tr>
                         <?php endforeach; ?>
@@ -256,32 +270,32 @@ require_once __DIR__ . '/includes/header.php';
             <!-- Primary Contact details & Payment total footer -->
             <div class="row align-items-end g-4 pt-3 border-top border-secondary border-opacity-20">
                 <div class="col-md-6 col-sm-6 small text-secondary">
-                    <h6 class="text-secondary fw-bold small text-uppercase mb-2"><i class="fa-solid fa-address-book me-2"></i>Primary Contact</h6>
-                    <div>Name: <span class="text-white fw-semibold"><?= htmlspecialchars($booking['customer_name']) ?></span></div>
-                    <div>Email: <span class="text-white"><?= htmlspecialchars($booking['customer_email']) ?></span></div>
-                    <div>Phone: <span class="text-white"><?= htmlspecialchars($booking['customer_phone']) ?></span></div>
+                    <h6 class="text-secondary fw-bold small text-uppercase mb-2"><i class="fa-solid fa-address-book me-2"></i><?= __('primary_contact', 'Primary Contact') ?></h6>
+                    <div><?= __('name', 'Name') ?>: <span class="text-white fw-semibold"><?= htmlspecialchars($booking['customer_name']) ?></span></div>
+                    <div><?= __('email', 'Email Address') ?>: <span class="text-white"><?= htmlspecialchars($booking['customer_email']) ?></span></div>
+                    <div><?= __('phone', 'Phone Number') ?>: <span class="text-white"><?= htmlspecialchars($booking['customer_phone']) ?></span></div>
 
-                    <h6 class="text-secondary fw-bold small text-uppercase mt-3 mb-2"><i class="fa-solid fa-headset me-2"></i>Bus Operator Support</h6>
-                    <div>Operator: <span class="text-white fw-semibold"><?= htmlspecialchars($operator['operator_name']) ?></span></div>
-                    <div>Phone: <span class="text-white"><?= htmlspecialchars($operator['contact_number']) ?></span></div>
-                    <div>Emergency: <span class="text-danger fw-bold"><?= htmlspecialchars($operator['emergency_number']) ?></span></div>
+                    <h6 class="text-secondary fw-bold small text-uppercase mt-3 mb-2"><i class="fa-solid fa-headset me-2"></i><?= __('bus_operator_support', 'Bus Operator Support') ?></h6>
+                    <div><?= __('operator', 'Operator') ?>: <span class="text-white fw-semibold"><?= htmlspecialchars($operator['operator_name']) ?></span></div>
+                    <div><?= __('phone', 'Phone Number') ?>: <span class="text-white"><?= htmlspecialchars($operator['contact_number']) ?></span></div>
+                    <div><?= __('emergency', 'Emergency') ?>: <span class="text-danger fw-bold"><?= htmlspecialchars($operator['emergency_number']) ?></span></div>
                 </div>
                 <div class="col-md-6 col-sm-6 text-md-end">
                     <?php if (!$is_customer_copy && $booking['discount_amount'] > 0): ?>
                         <div class="mb-2">
-                            <span class="text-secondary small d-block">PROMO DISCOUNT (<?= htmlspecialchars($booking['promo_code'] ?? 'Agent Discount') ?>)</span>
+                            <span class="text-secondary small d-block"><?= __('promo_discount', 'PROMO DISCOUNT') ?> (<?= htmlspecialchars($booking['promo_code'] ?? 'Agent Discount') ?>)</span>
                             <span class="text-success fw-bold">-₹<?= number_format($booking['discount_amount'], 2) ?></span>
                         </div>
                     <?php endif; ?>
-                    <span class="text-secondary small d-block">TOTAL FARE PAID</span>
+                    <span class="text-secondary small d-block"><?= __('total_fare_paid', 'TOTAL FARE PAID') ?></span>
                     <span class="fs-2 fw-bold text-indigo" style="color:#818cf8;">₹<?= number_format($is_customer_copy ? (floatval($booking['original_fare']) > 0 ? floatval($booking['original_fare']) : floatval($booking['total_amount']) + floatval($booking['discount_amount'])) : floatval($booking['total_amount']), 2) ?></span>
-                    <div class="text-secondary small" style="font-size:0.75rem;">Inclusive of Processing Taxes</div>
+                    <div class="text-secondary small" style="font-size:0.75rem;"><?= __('inclusive_taxes', 'Inclusive of Processing Taxes') ?></div>
                 </div>
             </div>
 
             <!-- Security instructions footer -->
             <div class="mt-5 p-3 rounded-3 bg-dark bg-opacity-30 border border-secondary border-opacity-10 small text-secondary text-center">
-                <i class="fa-solid fa-circle-exclamation text-indigo me-2"></i> Please report at the boarding station at least 15 minutes before departure with a printed copy or SMS confirmation of this ticket.
+                <i class="fa-solid fa-circle-exclamation text-indigo me-2"></i> <?= __('ticket_note', 'Please report at the boarding station at least 15 minutes before departure with a printed copy or SMS confirmation of this ticket.') ?>
             </div>
 
         </div>

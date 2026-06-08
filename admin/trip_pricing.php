@@ -23,7 +23,7 @@ $stmt->execute([$trip_id, $_SESSION['user_id']]);
 $trip = $stmt->fetch();
 
 if (!$trip) {
-    die("Trip not found or unauthorized.");
+    die(__('trip_not_found_unauthorized', "Trip not found or unauthorized."));
 }
 
 $error = '';
@@ -33,14 +33,14 @@ $success = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'save_pricing') {
     $csrf_token = $_POST['csrf_token'] ?? '';
     if (!verify_csrf_token($csrf_token)) {
-        $error = "Security token validation failed.";
+        $error = __('security_validation_failed', "Security token validation failed.");
     } else {
         $apply_target = $_POST['apply_target'] ?? 'selected'; // 'selected' or 'entire_bus'
         $seat_price = floatval($_POST['seat_price'] ?? 0.00);
         $target_seats = $_POST['target_seats'] ?? ''; // Comma separated list
 
         if ($seat_price <= 0) {
-            $error = "Price must be a positive numeric value.";
+            $error = __('price_positive_numeric', "Price must be a positive numeric value.");
         } else {
             try {
                 $pdo->beginTransaction();
@@ -70,12 +70,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     }
                     
                     log_activity($pdo, $_SESSION['user_id'], 'PRICE_CHANGE_BULK', "Updated pricing for all seats on Trip ID: $trip_id to ₹$seat_price");
-                    $success = "Pricing applied to all seats on the bus successfully!";
+                    $success = __('pricing_applied_entire_bus_success', "Pricing applied to all seats on the bus successfully!");
                 } else {
                     // Apply to selected seats
                     $seats_array = array_filter(array_map('trim', explode(',', $target_seats)));
                     if (empty($seats_array)) {
-                        $error = "No target seats selected for pricing modification.";
+                        $error = __('no_target_seats_selected', "No target seats selected for pricing modification.");
                     } else {
                         foreach ($seats_array as $seat_num) {
                             $upsert->execute([$trip_id, $seat_num, $seat_price, $seat_price, $seat_price]);
@@ -83,7 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         }
                         
                         log_activity($pdo, $_SESSION['user_id'], 'PRICE_CHANGE_SINGLE', "Updated pricing for seats (" . implode(',', $seats_array) . ") on Trip ID: $trip_id to ₹$seat_price");
-                        $success = "Pricing applied to selected seats (" . implode(', ', $seats_array) . ") successfully!";
+                        $success = __('pricing_applied_selected_seats_prefix', "Pricing applied to selected seats (") . implode(', ', $seats_array) . __('pricing_applied_selected_seats_suffix', ") successfully!");
                     }
                 }
 
@@ -96,7 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 if ($pdo->inTransaction()) {
                     $pdo->rollBack();
                 }
-                $error = "Failed to update pricing overrides: " . $e->getMessage();
+                $error = __('failed_update_pricing_overrides', "Failed to update pricing overrides: ") . $e->getMessage();
             }
         }
     }
@@ -159,7 +159,7 @@ foreach ($db_seats as $s) {
     <!-- Pricing Config Form Panel -->
     <div class="col-md-4">
         <div class="glass-card p-4">
-            <h5 class="fw-bold mb-3"><i class="fa-solid fa-tags text-indigo me-2"></i>Configure Seat Fare</h5>
+            <h5 class="fw-bold mb-3"><i class="fa-solid fa-tags text-indigo me-2"></i><?= __('configure_seat_fare_hdr', 'Configure Seat Fare') ?></h5>
             
             <form action="" method="POST" id="pricingForm">
                 <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
@@ -167,31 +167,31 @@ foreach ($db_seats as $s) {
                 <input type="hidden" name="target_seats" id="form_target_seats" value="">
 
                 <div class="mb-3">
-                    <label class="form-label text-secondary small fw-semibold">Target Application</label>
+                    <label class="form-label text-secondary small fw-semibold"><?= __('target_application_label', 'Target Application') ?></label>
                     <select name="apply_target" id="apply_target" class="form-select form-control-swift" required>
-                        <option value="selected">Selected Seat(s) Only</option>
-                        <option value="entire_bus">Entire Bus (Apply to all seats)</option>
+                        <option value="selected"><?= __('selected_seats_only_opt', 'Selected Seat(s) Only') ?></option>
+                        <option value="entire_bus"><?= __('entire_bus_opt', 'Entire Bus (Apply to all seats)') ?></option>
                     </select>
                 </div>
 
                 <div class="p-3 mb-4 rounded bg-dark bg-opacity-20 border border-secondary border-opacity-10" id="selected_seats_preview_block">
-                    <span class="text-secondary small d-block mb-1">Target Seats Selected:</span>
+                    <span class="text-secondary small d-block mb-1"><?= __('target_seats_selected_lbl', 'Target Seats Selected:') ?></span>
                     <div id="selected_seats_badges" class="d-flex flex-wrap gap-1">
-                        <span class="text-muted small">No seats selected. Tap seats in the grid to select.</span>
+                        <span class="text-muted small"><?= __('no_seats_selected_desc', 'No seats selected. Tap seats in the grid to select.') ?></span>
                     </div>
                 </div>
 
                 <div class="mb-4">
-                    <label class="form-label text-secondary small fw-semibold">Seat Price (₹)</label>
+                    <label class="form-label text-secondary small fw-semibold"><?= __('seat_price_label', 'Seat Price (₹)') ?></label>
                     <input type="number" name="seat_price" id="seat_price" class="form-control form-control-swift" value="<?= htmlspecialchars($trip['base_fare']) ?>" min="50" step="any" required>
                 </div>
 
                 <button type="submit" id="btnApplyPricing" class="btn btn-primary-gradient w-100 py-3 font-semibold">
-                    <i class="fa-solid fa-check-double me-2"></i>Apply Price Change
+                    <i class="fa-solid fa-check-double me-2"></i><?= __('apply_price_change_btn', 'Apply Price Change') ?>
                 </button>
             </form>
 
-            <a href="trips.php" class="btn btn-secondary-glass w-100 mt-2">Back to Active Schedules</a>
+            <a href="trips.php" class="btn btn-secondary-glass w-100 mt-2"><?= __('back_to_active_schedules_btn', 'Back to Active Schedules') ?></a>
         </div>
     </div>
 
@@ -201,11 +201,11 @@ foreach ($db_seats as $s) {
             <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom border-secondary border-opacity-20 flex-wrap gap-2">
                 <div>
                     <h4 class="fw-bold text-white mb-0"><?= htmlspecialchars($trip['bus_name']) ?></h4>
-                    <span class="text-secondary small"><?= htmlspecialchars($trip['source']) ?> to <?= htmlspecialchars($trip['destination']) ?></span>
+                    <span class="text-secondary small"><?= htmlspecialchars($trip['source']) ?> <?= __('to_label', 'to') ?> <?= htmlspecialchars($trip['destination']) ?></span>
                 </div>
                 <div class="d-flex gap-1">
-                    <button type="button" id="btnSelectAll" class="btn btn-secondary-glass py-1 px-2 small">Select All</button>
-                    <button type="button" id="btnSelectNone" class="btn btn-secondary-glass py-1 px-2 small">Clear Selection</button>
+                    <button type="button" id="btnSelectAll" class="btn btn-secondary-glass py-1 px-2 small"><?= __('select_all_btn', 'Select All') ?></button>
+                    <button type="button" id="btnSelectNone" class="btn btn-secondary-glass py-1 px-2 small"><?= __('clear_selection_btn', 'Clear Selection') ?></button>
                 </div>
             </div>
 
@@ -293,7 +293,7 @@ $(document).ready(function() {
         });
 
         for (var r = 0; r < rows; r++) {
-            var rowHeaderCell = $('<div class="grid-cell" style="cursor: pointer; font-size: 0.7rem; color: var(--text-muted);" data-row-header="' + r + '">Row ' + (r + 1) + '</div>');
+            var rowHeaderCell = $('<div class="grid-cell" style="cursor: pointer; font-size: 0.7rem; color: var(--text-muted);" data-row-header="' + r + '"><?= __('row_label_grid', 'Row') ?> ' + (r + 1) + '</div>');
             rowHeaderCell.css({
                 'grid-row': (r + 1),
                 'grid-column': 1
@@ -383,7 +383,7 @@ $(document).ready(function() {
         badgesContainer.empty();
 
         if (selectedSeats.length === 0) {
-            badgesContainer.append('<span class="text-muted small">No seats selected. Tap seats in the grid to select.</span>');
+            badgesContainer.append('<span class="text-muted small"><?= __('no_seats_selected_desc', 'No seats selected. Tap seats in the grid to select.') ?></span>');
             $('#form_target_seats').val('');
             return;
         }

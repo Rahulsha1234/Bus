@@ -70,15 +70,15 @@ try {
 ?>
 
 <div class="glass-card p-4 mb-4" style="border-radius: 12px;">
-    <h5 class="fw-bold mb-3 text-white"><i class="fa-solid fa-magnifying-glass text-indigo me-2"></i>Find Voyages (<?= htmlspecialchars($agent_profile['agency_name']) ?> Partners)</h5>
+    <h5 class="fw-bold mb-3 text-white"><i class="fa-solid fa-magnifying-glass text-indigo me-2"></i><?= __('find_voyages', 'Find Voyages') ?> (<?= htmlspecialchars($agent_profile['agency_name']) ?>)</h5>
     <form action="" method="GET" class="row g-3 align-items-end">
         <!-- Source dropdown -->
         <div class="col-md-3">
-            <label for="source_search" class="form-label text-secondary small fw-semibold">Leaving From</label>
+            <label for="source_search" class="form-label text-secondary small fw-semibold"><?= __('leaving_from', 'Leaving From') ?></label>
             <div class="input-group">
                 <span class="input-group-text bg-dark border-secondary border-end-0 text-secondary" style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-location-dot"></i></span>
                 <div class="autocomplete-wrapper">
-                    <input type="text" id="source_search" class="form-control form-control-swift border-start-0" style="border-radius: 0 12px 12px 0;" placeholder="Select Origin..." value="<?= htmlspecialchars($source) ?>" autocomplete="off" required>
+                    <input type="text" id="source_search" class="form-control form-control-swift border-start-0" style="border-radius: 0 12px 12px 0;" placeholder="<?= __('select_origin', 'Select Origin...') ?>" value="<?= htmlspecialchars($source) ?>" autocomplete="off" required>
                     <input type="hidden" name="source" id="source" value="<?= htmlspecialchars($source) ?>">
                 </div>
             </div>
@@ -93,20 +93,20 @@ try {
 
         <!-- Destination dropdown -->
         <div class="col-md-3">
-            <label for="destination_search" class="form-label text-secondary small fw-semibold">Going To</label>
+            <label for="destination_search" class="form-label text-secondary small fw-semibold"><?= __('going_to', 'Going To') ?></label>
             <div class="input-group">
                 <span class="input-group-text bg-dark border-secondary border-end-0 text-secondary" style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-location-crosshairs"></i></span>
                 <div class="autocomplete-wrapper">
-                    <input type="text" id="destination_search" class="form-control form-control-swift border-start-0" style="border-radius: 0 12px 12px 0;" placeholder="Select Destination..." value="<?= htmlspecialchars($destination) ?>" autocomplete="off" required>
+                    <input type="text" id="destination_search" class="form-control form-control-swift border-start-0" style="border-radius: 0 12px 12px 0;" placeholder="<?= __('select_destination', 'Select Destination...') ?>" value="<?= htmlspecialchars($destination) ?>" autocomplete="off" required>
                     <input type="hidden" name="destination" id="destination" value="<?= htmlspecialchars($destination) ?>">
                 </div>
             </div>
-            <div id="dest-loading" class="small text-muted mt-1" style="display:none;"><i class="fa-solid fa-spinner fa-spin me-1"></i>Loading...</div>
+            <div id="dest-loading" class="small text-muted mt-1" style="display:none;"><i class="fa-solid fa-spinner fa-spin me-1"></i><?= __('loading', 'Loading...') ?></div>
         </div>
 
         <!-- Date Picker -->
         <div class="col-md-3">
-            <label for="date" class="form-label text-secondary small fw-semibold">Travel Date</label>
+            <label for="date" class="form-label text-secondary small fw-semibold"><?= __('travel_date', 'Travel Date') ?></label>
             <div class="input-group">
                 <span class="input-group-text bg-dark border-secondary border-end-0 text-secondary" style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-calendar-days"></i></span>
                 <input type="date" name="date" id="date" class="form-control form-control-swift border-start-0" style="border-radius: 0 12px 12px 0;" min="<?= date('Y-m-d') ?>" value="<?= htmlspecialchars($date) ?>" required>
@@ -116,20 +116,20 @@ try {
         <!-- Search Button -->
         <div class="col-md-2">
             <div class="d-grid">
-                <button type="submit" class="btn btn-primary-gradient py-2 fw-bold text-uppercase" style="font-size: 0.9rem;">Search Trips</button>
+                <button type="submit" class="btn btn-primary-gradient py-2 fw-bold text-uppercase" style="font-size: 0.9rem;"><?= __('search_trips', 'Search Trips') ?></button>
             </div>
         </div>
     </form>
 </div>
 
 <?php if (!empty($source) && !empty($destination) && !empty($date)): ?>
-    <h4 class="fw-bold mb-4 text-white">Available Partner Voyages (<?= count($trips) ?> found)</h4>
+    <h4 class="fw-bold mb-4 text-white"><?= __('available_partner_voyages', 'Available Partner Voyages') ?> (<?= count($trips) ?> <?= __('available_buses', 'found') ?>)</h4>
 
     <?php if (count($trips) === 0): ?>
         <div class="glass-card p-5 text-center my-5">
             <i class="fa-solid fa-circle-info text-secondary mb-3" style="font-size: 4rem;"></i>
-            <h3 class="text-white fw-bold">No Operator Buses Scheduled</h3>
-            <p class="text-secondary">We couldn't find any trips scheduled by your parent operator from <?= htmlspecialchars($source) ?> to <?= htmlspecialchars($destination) ?> on <?= date('d M Y', strtotime($date)) ?>.</p>
+            <h3 class="text-white fw-bold"><?= __('no_buses_found', 'No active bus services found') ?></h3>
+            <p class="text-secondary"><?= __('no_partner_trips_desc', "We couldn't find any trips scheduled by your parent operator from") ?> <?= htmlspecialchars($source) ?> <?= __('to', 'to') ?> <?= htmlspecialchars($destination) ?> <?= __('on', 'on') ?> <?= date('d M Y', strtotime($date)) ?>.</p>
         </div>
     <?php else: ?>
         <div class="row">
@@ -194,10 +194,10 @@ try {
                             <div class="col-md-2 text-center text-md-start">
                                 <div class="dropdown">
                                     <button class="btn btn-secondary-glass py-1 px-2 small text-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" style="font-size: 0.8rem;">
-                                        Pickup / Drop points
+                                        <?= __('pickup_drop_points', 'Pickup / Drop points') ?>
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-dark glass-card p-3 border-0 mt-2" style="min-width: 250px;">
-                                        <h6 class="text-indigo small fw-bold mb-2">Pickups (<?= htmlspecialchars($source) ?>)</h6>
+                                        <h6 class="text-indigo small fw-bold mb-2"><?= __('pickups', 'Pickups') ?> (<?= htmlspecialchars($source) ?>)</h6>
                                         <?php foreach ($pickups as $p):
                                             $pt = $p['time'] ?? '';
                                             $has_time = !empty($pt) && $pt !== '00:00' && $pt !== '00:00:00';
@@ -209,7 +209,7 @@ try {
                                             </li>
                                         <?php endforeach; ?>
                                         <li><hr class="dropdown-divider border-secondary my-2"></li>
-                                        <h6 class="text-pink small fw-bold mb-2">Drops (<?= htmlspecialchars($destination) ?>)</h6>
+                                        <h6 class="text-pink small fw-bold mb-2"><?= __('drops', 'Drops') ?> (<?= htmlspecialchars($destination) ?>)</h6>
                                         <?php foreach ($drops as $d):
                                             $dt = $d['time'] ?? '';
                                             $has_time = !empty($dt) && $dt !== '00:00' && $dt !== '00:00:00';
@@ -227,7 +227,7 @@ try {
                             <!-- Price & Seats Display -->
                             <div class="col-md-3 text-center text-md-end">
                                 <div class="mb-2">
-                                    <span class="text-secondary small">Fare: </span>
+                                    <span class="text-secondary small"><?= __('fare', 'Fare') ?>: </span>
                                     <span class="fs-4 fw-bold text-success">₹<?= number_format($original, 2) ?></span>
                                     <?php 
                                         $pct_label = '';
@@ -244,19 +244,19 @@ try {
                                 
                                 <div class="mb-3">
                                     <?php if ($trip['available_seats'] > 10): ?>
-                                        <span class="badge bg-success bg-opacity-10 text-success py-2 px-3 rounded-pill border border-success border-opacity-25"><?= htmlspecialchars($trip['available_seats']) ?> seats left</span>
+                                        <span class="badge bg-success bg-opacity-10 text-success py-2 px-3 rounded-pill border border-success border-opacity-25"><?= htmlspecialchars($trip['available_seats']) ?> <?= __('seats_left', 'seats left') ?></span>
                                     <?php elseif ($trip['available_seats'] > 0): ?>
-                                        <span class="badge bg-warning bg-opacity-10 text-warning py-2 px-3 rounded-pill border border-warning border-opacity-25"><?= htmlspecialchars($trip['available_seats']) ?> seats left</span>
+                                        <span class="badge bg-warning bg-opacity-10 text-warning py-2 px-3 rounded-pill border border-warning border-opacity-25"><?= htmlspecialchars($trip['available_seats']) ?> <?= __('seats_left', 'seats left') ?></span>
                                     <?php else: ?>
-                                        <span class="badge bg-danger bg-opacity-10 text-danger py-2 px-3 rounded-pill border border-danger border-opacity-25">SOLD OUT</span>
+                                        <span class="badge bg-danger bg-opacity-10 text-danger py-2 px-3 rounded-pill border border-danger border-opacity-25"><?= __('sold_out', 'SOLD OUT') ?></span>
                                     <?php endif; ?>
                                 </div>
 
                                 <div>
                                     <?php if ($trip['available_seats'] > 0): ?>
-                                        <a href="<?= BASE_URL ?>/agent/book.php?trip_id=<?= $trip['trip_id'] ?>" class="btn btn-primary-gradient w-100 text-uppercase fw-bold py-2" style="font-size: 0.9rem;">Select Seats</a>
+                                        <a href="<?= BASE_URL ?>/agent/book.php?trip_id=<?= $trip['trip_id'] ?>" class="btn btn-primary-gradient w-100 text-uppercase fw-bold py-2" style="font-size: 0.9rem;"><?= __('select_seats', 'Select Seats') ?></a>
                                     <?php else: ?>
-                                        <button class="btn btn-secondary w-100 py-2 text-uppercase fw-bold disabled" style="font-size: 0.9rem;">House Full</button>
+                                        <button class="btn btn-secondary w-100 py-2 text-uppercase fw-bold disabled" style="font-size: 0.9rem;"><?= __('house_full', 'House Full') ?></button>
                                     <?php endif; ?>
                                 </div>
                             </div>

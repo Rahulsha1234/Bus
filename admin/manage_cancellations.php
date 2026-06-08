@@ -5,7 +5,7 @@
 require_once __DIR__ . '/../includes/auth_middleware.php';
 require_role('admin');
 
-$page_title = "Manage Cancellations";
+$page_title = __('manage_cancellations_title', "Manage Cancellations");
 $admin_id = $_SESSION['user_id'];
 $success_msg = '';
 $error_msg = '';
@@ -14,7 +14,7 @@ $error_msg = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $csrf = $_POST['csrf_token'] ?? '';
     if (!verify_csrf_token($csrf)) {
-        $error_msg = "Security token validation failed. Please refresh.";
+        $error_msg = __('security_validation_failed_refresh', "Security token validation failed. Please refresh.");
     } else {
         $action = $_POST['action'];
         $request_id = intval($_POST['request_id'] ?? 0);
@@ -35,9 +35,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $request = $chk_stmt->fetch();
 
             if (!$request) {
-                $error_msg = "Cancellation request not found or unauthorized.";
+                $error_msg = __('cancel_req_not_found_unauth', "Cancellation request not found or unauthorized.");
             } elseif ($request['status'] !== 'pending') {
-                $error_msg = "This request has already been processed.";
+                $error_msg = __('cancel_req_already_processed', "This request has already been processed.");
             } else {
                 $pdo->beginTransaction();
 
@@ -87,10 +87,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         INSERT INTO system_notifications (user_id, user_role, message) 
                         VALUES (NULL, 'admin', ?)
                     ");
-                    $notif_admin->execute(["Cancellation Approved for Booking " . $request['booking_reference'] . ". Refund processed: ₹" . number_format($refund_val, 2)]);
+                    $notif_admin->execute([__('cancellation_approved_for_booking', "Cancellation Approved for Booking ") . $request['booking_reference'] . __('refund_processed_val', ". Refund processed: ₹") . number_format($refund_val, 2)]);
 
                     log_activity($pdo, $admin_id, 'CANCELLATION_APPROVE', "Approved cancellation request " . $request['request_number'] . " for Booking " . $request['booking_reference'] . ". Refunded: ₹$refund_val", "pending", "approved");
-                    $success_msg = "Cancellation approved successfully and seats released.";
+                    $success_msg = __('cancel_approved_success_seats_released', "Cancellation approved successfully and seats released.");
 
                 } elseif ($action === 'reject') {
                     // Update request to rejected
@@ -102,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $up_stmt->execute([$admin_id, $request_id]);
 
                     log_activity($pdo, $admin_id, 'CANCELLATION_REJECT', "Rejected cancellation request " . $request['request_number'] . " for Booking " . $request['booking_reference'], "pending", "rejected");
-                    $success_msg = "Cancellation request has been rejected.";
+                    $success_msg = __('cancel_req_rejected_success', "Cancellation request has been rejected.");
                 }
 
                 $pdo->commit();
@@ -111,7 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
             }
-            $error_msg = "Error processing request: " . $e->getMessage();
+            $error_msg = __('error_processing_request', "Error processing request: ") . $e->getMessage();
         }
     }
 }
@@ -145,7 +145,7 @@ try {
     $requests = $list_stmt->fetchAll();
 
 } catch (PDOException $e) {
-    die("Database query error: " . $e->getMessage());
+    die(__('database_query_error', "Database query error: ") . $e->getMessage());
 }
 
 require_once __DIR__ . '/header.php';
@@ -153,8 +153,8 @@ require_once __DIR__ . '/header.php';
 
 <div class="glass-card p-4" style="border-radius: 20px;">
     <div class="mb-4">
-        <h4 class="fw-bold text-white"><i class="fa-solid fa-ban text-indigo me-2"></i>Cancellation & Refund Requests</h4>
-        <p class="text-secondary small">Approve or reject customer refund/cancellation claims for bookings made on your fleet.</p>
+        <h4 class="fw-bold text-white"><i class="fa-solid fa-ban text-indigo me-2"></i><?= __('cancellation_refund_requests_hdr', 'Cancellation & Refund Requests') ?></h4>
+        <p class="text-secondary small"><?= __('cancellation_refund_requests_subtitle', 'Approve or reject customer refund/cancellation claims for bookings made on your fleet.') ?></p>
     </div>
 
     <?php if (!empty($success_msg)): ?>
@@ -167,20 +167,20 @@ require_once __DIR__ . '/header.php';
     <?php if (empty($requests)): ?>
         <div class="text-center py-5">
             <span class="text-secondary" style="font-size: 3rem;"><i class="fa-solid fa-ban"></i></span>
-            <h5 class="text-white mt-3 fw-bold">No Cancellation Requests Found</h5>
-            <p class="text-secondary small">Customers have not requested any cancellations yet.</p>
+            <h5 class="text-white mt-3 fw-bold"><?= __('no_cancellation_requests_found', 'No Cancellation Requests Found') ?></h5>
+            <p class="text-secondary small"><?= __('no_cancellation_requests_desc', 'Customers have not requested any cancellations yet.') ?></p>
         </div>
     <?php else: ?>
         <div class="table-responsive">
             <table class="table table-swift table-dark table-hover align-middle datatable-swift" style="background: transparent;">
                 <thead>
                     <tr class="border-bottom border-secondary border-opacity-25 text-secondary small">
-                        <th>Request ID</th>
-                        <th>Booking / Passenger</th>
-                        <th>Voyage / Schedule</th>
-                        <th>Ticket Price</th>
-                        <th>Status</th>
-                        <th class="text-end">Actions</th>
+                        <th><?= __('request_id_col', 'Request ID') ?></th>
+                        <th><?= __('booking_passenger_col', 'Booking / Passenger') ?></th>
+                        <th><?= __('voyage_schedule_col', 'Voyage / Schedule') ?></th>
+                        <th><?= __('ticket_price_col', 'Ticket Price') ?></th>
+                        <th><?= __('status_col', 'Status') ?></th>
+                        <th class="text-end"><?= __('actions_col', 'Actions') ?></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -188,11 +188,11 @@ require_once __DIR__ . '/header.php';
                         <tr class="border-bottom border-secondary border-opacity-15">
                             <td>
                                 <span class="font-monospace fw-bold text-indigo" style="color: #818cf8;"><?= htmlspecialchars($r['request_number']) ?></span>
-                                <div class="text-secondary small" style="font-size: 0.75rem;">Filed: <?= date('d M Y, H:i', strtotime($r['requested_at'])) ?></div>
+                                <div class="text-secondary small" style="font-size: 0.75rem;"><?= __('filed_at_label', 'Filed:') ?> <?= date('d M Y, H:i', strtotime($r['requested_at'])) ?></div>
                             </td>
                             <td>
                                 <div class="fw-semibold text-white"><?= htmlspecialchars($r['customer_name']) ?></div>
-                                <span class="font-monospace text-secondary small" style="font-size: 0.75rem;">Ref: <?= htmlspecialchars($r['booking_reference']) ?></span>
+                                <span class="font-monospace text-secondary small" style="font-size: 0.75rem;"><?= __('ref_label', 'Ref:') ?> <?= htmlspecialchars($r['booking_reference']) ?></span>
                             </td>
                             <td>
                                 <div class="text-white small fw-bold"><?= htmlspecialchars($r['source']) ?> <i class="fa-solid fa-arrow-right mx-1 text-secondary" style="font-size:0.7rem;"></i> <?= htmlspecialchars($r['destination']) ?></div>
@@ -203,11 +203,11 @@ require_once __DIR__ . '/header.php';
                             </td>
                             <td>
                                 <?php if ($r['request_status'] === 'pending'): ?>
-                                    <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25">PENDING</span>
+                                    <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25"><?= __('status_pending', 'PENDING') ?></span>
                                 <?php elseif ($r['request_status'] === 'approved'): ?>
-                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25" title="Refunded: ₹<?= $r['refund_amount'] ?>">APPROVED</span>
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25" title="<?= __('refunded_label', 'Refunded:') ?> ₹<?= $r['refund_amount'] ?>"><?= __('status_approved', 'APPROVED') ?></span>
                                 <?php else: ?>
-                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25">REJECTED</span>
+                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25"><?= __('status_rejected', 'REJECTED') ?></span>
                                 <?php endif; ?>
                             </td>
                             <td class="text-end">
@@ -215,14 +215,14 @@ require_once __DIR__ . '/header.php';
                                     <div class="d-flex justify-content-end gap-2">
                                         <!-- Approve Action Button -->
                                         <button type="button" class="btn btn-success btn-sm px-3 rounded-2" data-bs-toggle="modal" data-bs-target="#approveModal<?= $r['request_id'] ?>">
-                                            Approve
+                                            <?= __('approve_btn', 'Approve') ?>
                                         </button>
                                         <!-- Reject Action Form -->
-                                        <form method="POST" onsubmit="return confirm('Are you sure you want to reject this cancellation request?');" style="display:inline-block;">
+                                        <form method="POST" onsubmit="return confirm('<?= __('reject_cancellation_confirm_q', 'Are you sure you want to reject this cancellation request?') ?>');" style="display:inline-block;">
                                             <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
                                             <input type="hidden" name="request_id" value="<?= $r['request_id'] ?>">
                                             <input type="hidden" name="action" value="reject">
-                                            <button type="submit" class="btn btn-danger-glass btn-sm px-3 rounded-2">Reject</button>
+                                            <button type="submit" class="btn btn-danger-glass btn-sm px-3 rounded-2"><?= __('reject_btn', 'Reject') ?></button>
                                         </form>
                                     </div>
 
@@ -235,20 +235,20 @@ require_once __DIR__ . '/header.php';
                                                     <input type="hidden" name="request_id" value="<?= $r['request_id'] ?>">
                                                     <input type="hidden" name="action" value="approve">
                                                     <div class="modal-header border-0 pb-0">
-                                                        <h5 class="modal-title fw-bold">Approve Cancellation</h5>
+                                                        <h5 class="modal-title fw-bold"><?= __('approve_cancellation_title', 'Approve Cancellation') ?></h5>
                                                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                                                     </div>
                                                     <div class="modal-body py-4">
-                                                        <p class="text-secondary small">Please verify and specify the refund amount to initiate payment back to customer.</p>
+                                                        <p class="text-secondary small"><?= __('approve_cancellation_desc', 'Please verify and specify the refund amount to initiate payment back to customer.') ?></p>
                                                         <div class="mb-3">
-                                                            <label class="form-label text-secondary small fw-semibold">Refund Amount (₹)</label>
+                                                            <label class="form-label text-secondary small fw-semibold"><?= __('refund_amount_label', 'Refund Amount (₹)') ?></label>
                                                             <input type="number" name="refund_amount" class="form-control form-control-swift" value="<?= htmlspecialchars($r['total_amount']) ?>" min="0" max="<?= htmlspecialchars($r['total_amount']) ?>" step="0.01" required>
-                                                            <div class="form-text text-secondary" style="font-size:0.75rem;">Max limit: ₹<?= number_format($r['total_amount'], 2) ?></div>
+                                                            <div class="form-text text-secondary" style="font-size:0.75rem;"><?= __('max_limit_val', 'Max limit: ₹') ?><?= number_format($r['total_amount'], 2) ?></div>
                                                         </div>
                                                     </div>
                                                     <div class="modal-footer border-0 pt-0 d-flex justify-content-between">
-                                                        <button type="button" class="btn btn-secondary-glass rounded-3" data-bs-dismiss="modal">Cancel</button>
-                                                        <button type="submit" class="btn btn-success px-4 rounded-3">Confirm Approval</button>
+                                                        <button type="button" class="btn btn-secondary-glass rounded-3" data-bs-dismiss="modal"><?= __('cancel', 'Cancel') ?></button>
+                                                        <button type="submit" class="btn btn-success px-4 rounded-3"><?= __('confirm_approval_btn', 'Confirm Approval') ?></button>
                                                     </div>
                                                 </form>
                                             </div>
@@ -256,7 +256,7 @@ require_once __DIR__ . '/header.php';
                                     </div>
 
                                 <?php else: ?>
-                                    <span class="text-secondary small font-monospace">No Actions</span>
+                                    <span class="text-secondary small font-monospace"><?= __('no_actions', 'No Actions') ?></span>
                                 <?php endif; ?>
                             </td>
                         </tr>

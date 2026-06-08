@@ -77,16 +77,16 @@ try {
 <div class="glass-card p-4 mb-4">
     <form action="<?= htmlspecialchars($_SERVER['PHP_SELF']) ?>" method="GET" class="row g-3 align-items-end">
         <div class="col-md-9">
-            <label class="form-label text-secondary small fw-semibold">Search Bookings</label>
+            <label class="form-label text-secondary small fw-semibold"><?= __('search_bookings_lbl', 'Search Bookings') ?></label>
             <div class="input-group">
                 <span class="input-group-text bg-dark border-secondary border-end-0 text-secondary" style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-magnifying-glass"></i></span>
-                <input type="text" name="search" class="form-control form-control-swift border-start-0" style="border-radius: 0 12px 12px 0;" placeholder="Search by Booking Reference, Customer Name or Phone..." value="<?= htmlspecialchars($search) ?>">
+                <input type="text" name="search" class="form-control form-control-swift border-start-0" style="border-radius: 0 12px 12px 0;" placeholder="<?= __('search_bookings_placeholder', 'Search by Booking Reference, Customer Name or Phone...') ?>" value="<?= htmlspecialchars($search) ?>">
             </div>
         </div>
         <div class="col-md-3">
             <div class="d-grid gap-2 d-md-flex">
-                <button type="submit" class="btn btn-primary-gradient py-2 w-100"><i class="fa-solid fa-filter me-2"></i>Filter</button>
-                <a href="<?= BASE_URL ?>/generate_report.php?type=booking" target="_blank" class="btn btn-secondary-glass py-2" title="Export PDF Report"><i class="fa-solid fa-file-pdf"></i></a>
+                <button type="submit" class="btn btn-primary-gradient py-2 w-100"><i class="fa-solid fa-filter me-2"></i><?= __('filter_btn', 'Filter') ?></button>
+                <a href="<?= BASE_URL ?>/generate_report.php?type=booking" target="_blank" class="btn btn-secondary-glass py-2" title="<?= __('export_pdf_report_btn', 'Export PDF Report') ?>"><i class="fa-solid fa-file-pdf"></i></a>
                 <?php if (!empty($search)): ?>
                     <a href="<?= BASE_URL ?>/admin/bookings.php" class="btn btn-secondary-glass py-2"><i class="fa-solid fa-rotate-left"></i></a>
                 <?php endif; ?>
@@ -98,20 +98,20 @@ try {
 <!-- Bookings Table Grid -->
 <div class="glass-card p-4">
     <?php if (count($bookings) === 0): ?>
-        <div class="text-center py-5 text-secondary small">No bookings matched your search filter criteria.</div>
+        <div class="text-center py-5 text-secondary small"><?= __('no_bookings_matched_filter', 'No bookings matched your search filter criteria.') ?></div>
     <?php else: ?>
         <div class="table-responsive">
             <table class="table table-swift table-dark table-hover table-borderless align-middle datatable-swift">
                 <thead>
                     <tr>
-                        <th>Booking Ref</th>
-                        <th>Fleet Detail</th>
-                        <th>Customer / Contact</th>
-                        <th>Sold Price</th>
-                        <th>Admin Fee (2%)</th>
-                        <th>Net Yield</th>
-                        <th>Payment Status</th>
-                        <th>Date & Time</th>
+                        <th><?= __('booking_ref_col', 'Booking Ref') ?></th>
+                        <th><?= __('fleet_detail_col', 'Fleet Detail') ?></th>
+                        <th><?= __('customer_contact_col', 'Customer / Contact') ?></th>
+                        <th><?= __('sold_price_col', 'Sold Price') ?></th>
+                        <th><?= __('admin_fee_col', 'Admin Fee (2%)') ?></th>
+                        <th><?= __('net_yield_col', 'Net Yield') ?></th>
+                        <th><?= __('payment_status_col', 'Payment Status') ?></th>
+                        <th><?= __('date_time_col', 'Date & Time') ?></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -120,7 +120,7 @@ try {
                             <td class="font-monospace fw-bold text-indigo"><?= htmlspecialchars($b['booking_reference']) ?></td>
                             <td>
                                 <span class="d-block fw-semibold text-white"><?= htmlspecialchars($b['bus_name']) ?></span>
-                                <span class="text-secondary small"><?= htmlspecialchars($b['source']) ?> to <?= htmlspecialchars($b['destination']) ?></span>
+                                <span class="text-secondary small"><?= htmlspecialchars($b['source']) ?> <?= __('to_label', 'to') ?> <?= htmlspecialchars($b['destination']) ?></span>
                             </td>
                             <td>
                                 <span class="d-block fw-semibold text-white"><?= htmlspecialchars($b['customer_name']) ?></span>
@@ -131,9 +131,9 @@ try {
                             <td class="text-success fw-bold">₹<?= number_format($b['agent_net_earning'], 2) ?></td>
                             <td>
                                 <?php if ($b['payment_status'] === 'paid'): ?>
-                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1">PAID</span>
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1"><?= __('status_paid', 'PAID') ?></span>
                                 <?php else: ?>
-                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1">FAILED</span>
+                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1"><?= __('status_failed', 'FAILED') ?></span>
                                 <?php endif; ?>
                             </td>
                             <td class="text-secondary small"><?= date('d M Y H:i', strtotime($b['created_at'])) ?></td>
@@ -146,7 +146,7 @@ try {
         <?php if ($total_pages > 1): ?>
             <div class="d-flex justify-content-between align-items-center mt-4">
                 <div class="text-secondary small">
-                    Showing <?= $offset + 1 ?> to <?= min($total_records, $offset + $limit) ?> of <?= $total_records ?> entries
+                    <?= __('showing_label', 'Showing ') ?><?= $offset + 1 ?><?= __('to_mid_label', ' to ') ?><?= min($total_records, $offset + $limit) ?><?= __('of_mid_label', ' of ') ?><?= $total_records ?><?= __('entries_label', ' entries') ?>
                 </div>
                 <nav aria-label="Page navigation">
                     <ul class="pagination pagination-swift mb-0">

@@ -156,11 +156,11 @@ try {
     <div class="col-md-6 col-lg-3">
         <div class="glass-card p-4 metric-card h-100">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <span class="text-secondary small fw-semibold text-uppercase">Today Net Earning</span>
+                <span class="text-secondary small fw-semibold text-uppercase"><?= __('today_net_earning', 'Today Net Earning') ?></span>
                 <span class="metric-icon"><i class="fa-solid fa-calendar-day"></i></span>
             </div>
             <h3 class="fw-bold text-white mb-1"><?= CURRENCY ?><?= number_format($today_metrics['agent_net'] ?? 0, 2) ?></h3>
-            <span class="text-secondary small">Gross Sold: <?= CURRENCY ?><?= number_format($today_metrics['total_sales'] ?? 0, 2) ?></span>
+            <span class="text-secondary small"><?= __('gross_sold', 'Gross Sold:') ?> <?= CURRENCY ?><?= number_format($today_metrics['total_sales'] ?? 0, 2) ?></span>
         </div>
     </div>
 
@@ -168,11 +168,11 @@ try {
     <div class="col-md-6 col-lg-3">
         <div class="glass-card p-4 metric-card h-100">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <span class="text-secondary small fw-semibold text-uppercase">Weekly Net Earning</span>
+                <span class="text-secondary small fw-semibold text-uppercase"><?= __('weekly_net_earning', 'Weekly Net Earning') ?></span>
                 <span class="metric-icon" style="color: #db2777; border-color: rgba(219,39,119,0.2); background: rgba(219,39,119,0.1);"><i class="fa-solid fa-calendar-week"></i></span>
             </div>
             <h3 class="fw-bold text-white mb-1" style="background: linear-gradient(135deg, #f472b6 0%, #db2777 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"><?= CURRENCY ?><?= number_format($weekly_metrics['agent_net'] ?? 0, 2) ?></h3>
-            <span class="text-secondary small">Gross Sold: <?= CURRENCY ?><?= number_format($weekly_metrics['total_sales'] ?? 0, 2) ?></span>
+            <span class="text-secondary small"><?= __('gross_sold', 'Gross Sold:') ?> <?= CURRENCY ?><?= number_format($weekly_metrics['total_sales'] ?? 0, 2) ?></span>
         </div>
     </div>
 
@@ -180,11 +180,11 @@ try {
     <div class="col-md-6 col-lg-3">
         <div class="glass-card p-4 metric-card h-100">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <span class="text-secondary small fw-semibold text-uppercase">Monthly Net Earning</span>
+                <span class="text-secondary small fw-semibold text-uppercase"><?= __('monthly_net_earning', 'Monthly Net Earning') ?></span>
                 <span class="metric-icon"><i class="fa-solid fa-chart-line"></i></span>
             </div>
             <h3 class="fw-bold text-white mb-1"><?= CURRENCY ?><?= number_format($monthly_metrics['agent_net'] ?? 0, 2) ?></h3>
-            <span class="text-secondary small">Gross Sold: <?= CURRENCY ?><?= number_format($monthly_metrics['total_sales'] ?? 0, 2) ?></span>
+            <span class="text-secondary small"><?= __('gross_sold', 'Gross Sold:') ?> <?= CURRENCY ?><?= number_format($monthly_metrics['total_sales'] ?? 0, 2) ?></span>
         </div>
     </div>
 
@@ -192,11 +192,11 @@ try {
     <div class="col-md-6 col-lg-3">
         <div class="glass-card p-4 metric-card h-100">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <span class="text-secondary small fw-semibold text-uppercase">Payable Commission</span>
+                <span class="text-secondary small fw-semibold text-uppercase"><?= __('payable_commission', 'Payable Commission') ?></span>
                 <span class="metric-icon" style="color: #fbbf24; border-color: rgba(245,158,11,0.2); background: rgba(245,158,11,0.1);"><i class="fa-solid fa-wallet"></i></span>
             </div>
             <h3 class="fw-bold text-warning mb-1"><?= CURRENCY ?><?= number_format($payable_commission, 2) ?></h3>
-            <span class="text-secondary small">Super Admin Fee (2% rate)</span>
+            <span class="text-secondary small"><?= __('super_admin_fee', 'Super Admin Fee (2% rate)') ?></span>
         </div>
     </div>
 </div>
@@ -205,7 +205,7 @@ try {
     <!-- Chart Column -->
     <div class="col-lg-8">
         <div class="glass-card p-4 h-100">
-            <h5 class="fw-bold text-white mb-4"><i class="fa-solid fa-chart-area text-indigo me-2"></i>Daily Earnings Trend (7 Days)</h5>
+            <h5 class="fw-bold text-white mb-4"><i class="fa-solid fa-chart-area text-indigo me-2"></i><?= __('daily_earnings_trend', 'Daily Earnings Trend (7 Days)') ?></h5>
             <div style="height: 300px; position: relative;">
                 <canvas id="agentEarningsChart"></canvas>
             </div>
@@ -215,49 +215,49 @@ try {
     <!-- Right Summary Column -->
     <div class="col-lg-4">
         <div class="glass-card p-4 h-100">
-            <h5 class="fw-bold text-white mb-4"><i class="fa-solid fa-circle-check text-pink me-2"></i>Operator Commission Tally</h5>
+            <h5 class="fw-bold text-white mb-4"><i class="fa-solid fa-circle-check text-pink me-2"></i><?= __('operator_commission_tally', 'Operator Commission Tally') ?></h5>
             <div class="p-3 rounded-4 bg-dark bg-opacity-20 border border-secondary border-opacity-25 mb-4">
-                <div class="d-flex justify-content-between text-secondary small mb-2"><span>Total Seats Gross Sales</span><span class="text-white fw-bold">₹<?= number_format($lifetime_metrics['total_sales'] ?? 0, 2) ?></span></div>
-                <div class="d-flex justify-content-between text-secondary small mb-2"><span>Total Admin Comm (2%)</span><span class="text-white fw-bold text-warning">₹<?= number_format($lifetime_metrics['admin_comm'] ?? 0, 2) ?></span></div>
-                <div class="d-flex justify-content-between text-secondary small mb-3"><span>Settled Commission Payout</span><span class="text-white fw-bold text-success">₹<?= number_format($commission_paid, 2) ?></span></div>
+                <div class="d-flex justify-content-between text-secondary small mb-2"><span><?= __('total_seats_gross_sales', 'Total Seats Gross Sales') ?></span><span class="text-white fw-bold">₹<?= number_format($lifetime_metrics['total_sales'] ?? 0, 2) ?></span></div>
+                <div class="d-flex justify-content-between text-secondary small mb-2"><span><?= __('total_admin_comm_rate', 'Total Admin Comm (2%)') ?></span><span class="text-white fw-bold text-warning">₹<?= number_format($lifetime_metrics['admin_comm'] ?? 0, 2) ?></span></div>
+                <div class="d-flex justify-content-between text-secondary small mb-3"><span><?= __('settled_commission_payout', 'Settled Commission Payout') ?></span><span class="text-white fw-bold text-success">₹<?= number_format($commission_paid, 2) ?></span></div>
                 <div class="d-flex justify-content-between text-white fw-bold fs-5 pt-3 border-top border-secondary border-opacity-30">
-                    <span>Payable Balance</span>
+                    <span><?= __('payable_balance', 'Payable Balance') ?></span>
                     <span class="text-warning">₹<?= number_format($payable_commission, 2) ?></span>
                 </div>
             </div>
             <!-- Operator Code Card -->
             <div class="p-3 rounded-4 bg-dark bg-opacity-20 border border-secondary border-opacity-25 mb-4">
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                    <span class="text-secondary small">Connection Code for Agents</span>
-                    <span class="badge bg-success font-monospace fs-6 px-3 py-1.5" style="letter-spacing:1px; cursor:pointer;" onclick="navigator.clipboard.writeText('<?= htmlspecialchars($operator_code) ?>'); alert('Copied to clipboard!');" title="Click to Copy">
+                    <span class="text-secondary small"><?= __('connection_code_agents', 'Connection Code for Agents') ?></span>
+                    <span class="badge bg-success font-monospace fs-6 px-3 py-1.5" style="letter-spacing:1px; cursor:pointer;" onclick="navigator.clipboard.writeText('<?= htmlspecialchars($operator_code) ?>'); alert('<?= __('copied_clipboard_alert', 'Copied to clipboard!') ?>');" title="<?= __('click_to_copy', 'Click to Copy') ?>">
                         <?= htmlspecialchars($operator_code) ?> <i class="fa-regular fa-copy ms-1" style="font-size:0.8rem;"></i>
                     </span>
                 </div>
-                <div class="small text-secondary" style="font-size: 0.75rem;">Give this unique 10-digit code to your partner agents so they can link to your fleet during registration.</div>
+                <div class="small text-secondary" style="font-size: 0.75rem;"><?= __('connection_code_desc', 'Give this unique 10-digit code to your partner agents so they can link to your fleet during registration.') ?></div>
             </div>
 
-            <p class="small text-secondary"><i class="fa-solid fa-circle-exclamation me-1"></i> Weekly settlements are processed automatically by the Super Admin at the end of every week cycle.</p>
+            <p class="small text-secondary"><i class="fa-solid fa-circle-exclamation me-1"></i> <?= __('weekly_settlement_desc', 'Weekly settlements are processed automatically by the Super Admin at the end of every week cycle.') ?></p>
         </div>
     </div>
 </div>
 
 <!-- Recent Bookings Table -->
 <div class="glass-card p-4">
-    <h5 class="fw-bold text-white mb-4"><i class="fa-solid fa-clock-rotate-left text-indigo me-2"></i>Recent Bookings</h5>
+    <h5 class="fw-bold text-white mb-4"><i class="fa-solid fa-clock-rotate-left text-indigo me-2"></i><?= __('recent_bookings', 'Recent Bookings') ?></h5>
     <?php if (count($recent_bookings) === 0): ?>
-        <div class="text-center py-4 text-secondary small">No bookings received yet. Schedule trips to receive bookings.</div>
+        <div class="text-center py-4 text-secondary small"><?= __('no_bookings_operator_desc', 'No bookings received yet. Schedule trips to receive bookings.') ?></div>
     <?php else: ?>
         <div class="table-responsive">
             <table class="table table-swift table-dark table-hover table-borderless align-middle">
                 <thead>
                     <tr>
-                        <th>Booking Ref</th>
-                        <th>Bus / Route</th>
-                        <th>Customer</th>
-                        <th>Sold Amount</th>
-                        <th>Admin Comm (2%)</th>
-                        <th>Net Earning</th>
-                        <th>Date</th>
+                        <th><?= __('booking_ref', 'Booking Ref') ?></th>
+                        <th><?= __('bus_route', 'Bus / Route') ?></th>
+                        <th><?= __('passenger_info', 'Customer') ?></th>
+                        <th><?= __('sold_amount', 'Sold Amount') ?></th>
+                        <th><?= __('admin_comm_rate', 'Admin Comm (2%)') ?></th>
+                        <th><?= __('net_earning', 'Net Earning') ?></th>
+                        <th><?= __('date', 'Date') ?></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -297,7 +297,7 @@ $(document).ready(function() {
         data: {
             labels: <?= json_encode($chart_days) ?>,
             datasets: [{
-                label: 'Net Earnings (₹)',
+                label: '<?= __('net_earnings_chart', 'Net Earnings (₹)') ?>',
                 data: <?= json_encode($chart_earnings) ?>,
                 backgroundColor: gradient,
                 borderColor: '#6366f1',

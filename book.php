@@ -10,7 +10,7 @@ if ($trip_id === 0) {
     exit();
 }
 
-$page_title = "Select Seats";
+$page_title = __('select_seats', 'Select Seats');
 
 // Redirect to login if guest
 if (!is_logged_in()) {
@@ -238,18 +238,18 @@ require_once __DIR__ . '/includes/header.php';
         <div class="glass-card p-4">
             <div class="d-flex align-items-center justify-content-between mb-4 border-bottom border-secondary pb-3 flex-wrap gap-2">
                 <div>
-                    <h4 class="fw-bold text-white mb-1"><i class="fa-solid fa-chair text-indigo me-2"></i>Select Your Seat</h4>
-                    <span class="text-secondary small">Tap on seats to choose. Orange/Black/Red seats are unavailable.</span>
+                    <h4 class="fw-bold text-white mb-1"><i class="fa-solid fa-chair text-indigo me-2"></i><?= __('select_seats', 'Select Seats') ?></h4>
+                    <span class="text-secondary small"><?= __('seat_tap_desc', 'Tap on seats to choose. Orange/Black/Red seats are unavailable.') ?></span>
                 </div>
             </div>
 
             <!-- Seat status legend -->
             <div class="d-flex gap-3 mb-4 justify-content-center flex-wrap small">
-                <div class="legend-item"><span class="legend-dot" style="background:#FFFDF8 !important; border:1px solid #D4C9B5 !important;"></span><span class="text-secondary">Available</span></div>
-                <div class="legend-item"><span class="legend-dot" style="background:#0F5132 !important; border:1px solid #0a3d22 !important;"></span><span class="text-secondary">Selected</span></div>
-                <div class="legend-item"><span class="legend-dot" style="background:#9CA3AF !important; border:1px solid #6B7280 !important;"></span><span class="text-secondary">Booked</span></div>
-                <div class="legend-item"><span class="legend-dot" style="background:#EAB308 !important; border:1px solid #B45309 !important;"></span><span class="text-secondary">Hold</span></div>
-                <div class="legend-item"><span class="legend-dot" style="background:#F472B6 !important; border:1px solid #EC4899 !important;"></span><span class="text-secondary">Female (Booked/Protected)</span></div>
+                <div class="legend-item"><span class="legend-dot" style="background:#FFFDF8 !important; border:1px solid #D4C9B5 !important;"></span><span class="text-secondary"><?= __('available', 'Available') ?></span></div>
+                <div class="legend-item"><span class="legend-dot" style="background:#0F5132 !important; border:1px solid #0a3d22 !important;"></span><span class="text-secondary"><?= __('selected', 'Selected') ?></span></div>
+                <div class="legend-item"><span class="legend-dot" style="background:#9CA3AF !important; border:1px solid #6B7280 !important;"></span><span class="text-secondary"><?= __('booked', 'Booked') ?></span></div>
+                <div class="legend-item"><span class="legend-dot" style="background:#EAB308 !important; border:1px solid #B45309 !important;"></span><span class="text-secondary"><?= __('hold', 'Hold') ?></span></div>
+                <div class="legend-item"><span class="legend-dot" style="background:#F472B6 !important; border:1px solid #EC4899 !important;"></span><span class="text-secondary"><?= __('female_status_legend', 'Female (Booked/Protected)') ?></span></div>
             </div>
 
             <!-- Seating Grid -->
@@ -258,10 +258,10 @@ require_once __DIR__ . '/includes/header.php';
                     <!-- Legacy Sleeper Layout Tabs Fallback -->
                     <ul class="nav nav-pills justify-content-center mb-4 gap-2" role="tablist">
                         <li class="nav-item">
-                            <button class="nav-link btn-secondary-glass active px-4 py-2" id="low-tab" data-bs-toggle="pill" data-bs-target="#low-berth" type="button" role="tab">Lower Berth</button>
+                            <button class="nav-link btn-secondary-glass active px-4 py-2" id="low-tab" data-bs-toggle="pill" data-bs-target="#low-berth" type="button" role="tab"><?= __('lower_deck', 'Lower Berth') ?></button>
                         </li>
                         <li class="nav-item">
-                            <button class="nav-link btn-secondary-glass px-4 py-2" id="up-tab" data-bs-toggle="pill" data-bs-target="#up-berth" type="button" role="tab">Upper Berth</button>
+                            <button class="nav-link btn-secondary-glass px-4 py-2" id="up-tab" data-bs-toggle="pill" data-bs-target="#up-berth" type="button" role="tab"><?= __('upper_deck', 'Upper Berth') ?></button>
                         </li>
                     </ul>
 
@@ -312,10 +312,10 @@ require_once __DIR__ . '/includes/header.php';
                     <?php if ($has_upper_seats): ?>
                         <ul class="nav nav-pills justify-content-center mb-4 gap-2" role="tablist">
                             <li class="nav-item">
-                                <button class="nav-link btn-secondary-glass active px-4 py-2" id="low-deck-tab" data-bs-toggle="pill" data-bs-target="#low-deck-berth" type="button" role="tab">Lower Deck</button>
+                                <button class="nav-link btn-secondary-glass active px-4 py-2" id="low-deck-tab" data-bs-toggle="pill" data-bs-target="#low-deck-berth" type="button" role="tab"><?= __('lower_deck', 'Lower Deck') ?></button>
                             </li>
                             <li class="nav-item">
-                                <button class="nav-link btn-secondary-glass px-4 py-2" id="up-deck-tab" data-bs-toggle="pill" data-bs-target="#up-deck-berth" type="button" role="tab">Upper Deck</button>
+                                <button class="nav-link btn-secondary-glass px-4 py-2" id="up-deck-tab" data-bs-toggle="pill" data-bs-target="#up-deck-berth" type="button" role="tab"><?= __('upper_deck', 'Upper Deck') ?></button>
                             </li>
                         </ul>
 
@@ -324,7 +324,7 @@ require_once __DIR__ . '/includes/header.php';
                                 <div class="seat-map-container shadow-lg overflow-auto" style="max-width: 500px; margin:0 auto;">
                                     <div class="d-flex justify-content-between mb-4 pb-2 border-bottom border-secondary border-opacity-20">
                                         <span class="text-secondary small fw-semibold font-monospace">FRONT / ENGINE</span>
-                                        <span class="text-secondary small"><i class="fa-solid fa-steering-wheel"></i> DRIVER</span>
+                                        <span class="text-secondary small"><i class="fa-solid fa-steering-wheel"></i> <?= __('driver', 'DRIVER') ?></span>
                                     </div>
                                     <div style="display: inline-grid; gap: 12px; grid-template-rows: repeat(<?= $rows_count ?>, 60px); grid-template-columns: repeat(<?= $cols_count ?>, 60px); position: relative; width: 100%;">
                                         <?php 
@@ -359,7 +359,7 @@ require_once __DIR__ . '/includes/header.php';
                                 <div class="seat-map-container shadow-lg overflow-auto" style="max-width: 500px; margin:0 auto;">
                                     <div class="d-flex justify-content-between mb-4 pb-2 border-bottom border-secondary border-opacity-20">
                                         <span class="text-secondary small fw-semibold font-monospace">FRONT / ENGINE</span>
-                                        <span class="text-secondary small"><i class="fa-solid fa-steering-wheel"></i> DRIVER</span>
+                                        <span class="text-secondary small"><i class="fa-solid fa-steering-wheel"></i> <?= __('driver', 'DRIVER') ?></span>
                                     </div>
                                     <div style="display: inline-grid; gap: 12px; grid-template-rows: repeat(<?= $rows_count ?>, 60px); grid-template-columns: repeat(<?= $cols_count ?>, 60px); position: relative; width: 100%;">
                                         <?php 
@@ -395,8 +395,8 @@ require_once __DIR__ . '/includes/header.php';
                         <!-- Single Lower Deck (No Upper Seats) -->
                         <div class="seat-map-container shadow-lg overflow-auto" style="max-width: 500px; margin:0 auto;">
                             <div class="d-flex justify-content-between mb-4 pb-2 border-bottom border-secondary border-opacity-20">
-                                <span class="text-secondary small fw-semibold font-monospace">FRONT / ENGINE</span>
-                                <span class="text-secondary small"><i class="fa-solid fa-steering-wheel"></i> DRIVER</span>
+                                <span class="text-secondary small fw-semibold font-monospace"><?= __('front_engine', 'FRONT / ENGINE') ?></span>
+                                <span class="text-secondary small"><i class="fa-solid fa-steering-wheel"></i> <?= __('driver', 'DRIVER') ?></span>
                             </div>
                             
                             <div style="display: inline-grid; gap: 12px; grid-template-rows: repeat(<?= $rows_count ?>, 60px); grid-template-columns: repeat(<?= $cols_count ?>, 60px); position: relative; width: 100%;">
@@ -439,21 +439,21 @@ require_once __DIR__ . '/includes/header.php';
     <!-- Right Summary Panel -->
     <div class="col-lg-5">
         <div class="glass-card p-4 h-100">
-            <h4 class="fw-bold text-white mb-4"><i class="fa-solid fa-file-invoice-dollar text-indigo me-2"></i>Voyage Details</h4>
+            <h4 class="fw-bold text-white mb-4"><i class="fa-solid fa-file-invoice-dollar text-indigo me-2"></i><?= __('voyage_details', 'Voyage Details') ?></h4>
             
             <div class="mb-3">
-                <span class="text-secondary small d-block">Operator fleet / Brand</span>
+                <span class="text-secondary small d-block"><?= __('operator_fleet', 'Operator fleet / Brand') ?></span>
                 <span class="text-white fw-bold fs-5"><?= htmlspecialchars($trip['bus_name']) ?></span>
                 <span class="badge bg-indigo ms-1 text-uppercase" style="font-size:0.7rem;"><?= htmlspecialchars($trip['bus_type']) ?></span>
             </div>
 
             <div class="row mb-4 border-bottom border-secondary border-opacity-30 pb-3">
                 <div class="col-6">
-                    <span class="text-secondary small d-block">Voyage Path</span>
-                    <span class="text-white fw-semibold"><?= htmlspecialchars($trip['source']) ?> to <?= htmlspecialchars($trip['destination']) ?></span>
+                    <span class="text-secondary small d-block"><?= __('voyage_path', 'Voyage Path') ?></span>
+                    <span class="text-white fw-semibold"><?= htmlspecialchars($trip['source']) ?> <?= __('to', 'to') ?> <?= htmlspecialchars($trip['destination']) ?></span>
                 </div>
                 <div class="col-6 text-end">
-                    <span class="text-secondary small d-block">Scheduled Date</span>
+                    <span class="text-secondary small d-block"><?= __('scheduled_date', 'Scheduled Date') ?></span>
                     <span class="text-white fw-semibold"><?= date('d M, H:i', strtotime($trip['departure_time'])) ?></span>
                 </div>
             </div>
@@ -481,19 +481,19 @@ require_once __DIR__ . '/includes/header.php';
                 <div class="d-flex flex-wrap gap-2 mb-2">
                     <?php if ($is_dynamic_active && $show_dynamic_details): ?>
                         <span class="badge bg-warning text-dark d-flex align-items-center gap-1" style="font-size: 0.75rem;">
-                            <i class="fa-solid fa-chart-line"></i> Dynamic Pricing Active
+                            <i class="fa-solid fa-chart-line"></i> <?= __('dynamic_pricing_active', 'Dynamic Pricing Active') ?>
                         </span>
                     <?php endif; ?>
 
                     <?php if ($pricing['occupancy_percent'] > 70): ?>
                         <span class="badge bg-danger text-white d-flex align-items-center gap-1" style="font-size: 0.75rem;">
-                            <i class="fa-solid fa-fire-flame-curved"></i> High Demand Route
+                            <i class="fa-solid fa-fire-flame-curved"></i> <?= __('high_demand_route', 'High Demand Route') ?>
                         </span>
                     <?php endif; ?>
 
                     <?php if ($remaining_seats <= 5): ?>
                         <span class="badge bg-info text-dark d-flex align-items-center gap-1" style="font-size: 0.75rem;">
-                            <i class="fa-solid fa-triangle-exclamation"></i> Only <?= $remaining_seats ?> seats left
+                            <i class="fa-solid fa-triangle-exclamation"></i> <?= __('only', 'Only') ?> <?= $remaining_seats ?> <?= __('seats_left', 'seats left') ?>
                         </span>
                     <?php endif; ?>
                 </div>
@@ -502,31 +502,31 @@ require_once __DIR__ . '/includes/header.php';
                     <?php if ($pricing['occupancy_percent'] > 70): ?>
                         <div class="d-flex align-items-center gap-2 mb-2 text-warning" style="font-size: 0.8rem;">
                             <i class="fa-solid fa-circle-info"></i>
-                            <span>Fare may increase as seats fill. Book now to lock this price.</span>
+                            <span><?= __('fare_increase_warning', 'Fare may increase as seats fill. Book now to lock this price.') ?></span>
                         </div>
                     <?php endif; ?>
                     
                     <?php if ($show_dynamic_details): ?>
                         <div class="d-flex justify-content-between pt-2 border-top border-secondary border-opacity-10">
-                            <span>Base Fare:</span>
+                            <span><?= __('base_fare', 'Base Fare') ?>:</span>
                             <span class="text-white">₹<?= number_format($trip['base_fare'], 2) ?></span>
                         </div>
                         <?php if ($pricing['occupancy_increase_pct'] > 0): ?>
                             <div class="d-flex justify-content-between text-warning">
-                                <span>High Occupancy (+<?= $pricing['occupancy_increase_pct'] ?>%):</span>
+                                <span><?= __('high_occupancy', 'High Occupancy') ?> (+<?= $pricing['occupancy_increase_pct'] ?>%):</span>
                                 <span>+₹<?= number_format($pricing['occupancy_adjustment'], 2) ?></span>
                             </div>
                         <?php endif; ?>
                         <?php if ($pricing['time_increase_pct'] > 0): ?>
                             <div class="d-flex justify-content-between text-warning">
-                                <span>Last-minute Departure (+<?= $pricing['time_increase_pct'] ?>%):</span>
+                                <span><?= __('last_minute_departure', 'Last-minute Departure') ?> (+<?= $pricing['time_increase_pct'] ?>%):</span>
                                 <span>+₹<?= number_format($pricing['time_adjustment'], 2) ?></span>
                             </div>
                         <?php endif; ?>
                     <?php endif; ?>
                     
                     <div class="d-flex justify-content-between fw-bold text-white fs-6 mt-1 pt-1 <?= $show_dynamic_details ? 'border-top border-secondary border-opacity-10' : '' ?>">
-                        <span>Current Fare:</span>
+                        <span><?= __('current_fare', 'Current Fare') ?>:</span>
                         <span class="text-success font-monospace">₹<?= number_format($pricing['final_price'], 2) ?></span>
                     </div>
                 </div>
@@ -540,9 +540,9 @@ require_once __DIR__ . '/includes/header.php';
 
                 <!-- Boarding Station -->
                 <div class="mb-3">
-                    <label class="form-label text-secondary small fw-semibold">Select Boarding Station</label>
+                    <label class="form-label text-secondary small fw-semibold"><?= __('select_boarding_station', 'Select Boarding Station') ?></label>
                     <select name="boarding_point" id="boarding_point" class="form-select form-control-swift" required>
-                        <option value="">Choose Boarding...</option>
+                        <option value=""><?= __('choose_boarding', 'Choose Boarding...') ?></option>
                         <?php foreach ($boardings as $bs): 
                             $has_time = !empty($bs['time']) && $bs['time'] !== '00:00:00' && $bs['time'] !== '00:00';
                             $label = htmlspecialchars($bs['name']);
@@ -555,9 +555,9 @@ require_once __DIR__ . '/includes/header.php';
 
                 <!-- Dropping Station -->
                 <div class="mb-4">
-                    <label class="form-label text-secondary small fw-semibold">Select Dropping Station</label>
+                    <label class="form-label text-secondary small fw-semibold"><?= __('select_dropping_station', 'Select Dropping Station') ?></label>
                     <select name="dropping_point" id="dropping_point" class="form-select form-control-swift" required>
-                        <option value="">Choose Dropping...</option>
+                        <option value=""><?= __('choose_dropping', 'Choose Dropping...') ?></option>
                         <?php foreach ($droppings as $ds): 
                             $has_time = !empty($ds['time']) && $ds['time'] !== '00:00:00' && $ds['time'] !== '00:00';
                             $label = htmlspecialchars($ds['name']);
@@ -570,19 +570,19 @@ require_once __DIR__ . '/includes/header.php';
 
                 <!-- Selected seats invoice -->
                 <div class="mb-4">
-                    <h6 class="text-indigo fw-bold small text-uppercase mb-2">Selected Seats</h6>
+                    <h6 class="text-indigo fw-bold small text-uppercase mb-2"><?= __('selected_seats', 'Selected Seats') ?></h6>
                     <div id="no-seat-warning" class="text-secondary small p-3 rounded bg-dark bg-opacity-20 border border-secondary border-opacity-10 text-center">
-                        Tap available seats in the map layout.
+                        <?= __('tap_available_seats', 'Tap available seats in the map layout.') ?>
                     </div>
                     <ul class="list-group list-group-flush mb-4" id="selected-seats-list" style="display: none; background:transparent;"></ul>
                 </div>
 
                 <!-- Promo Code Section -->
                 <div class="mb-4" id="promo-container" style="display: none;">
-                    <label class="form-label text-secondary small fw-semibold">Apply Promo Code</label>
+                    <label class="form-label text-secondary small fw-semibold"><?= __('promo_code', 'Promo Code') ?></label>
                     <div class="input-group">
                         <input type="text" id="promo_code_input" class="form-control form-control-swift" placeholder="e.g. SAVE10">
-                        <button class="btn btn-outline-secondary btn-secondary-glass text-white" type="button" id="btnApplyPromo">Apply</button>
+                        <button class="btn btn-outline-secondary btn-secondary-glass text-white" type="button" id="btnApplyPromo"><?= __('apply', 'Apply') ?></button>
                     </div>
                     <div id="promo-message" class="small mt-1 text-success" style="display: none;"></div>
                 </div>
@@ -592,21 +592,21 @@ require_once __DIR__ . '/includes/header.php';
 
                 <div class="p-3 rounded-4 bg-dark bg-opacity-30 border border-secondary border-opacity-20 mb-4" id="invoice-block" style="display: none;">
                     <div class="d-flex justify-content-between small text-secondary mb-2">
-                        <span>Base Ticket Fare</span>
+                        <span><?= __('base_ticket_fare', 'Base Ticket Fare') ?></span>
                         <span id="invoice-base-fare">₹0.00</span>
                     </div>
                     <div class="d-flex justify-content-between small text-secondary mb-2" id="invoice-discount-row" style="display: none !important;">
-                        <span>Discount Applied</span>
+                        <span><?= __('discount_applied', 'Discount Applied') ?></span>
                         <span class="text-success" id="invoice-discount-val">-₹0.00</span>
                     </div>
                     <div class="d-flex justify-content-between text-white fw-bold fs-5 pt-2 border-top border-secondary border-opacity-40">
-                        <span>Total Amount</span>
+                        <span><?= __('total_amount', 'Total Amount') ?></span>
                         <span class="text-indigo" id="invoice-total">₹0.00</span>
                     </div>
                 </div>
 
                 <button type="submit" id="btnProceedCheckout" class="btn btn-primary-gradient w-100 py-3 text-uppercase fw-bold disabled">
-                    <i class="fa-solid fa-circle-arrow-right me-2"></i>Proceed Details
+                    <i class="fa-solid fa-circle-arrow-right me-2"></i><?= __('proceed_checkout', 'Proceed to Checkout') ?>
                 </button>
             </form>
         </div>

@@ -10,11 +10,11 @@ require_role('super_admin');
 $user = get_logged_user();
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?= CURRENT_LANG ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= isset($page_title) ? $page_title . ' - ' : '' ?>Super Admin Portal</title>
+    <title><?= isset($page_title) ? $page_title . ' - ' : '' ?><?= __('super_admin_portal_title', 'Super Admin Portal') ?></title>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Bootstrap 5 -->
@@ -177,7 +177,7 @@ $user = get_logged_user();
                     <i class="fa-solid fa-bus text-indigo" style="font-size: 1.5rem; color:#818cf8;"></i>
                     <span class="text-gradient fw-bold fs-5"><?= SYSTEM_NAME ?></span>
                 </a>
-                <span class="text-secondary small font-monospace" style="font-size: 0.7rem; letter-spacing: 0.5px;">ADMIN PANEL</span>
+                <span class="text-secondary small font-monospace" style="font-size: 0.7rem; letter-spacing: 0.5px;"><?= __('admin_panel_sub_lbl', 'ADMIN PANEL') ?></span>
             </div>
 
             <nav>
@@ -185,34 +185,34 @@ $user = get_logged_user();
                 $cur = basename($_SERVER['SCRIPT_NAME']);
                 ?>
                 <a href="<?= BASE_URL ?>/super_admin/dashboard.php" class="sidebar-link <?= ($cur === 'dashboard.php') ? 'active' : '' ?>">
-                    <i class="fa-solid fa-chart-line"></i>Admin Home
+                    <i class="fa-solid fa-chart-line"></i><?= __('nav_admin_home', 'Admin Home') ?>
                 </a>
                 <a href="<?= BASE_URL ?>/super_admin/operators.php" class="sidebar-link <?= ($cur === 'operators.php') ? 'active' : '' ?>">
-                    <i class="fa-solid fa-user-tie"></i>Manage Operators
+                    <i class="fa-solid fa-user-tie"></i><?= __('nav_manage_operators', 'Manage Operators') ?>
                 </a>
                 <a href="<?= BASE_URL ?>/super_admin/agents.php" class="sidebar-link <?= ($cur === 'agents.php') ? 'active' : '' ?>">
-                    <i class="fa-solid fa-users-gear"></i>Manage Agents
+                    <i class="fa-solid fa-users-gear"></i><?= __('nav_manage_agents', 'Manage Agents') ?>
                 </a>
                 <a href="<?= BASE_URL ?>/super_admin/operations.php" class="sidebar-link <?= ($cur === 'operations.php') ? 'active' : '' ?>">
-                    <i class="fa-solid fa-wrench"></i>Manage Operations
+                    <i class="fa-solid fa-wrench"></i><?= __('nav_manage_operations', 'Manage Operations') ?>
                 </a>
                 <a href="<?= BASE_URL ?>/super_admin/bookings.php" class="sidebar-link <?= ($cur === 'bookings.php') ? 'active' : '' ?>">
-                    <i class="fa-solid fa-ticket"></i>All Bookings
+                    <i class="fa-solid fa-ticket"></i><?= __('nav_all_bookings', 'All Bookings') ?>
                 </a>
                 <a href="<?= BASE_URL ?>/super_admin/settlements.php" class="sidebar-link <?= ($cur === 'settlements.php') ? 'active' : '' ?>">
-                    <i class="fa-solid fa-wallet"></i>Settlements
+                    <i class="fa-solid fa-wallet"></i><?= __('nav_settlements', 'Settlements') ?>
                 </a>
                 <a href="<?= BASE_URL ?>/super_admin/owner_control.php" class="sidebar-link <?= ($cur === 'owner_control.php') ? 'active' : '' ?>">
-                    <i class="fa-solid fa-shield-halved"></i>Owner Controls
+                    <i class="fa-solid fa-shield-halved"></i><?= __('nav_owner_controls', 'Owner Controls') ?>
                 </a>
                 <a href="<?= BASE_URL ?>/super_admin/audit_logs.php" class="sidebar-link <?= ($cur === 'audit_logs.php') ? 'active' : '' ?>">
-                    <i class="fa-solid fa-clock-rotate-left"></i>Activity Logs
+                    <i class="fa-solid fa-clock-rotate-left"></i><?= __('nav_activity_logs', 'Activity Logs') ?>
                 </a>
                 
                 <hr class="border-secondary my-4">
                 
                 <a href="<?= BASE_URL ?>/logout.php" class="sidebar-link text-danger">
-                    <i class="fa-solid fa-right-from-bracket"></i>Logout
+                    <i class="fa-solid fa-right-from-bracket"></i><?= __('nav_sign_out', 'Logout') ?>
                 </a>
             </nav>
         </div>
@@ -229,26 +229,54 @@ $user = get_logged_user();
                         <i class="fa-solid fa-bars"></i>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark glass-card p-2 border-0 mt-2">
-                        <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/super_admin/dashboard.php">Admin Home</a></li>
-                        <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/super_admin/operators.php">Operators</a></li>
-                        <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/super_admin/agents.php">Agents</a></li>
-                        <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/super_admin/operations.php">Manage Operations</a></li>
-                        <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/super_admin/bookings.php">Bookings</a></li>
-                        <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/super_admin/settlements.php">Settlements</a></li>
-                        <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/super_admin/owner_control.php">Owner Controls</a></li>
-                        <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/super_admin/audit_logs.php">Activity Logs</a></li>
+                        <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/super_admin/dashboard.php"><?= __('nav_admin_home', 'Admin Home') ?></a></li>
+                        <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/super_admin/operators.php"><?= __('nav_operators_short', 'Operators') ?></a></li>
+                        <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/super_admin/agents.php"><?= __('nav_manage_agents', 'Agents') ?></a></li>
+                        <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/super_admin/operations.php"><?= __('nav_manage_operations', 'Manage Operations') ?></a></li>
+                        <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/super_admin/bookings.php"><?= __('nav_bookings_short', 'Bookings') ?></a></li>
+                        <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/super_admin/settlements.php"><?= __('nav_settlements', 'Settlements') ?></a></li>
+                        <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/super_admin/owner_control.php"><?= __('nav_owner_controls', 'Owner Controls') ?></a></li>
+                        <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/super_admin/audit_logs.php"><?= __('nav_activity_logs', 'Activity Logs') ?></a></li>
                         <li><hr class="dropdown-divider border-secondary"></li>
-                        <li><a class="dropdown-item text-danger py-2" href="<?= BASE_URL ?>/logout.php">Logout</a></li>
+                        <!-- Mobile Language Switcher Items -->
+                        <li><a class="dropdown-item py-2 rounded <?= CURRENT_LANG === 'en' ? 'text-success fw-bold' : '' ?>" href="?lang=en">English</a></li>
+                        <li><a class="dropdown-item py-2 rounded <?= CURRENT_LANG === 'hi' ? 'text-success fw-bold' : '' ?>" href="?lang=hi">हिन्दी</a></li>
+                        <li><a class="dropdown-item py-2 rounded <?= CURRENT_LANG === 'ne' ? 'text-success fw-bold' : '' ?>" href="?lang=ne">नेपाली</a></li>
+                        <li><hr class="dropdown-divider border-secondary"></li>
+                        <li><a class="dropdown-item text-danger py-2" href="<?= BASE_URL ?>/logout.php"><?= __('nav_sign_out', 'Logout') ?></a></li>
                     </ul>
                 </div>
             </div>
             
             <div class="d-flex justify-content-between align-items-center mb-5 flex-wrap gap-3">
                 <div>
-                    <h2 class="fw-bold text-white mb-0"><?= isset($page_title) ? htmlspecialchars($page_title) : 'Super Admin Portal' ?></h2>
-                    <span class="text-secondary small">System Control Workspace</span>
+                    <h2 class="fw-bold text-white mb-0"><?= isset($page_title) ? htmlspecialchars($page_title) : __('super_admin_portal_title', 'Super Admin Portal') ?></h2>
+                    <span class="text-secondary small"><?= __('system_control_workspace', 'System Control Workspace') ?></span>
                 </div>
                 <div class="d-flex align-items-center gap-3">
-                    <span class="small text-secondary"><i class="fa-solid fa-circle-user text-indigo me-2"></i>Super Admin / Owner</span>
+                    <!-- Language Switcher Dropdown -->
+                    <div class="dropdown me-2">
+                        <button class="btn btn-secondary-glass py-2 px-3 d-flex align-items-center gap-2" type="button"
+                            id="langMenuButton" data-bs-toggle="dropdown" aria-expanded="false"
+                            style="border-radius: 10px; font-weight: 500; font-size: 0.9rem;">
+                            <i class="fa-solid fa-globe text-success"></i>
+                            <span>
+                                <?php
+                                if (CURRENT_LANG === 'hi') echo 'हिन्दी';
+                                elseif (CURRENT_LANG === 'ne') echo 'नेपाली';
+                                else echo 'English';
+                                ?>
+                            </span>
+                            <i class="fa-solid fa-chevron-down small opacity-75" style="font-size: 0.75rem;"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end glass-card mt-2 p-2 border-0 shadow-lg"
+                            aria-labelledby="langMenuButton" style="background: var(--bg-card); border: 1px solid var(--border-glass);">
+                            <li><a class="dropdown-item py-2 rounded <?= CURRENT_LANG === 'en' ? 'active bg-success text-white' : '' ?>" href="?lang=en">English</a></li>
+                            <li><a class="dropdown-item py-2 rounded <?= CURRENT_LANG === 'hi' ? 'active bg-success text-white' : '' ?>" href="?lang=hi">हिन्दी</a></li>
+                            <li><a class="dropdown-item py-2 rounded <?= CURRENT_LANG === 'ne' ? 'active bg-success text-white' : '' ?>" href="?lang=ne">नेपाली</a></li>
+                        </ul>
+                    </div>
+
+                    <span class="small text-secondary"><i class="fa-solid fa-circle-user text-indigo me-2"></i><?= __('super_admin_owner_role', 'Super Admin / Owner') ?></span>
                 </div>
             </div>

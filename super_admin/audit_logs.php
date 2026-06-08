@@ -5,7 +5,7 @@
 require_once __DIR__ . '/../includes/auth_middleware.php';
 require_role('super_admin');
 
-$page_title = "Activity & Audit Logs";
+$page_title = __('activity_audit_logs_title', "Activity & Audit Logs");
 
 // Filters from request
 $filter_agent = intval($_GET['agent_id'] ?? 0);
@@ -67,77 +67,77 @@ try {
     $logs = $log_stmt->fetchAll();
 
 } catch (PDOException $e) {
-    die("Error retrieving audit logs: " . $e->getMessage());
+    die(__('error_retrieving_audit_logs', "Error retrieving audit logs: ") . $e->getMessage());
 }
 
 require_once __DIR__ . '/header.php';
 ?>
 
 <div class="glass-card p-4 mb-4" style="border-radius: 20px;">
-    <h5 class="text-white mb-3 fw-bold"><i class="fa-solid fa-filter text-indigo me-2"></i>Filter Audit Logs</h5>
+    <h5 class="text-white mb-3 fw-bold"><i class="fa-solid fa-filter text-indigo me-2"></i><?= __('filter_audit_logs_hdr', 'Filter Audit Logs') ?></h5>
     <form method="GET" class="row g-3">
         <div class="col-md-3">
-            <label class="form-label text-secondary small fw-semibold">Agent / User</label>
+            <label class="form-label text-secondary small fw-semibold"><?= __('agent_user_lbl', 'Agent / User') ?></label>
             <select name="agent_id" class="form-select form-control-swift">
-                <option value="">All Users / Agents</option>
+                <option value=""><?= __('all_users_agents_opt', 'All Users / Agents') ?></option>
                 <?php foreach ($agents as $a): ?>
                     <option value="<?= $a['id'] ?>" <?= ($filter_agent === intval($a['id'])) ? 'selected' : '' ?>><?= htmlspecialchars($a['username']) ?></option>
                 <?php endforeach; ?>
             </select>
         </div>
         <div class="col-md-3">
-            <label class="form-label text-secondary small fw-semibold">Action Type</label>
+            <label class="form-label text-secondary small fw-semibold"><?= __('action_type_lbl', 'Action Type') ?></label>
             <select name="action_type" class="form-select form-control-swift">
-                <option value="">All Actions</option>
+                <option value=""><?= __('all_actions_opt', 'All Actions') ?></option>
                 <?php foreach ($action_types as $act): ?>
                     <option value="<?= htmlspecialchars($act) ?>" <?= ($filter_action === $act) ? 'selected' : '' ?>><?= htmlspecialchars($act) ?></option>
                 <?php endforeach; ?>
             </select>
         </div>
         <div class="col-md-3">
-            <label class="form-label text-secondary small fw-semibold">Bus Search</label>
-            <input type="text" name="bus_query" class="form-control form-control-swift" placeholder="e.g. Sleeper Coach" value="<?= htmlspecialchars($filter_bus) ?>">
+            <label class="form-label text-secondary small fw-semibold"><?= __('bus_search_lbl', 'Bus Search') ?></label>
+            <input type="text" name="bus_query" class="form-control form-control-swift" placeholder="<?= __('bus_search_placeholder', 'e.g. Sleeper Coach') ?>" value="<?= htmlspecialchars($filter_bus) ?>">
         </div>
         <div class="col-md-3">
-            <label class="form-label text-secondary small fw-semibold">Route Search</label>
-            <input type="text" name="route_query" class="form-control form-control-swift" placeholder="e.g. Ranchi" value="<?= htmlspecialchars($filter_route) ?>">
+            <label class="form-label text-secondary small fw-semibold"><?= __('route_search_lbl', 'Route Search') ?></label>
+            <input type="text" name="route_query" class="form-control form-control-swift" placeholder="<?= __('route_search_placeholder', 'e.g. Ranchi') ?>" value="<?= htmlspecialchars($filter_route) ?>">
         </div>
         <div class="col-md-3">
-            <label class="form-label text-secondary small fw-semibold">Start Date</label>
+            <label class="form-label text-secondary small fw-semibold"><?= __('start_date_lbl', 'Start Date') ?></label>
             <input type="date" name="start_date" class="form-control form-control-swift" value="<?= htmlspecialchars($start_date) ?>">
         </div>
         <div class="col-md-3">
-            <label class="form-label text-secondary small fw-semibold">End Date</label>
+            <label class="form-label text-secondary small fw-semibold"><?= __('end_date_lbl', 'End Date') ?></label>
             <input type="date" name="end_date" class="form-control form-control-swift" value="<?= htmlspecialchars($end_date) ?>">
         </div>
         <div class="col-md-6 d-flex align-items-end gap-2">
-            <button type="submit" class="btn btn-primary-gradient px-4 py-2"><i class="fa-solid fa-magnifying-glass me-2"></i>Search Logs</button>
-            <a href="<?= BASE_URL ?>/super_admin/audit_logs.php" class="btn btn-secondary-glass px-4 py-2">Reset</a>
+            <button type="submit" class="btn btn-primary-gradient px-4 py-2"><i class="fa-solid fa-magnifying-glass me-2"></i><?= __('search_logs_btn', 'Search Logs') ?></button>
+            <a href="<?= BASE_URL ?>/super_admin/audit_logs.php" class="btn btn-secondary-glass px-4 py-2"><?= __('reset_btn', 'Reset') ?></a>
         </div>
     </form>
 </div>
 
 <div class="glass-card p-4" style="border-radius: 20px;">
-    <h5 class="text-white mb-4 fw-bold"><i class="fa-solid fa-clock-rotate-left text-indigo me-2"></i>System Trail Logs</h5>
+    <h5 class="text-white mb-4 fw-bold"><i class="fa-solid fa-clock-rotate-left text-indigo me-2"></i><?= __('system_trail_logs_hdr', 'System Trail Logs') ?></h5>
     
     <?php if (empty($logs)): ?>
         <div class="text-center py-5">
             <span class="text-secondary" style="font-size: 3rem;"><i class="fa-solid fa-clock-rotate-left"></i></span>
-            <h5 class="text-white mt-3 fw-bold">No Audit Records Found</h5>
-            <p class="text-secondary small">Try adjusting your filters.</p>
+            <h5 class="text-white mt-3 fw-bold"><?= __('no_audit_records_found', 'No Audit Records Found') ?></h5>
+            <p class="text-secondary small"><?= __('try_adjusting_filters_desc', 'Try adjusting your filters.') ?></p>
         </div>
     <?php else: ?>
         <div class="table-responsive">
             <table class="table table-swift table-dark table-hover align-middle small datatable-swift" style="background: transparent;">
                 <thead>
                     <tr class="border-bottom border-secondary border-opacity-25 text-secondary">
-                        <th>User (Role)</th>
-                        <th>Action</th>
-                        <th>Details</th>
-                        <th>Prev Value</th>
-                        <th>New Value</th>
-                        <th>IP Address</th>
-                        <th>Timestamp</th>
+                        <th><?= __('user_role_col', 'User (Role)') ?></th>
+                        <th><?= __('action_col', 'Action') ?></th>
+                        <th><?= __('details_col', 'Details') ?></th>
+                        <th><?= __('prev_value_col', 'Prev Value') ?></th>
+                        <th><?= __('new_value_col', 'New Value') ?></th>
+                        <th><?= __('ip_address_col', 'IP Address') ?></th>
+                        <th><?= __('timestamp_col', 'Timestamp') ?></th>
                     </tr>
                 </thead>
                 <tbody>
