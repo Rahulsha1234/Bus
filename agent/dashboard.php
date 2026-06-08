@@ -7,6 +7,12 @@ require_once __DIR__ . '/header.php';
 $agent_id = $_SESSION['user_id'];
 
 try {
+    // Fetch Wallet balance
+    $wallet_stmt = $pdo->prepare("SELECT balance, status FROM agent_wallets WHERE agent_id = ?");
+    $wallet_stmt->execute([$agent_id]);
+    $agent_wallet = $wallet_stmt->fetch() ?: ['balance' => 0.00, 'status' => 'active'];
+    $agent_wallet_balance = floatval($agent_wallet['balance']);
+
     // 1. Calculate Earnings Metrics
     $today = date('Y-m-d');
     $start_of_week = date('Y-m-d', strtotime('monday this week'));
@@ -119,10 +125,40 @@ try {
 }
 ?>
 
+<?php if ($agent_wallet_balance < 1000 && $agent_wallet['status'] === 'active'): ?>
+<div class="alert alert-warning border-warning border-opacity-20 bg-warning bg-opacity-10 text-warning d-flex align-items-center mb-4 rounded-4 p-3 shadow-lg" role="alert">
+    <i class="fa-solid fa-triangle-exclamation fs-4 me-3"></i>
+    <div>
+        <strong class="d-block">Low Wallet Balance Warning</strong>
+        <span class="small">Your wallet balance is ₹<?= number_format($agent_wallet_balance, 2) ?>. Please <a href="wallet_history.php" class="text-warning fw-bold text-decoration-underline">recharge your wallet</a> to continue booking tickets.</span>
+    </div>
+</div>
+<?php endif; ?>
+
 <!-- Metrics Row -->
 <div class="row g-4 mb-5">
+    <!-- Wallet Balance -->
+    <div class="col-md-6 col-lg-3 col-xl-2-5">
+        <div class="glass-card p-4 metric-card h-100 border border-info border-opacity-20">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <span class="text-secondary small fw-semibold text-uppercase">Wallet Balance</span>
+                <span class="metric-icon" style="color: #0dcaf0; border-color: rgba(13,202,240,0.2); background: rgba(13,202,240,0.1);"><i class="fa-solid fa-wallet"></i></span>
+            </div>
+            <h3 class="fw-bold text-white mb-1">₹<?= number_format($agent_wallet_balance, 2) ?></h3>
+            <span class="text-secondary small">
+                Status: 
+                <?php if ($agent_wallet['status'] === 'frozen'): ?>
+                    <span class="text-danger fw-bold">Frozen</span>
+                <?php else: ?>
+                    <span class="text-success fw-bold">Active</span>
+                <?php endif; ?>
+                &middot; <a href="wallet_history.php" class="text-indigo small text-decoration-none">Recharge &rarr;</a>
+            </span>
+        </div>
+    </div>
+
     <!-- Today Sales -->
-    <div class="col-md-6 col-lg-3">
+    <div class="col-md-6 col-lg-3 col-xl-2-5">
         <div class="glass-card p-4 metric-card h-100">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <span class="text-secondary small fw-semibold text-uppercase"><?= __('today_sales', 'Today Sales') ?></span>
@@ -134,7 +170,7 @@ try {
     </div>
 
     <!-- Weekly Sales -->
-    <div class="col-md-6 col-lg-3">
+    <div class="col-md-6 col-lg-3 col-xl-2-5">
         <div class="glass-card p-4 metric-card h-100">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <span class="text-secondary small fw-semibold text-uppercase"><?= __('weekly_sales', 'Weekly Sales') ?></span>
@@ -146,7 +182,7 @@ try {
     </div>
 
     <!-- Monthly Sales -->
-    <div class="col-md-6 col-lg-3">
+    <div class="col-md-6 col-lg-3 col-xl-2-5">
         <div class="glass-card p-4 metric-card h-100">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <span class="text-secondary small fw-semibold text-uppercase"><?= __('monthly_sales', 'Monthly Sales') ?></span>
@@ -158,7 +194,7 @@ try {
     </div>
 
     <!-- Total Discounts Earned/Applied -->
-    <div class="col-md-6 col-lg-3">
+    <div class="col-md-6 col-lg-3 col-xl-2-5">
         <div class="glass-card p-4 metric-card h-100">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <span class="text-secondary small fw-semibold text-uppercase"><?= __('total_discounts_received', 'Total Discounts Received') ?></span>

@@ -18,12 +18,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     } else {
         $action = $_POST['action'];
         $request_id = intval($_POST['request_id'] ?? 0);
-        $refund_val = floatval($_POST['refund_amount'] ?? 0.00);
 
         try {
-            // Validate request belongs to this agent's buses
+            // Validate request belongs to this admin's buses
             $chk_stmt = $pdo->prepare("
-                SELECT cr.id, cr.booking_id, cr.request_number, b.booking_reference, b.trip_id, b.total_amount, cr.status
+                SELECT cr.id, cr.booking_id, cr.request_number, cr.cancelled_seats, cr.refund_type,
+                       b.booking_reference, b.trip_id, b.total_amount, b.booking_source, b.agent_id, cr.status
                 FROM cancellation_requests cr
                 JOIN bookings b ON cr.booking_id = b.id
                 JOIN trips t ON b.trip_id = t.id
@@ -42,54 +42,108 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $pdo->beginTransaction();
 
                 if ($action === 'approve') {
+                    // Fetch seats to cancel
+                    $selected_seats = json_decode($request['cancelled_seats'], true) ?: [];
+                    if (empty($selected_seats)) {
+                        // Fallback: get all active seats
+                        $active_seats_stmt = $pdo->prepare("SELECT seat_number FROM booking_seats WHERE booking_id = ? AND status = 'active'");
+                        $active_seats_stmt->execute([$request['booking_id']]);
+                        $selected_seats = $active_seats_stmt->fetchAll(PDO::FETCH_COLUMN);
+                    }
+
+                    $seat_refunds = $_POST['seat_refund'] ?? [];
+                    $total_refund = 0;
+
+                    // Validate refund amount limits for each seat
+                    foreach ($selected_seats as $seat) {
+                        $price_stmt = $pdo->prepare("SELECT price FROM booking_seats WHERE booking_id = ? AND seat_number = ? LIMIT 1");
+                        $price_stmt->execute([$request['booking_id'], $seat]);
+                        $seat_price = floatval($price_stmt->fetchColumn() ?: 0.00);
+
+                        $refund = isset($seat_refunds[$seat]) ? floatval($seat_refunds[$seat]) : $seat_price;
+                        if ($refund < 0 || $refund > $seat_price) {
+                            throw new Exception("Refund for seat $seat (₹$refund) cannot exceed the seat price of ₹$seat_price.");
+                        }
+                        $total_refund += $refund;
+                    }
+
                     // 1. Update cancellation request
                     $up_stmt = $pdo->prepare("
                         UPDATE cancellation_requests 
                         SET status = 'approved', refund_amount = ?, processed_at = NOW(), processed_by = ? 
                         WHERE id = ?
                     ");
-                    $up_stmt->execute([$refund_val, $admin_id, $request_id]);
+                    $up_stmt->execute([$total_refund, $admin_id, $request_id]);
 
-                    // 2. Set booking status to 'cancelled'
-                    $bk_stmt = $pdo->prepare("UPDATE bookings SET status = 'cancelled' WHERE id = ?");
-                    $bk_stmt->execute([$request['booking_id']]);
+                    // 2. Set individual booking_seats to cancelled and trip_seats to available
+                    $update_bs_status = $pdo->prepare("UPDATE booking_seats SET status = 'cancelled' WHERE booking_id = ? AND seat_number = ?");
+                    $update_ts_status = $pdo->prepare("UPDATE trip_seats SET status = 'available', hold_expires_at = NULL, locked_by_session = NULL, locked_at = NULL WHERE trip_id = ? AND seat_number = ?");
 
-                    // 3. Fetch seats associated with this booking
-                    $seats_stmt = $pdo->prepare("SELECT seat_number FROM booking_seats WHERE booking_id = ?");
-                    $seats_stmt->execute([$request['booking_id']]);
-                    $booked_seats = $seats_stmt->fetchAll(PDO::FETCH_COLUMN);
-
-                    if (!empty($booked_seats)) {
-                        // 4. Reset those seats to 'available' in trip_seats
-                        $placeholders = implode(',', array_fill(0, count($booked_seats), '?'));
-                        $rst_stmt = $pdo->prepare("
-                            UPDATE trip_seats 
-                            SET status = 'available', hold_expires_at = NULL, locked_by_session = NULL, locked_at = NULL
-                            WHERE trip_id = ? AND seat_number IN ($placeholders)
-                        ");
-                        $rst_stmt->execute(array_merge([$request['trip_id']], $booked_seats));
+                    foreach ($selected_seats as $seat) {
+                        $update_bs_status->execute([$request['booking_id'], $seat]);
+                        $update_ts_status->execute([$request['trip_id'], $seat]);
                     }
 
-                    // 5. Notify Customer (we'd insert into notifications or alert, let's notify the customer)
-                    // Get customer ID
-                    $cust_stmt = $pdo->prepare("SELECT customer_id FROM bookings WHERE id = ? LIMIT 1");
-                    $cust_stmt->execute([$request['booking_id']]);
-                    $customer_id = $cust_stmt->fetchColumn();
-                    if ($customer_id) {
-                        $notif = $pdo->prepare("
-                            INSERT INTO system_notifications (user_id, user_role, message) 
-                            VALUES (?, 'customer', ?)
-                        ");
+                    // 3. Recalculate parent booking status automatically
+                    $tot_stmt = $pdo->prepare("SELECT COUNT(*) FROM booking_seats WHERE booking_id = ?");
+                    $tot_stmt->execute([$request['booking_id']]);
+                    $total_seats_count = intval($tot_stmt->fetchColumn());
+
+                    $can_stmt = $pdo->prepare("SELECT COUNT(*) FROM booking_seats WHERE booking_id = ? AND status = 'cancelled'");
+                    $can_stmt->execute([$request['booking_id']]);
+                    $cancelled_seats_count = intval($can_stmt->fetchColumn());
+
+                    if ($cancelled_seats_count === $total_seats_count) {
+                        $booking_status = 'cancelled';
+                    } elseif ($cancelled_seats_count > 0) {
+                        $booking_status = 'partially_cancelled';
+                    } else {
+                        $booking_status = 'active';
                     }
 
-                    // Notify admin of refund processing
+                    $up_booking = $pdo->prepare("UPDATE bookings SET status = ? WHERE id = ?");
+                    $up_booking->execute([$booking_status, $request['booking_id']]);
+
+                    // 4. Auto-credit Wallet (if booking_source = 'agent')
+                    if ($request['booking_source'] === 'agent' && $request['agent_id']) {
+                        $wallet_stmt = $pdo->prepare("SELECT id, balance FROM agent_wallets WHERE agent_id = ? FOR UPDATE");
+                        $wallet_stmt->execute([$request['agent_id']]);
+                        $wallet = $wallet_stmt->fetch();
+                        if ($wallet) {
+                            $balance_before = floatval($wallet['balance']);
+                            $balance_after = $balance_before + $total_refund;
+
+                            $up_wallet = $pdo->prepare("UPDATE agent_wallets SET balance = ? WHERE id = ?");
+                            $up_wallet->execute([$balance_after, $wallet['id']]);
+
+                            // Write ledger transaction record
+                            $ledger_stmt = $pdo->prepare("
+                                INSERT INTO wallet_transactions (
+                                    wallet_id, transaction_type, amount, balance_before, balance_after, 
+                                    reference_type, reference_id, remarks, created_by
+                                ) VALUES (?, 'refund', ?, ?, ?, 'cancellation', ?, ?, ?)
+                            ");
+                            $remarks = "Cancellation Refund for Booking Ref: " . $request['booking_reference'] . " (Seats: " . implode(', ', $selected_seats) . ")";
+                            $ledger_stmt->execute([
+                                $wallet['id'],
+                                $total_refund,
+                                $balance_before,
+                                $balance_after,
+                                $request_id,
+                                $remarks,
+                                $admin_id
+                            ]);
+                        }
+                    }
+
+                    // 5. Notify admin of refund processing
                     $notif_admin = $pdo->prepare("
                         INSERT INTO system_notifications (user_id, user_role, message) 
                         VALUES (NULL, 'admin', ?)
                     ");
-                    $notif_admin->execute([__('cancellation_approved_for_booking', "Cancellation Approved for Booking ") . $request['booking_reference'] . __('refund_processed_val', ". Refund processed: ₹") . number_format($refund_val, 2)]);
+                    $notif_admin->execute([__('cancellation_approved_for_booking', "Cancellation Approved for Booking ") . $request['booking_reference'] . __('refund_processed_val', ". Refund processed: ₹") . number_format($total_refund, 2)]);
 
-                    log_activity($pdo, $admin_id, 'CANCELLATION_APPROVE', "Approved cancellation request " . $request['request_number'] . " for Booking " . $request['booking_reference'] . ". Refunded: ₹$refund_val", "pending", "approved");
+                    log_activity($pdo, $admin_id, 'CANCELLATION_APPROVE', "Approved cancellation request " . $request['request_number'] . " for Booking " . $request['booking_reference'] . ". Refunded: ₹$total_refund", "pending", "approved");
                     $success_msg = __('cancel_approved_success_seats_released', "Cancellation approved successfully and seats released.");
 
                 } elseif ($action === 'reject') {
@@ -100,6 +154,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         WHERE id = ?
                     ");
                     $up_stmt->execute([$admin_id, $request_id]);
+
+                    // Revert selected seats status in booking_seats back to 'active'
+                    $selected_seats = json_decode($request['cancelled_seats'], true) ?: [];
+                    if (!empty($selected_seats)) {
+                        $revert_seats = $pdo->prepare("UPDATE booking_seats SET status = 'active' WHERE booking_id = ? AND seat_number = ?");
+                        foreach ($selected_seats as $seat) {
+                            $revert_seats->execute([$request['booking_id'], $seat]);
+                        }
+                    }
 
                     log_activity($pdo, $admin_id, 'CANCELLATION_REJECT', "Rejected cancellation request " . $request['request_number'] . " for Booking " . $request['booking_reference'], "pending", "rejected");
                     $success_msg = __('cancel_req_rejected_success', "Cancellation request has been rejected.");
@@ -125,12 +188,17 @@ try {
             cr.refund_amount,
             cr.status AS request_status,
             cr.created_at AS requested_at,
+            cr.cancelled_seats,
+            cr.refund_type,
+            b.id AS booking_id,
             b.booking_reference,
             b.total_amount,
             b.customer_name,
             b.customer_phone,
+            b.booking_source,
             bs.bus_name,
             t.departure_time,
+            t.id AS trip_id,
             r.source,
             r.destination
         FROM cancellation_requests cr
@@ -235,16 +303,40 @@ require_once __DIR__ . '/header.php';
                                                     <input type="hidden" name="request_id" value="<?= $r['request_id'] ?>">
                                                     <input type="hidden" name="action" value="approve">
                                                     <div class="modal-header border-0 pb-0">
-                                                        <h5 class="modal-title fw-bold"><?= __('approve_cancellation_title', 'Approve Cancellation') ?></h5>
+                                                        <h5 class="modal-title fw-bold">Approve Partial Cancellation</h5>
                                                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                                                     </div>
                                                     <div class="modal-body py-4">
-                                                        <p class="text-secondary small"><?= __('approve_cancellation_desc', 'Please verify and specify the refund amount to initiate payment back to customer.') ?></p>
-                                                        <div class="mb-3">
-                                                            <label class="form-label text-secondary small fw-semibold"><?= __('refund_amount_label', 'Refund Amount (₹)') ?></label>
-                                                            <input type="number" name="refund_amount" class="form-control form-control-swift" value="<?= htmlspecialchars($r['total_amount']) ?>" min="0" max="<?= htmlspecialchars($r['total_amount']) ?>" step="0.01" required>
-                                                            <div class="form-text text-secondary" style="font-size:0.75rem;"><?= __('max_limit_val', 'Max limit: ₹') ?><?= number_format($r['total_amount'], 2) ?></div>
-                                                        </div>
+                                                        <p class="text-secondary small">Review the requested seat cancellation below. Specify the refund amount for each seat. (Refund mode: <strong><?= htmlspecialchars(strtoupper($r['refund_type'] ?? 'cash')) ?></strong>)</p>
+                                                        
+                                                        <?php
+                                                        $seats_query = $pdo->prepare("SELECT seat_number, price, status FROM booking_seats WHERE booking_id = ?");
+                                                        $seats_query->execute([$r['booking_id']]);
+                                                        $booking_seats = $seats_query->fetchAll();
+
+                                                        $req_seats = json_decode($r['cancelled_seats'], true) ?: [];
+                                                        if (empty($req_seats)) {
+                                                            foreach ($booking_seats as $bs) {
+                                                                if ($bs['status'] === 'active' || $bs['status'] === 'cancel_requested') {
+                                                                    $req_seats[] = $bs['seat_number'];
+                                                                }
+                                                            }
+                                                        }
+
+                                                        foreach ($req_seats as $seat):
+                                                            $price = 0.00;
+                                                            foreach ($booking_seats as $bs) {
+                                                                if ($bs['seat_number'] === $seat) {
+                                                                    $price = floatval($bs['price']);
+                                                                    break;
+                                                                }
+                                                            }
+                                                        ?>
+                                                            <div class="mb-3 p-3 bg-dark bg-opacity-20 border border-secondary border-opacity-15 rounded-3">
+                                                                <label class="form-label text-white small fw-bold">Refund for Seat <?= htmlspecialchars($seat) ?> (Original: ₹<?= number_format($price, 2) ?>)</label>
+                                                                <input type="number" name="seat_refund[<?= htmlspecialchars($seat) ?>]" class="form-control form-control-swift" value="<?= htmlspecialchars($price) ?>" min="0" max="<?= htmlspecialchars($price) ?>" step="0.01" required>
+                                                            </div>
+                                                        <?php endforeach; ?>
                                                     </div>
                                                     <div class="modal-footer border-0 pt-0 d-flex justify-content-between">
                                                         <button type="button" class="btn btn-secondary-glass rounded-3" data-bs-dismiss="modal"><?= __('cancel', 'Cancel') ?></button>
@@ -254,7 +346,6 @@ require_once __DIR__ . '/header.php';
                                             </div>
                                         </div>
                                     </div>
-
                                 <?php else: ?>
                                     <span class="text-secondary small font-monospace"><?= __('no_actions', 'No Actions') ?></span>
                                 <?php endif; ?>

@@ -39,6 +39,16 @@ if (isset($_SESSION['user_id'])) {
             header("Location: " . BASE_URL . "/login.php");
             exit();
         }
+        
+        // Auto-initialize agent wallet if missing
+        if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'agent') {
+            $wallet_chk = $pdo->prepare("SELECT 1 FROM agent_wallets WHERE agent_id = ? LIMIT 1");
+            $wallet_chk->execute([$_SESSION['user_id']]);
+            if (!$wallet_chk->fetchColumn()) {
+                $wallet_init = $pdo->prepare("INSERT IGNORE INTO agent_wallets (agent_id, balance, status) VALUES (?, 0.00, 'active')");
+                $wallet_init->execute([$_SESSION['user_id']]);
+            }
+        }
     } catch (PDOException $e) {
         // Table 'users' might not exist yet during setup
     }

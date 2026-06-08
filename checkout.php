@@ -252,6 +252,51 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
         $calculated_discount = round($calculated_discount, 2);
         $final_total = max(0.00, $total_amount - $calculated_discount);
 
+        // --- NEW AGENT WALLET CHECK START ---
+        if ($current_role === 'agent') {
+            $wallet_stmt = $pdo->prepare("SELECT id, balance, status FROM agent_wallets WHERE agent_id = ? FOR UPDATE");
+            $wallet_stmt->execute([$current_user_id]);
+            $wallet = $wallet_stmt->fetch();
+            
+            if (!$wallet) {
+                $pdo->rollBack();
+                echo json_encode(['success' => false, 'message' => 'Agent wallet not found. Please contact support.']);
+                exit();
+            }
+
+            if ($wallet['status'] === 'frozen') {
+                $pdo->rollBack();
+                echo json_encode(['success' => false, 'message' => 'Your wallet is frozen. Bookings cannot be completed.']);
+                exit();
+            }
+
+            $wallet_balance = floatval($wallet['balance']);
+            if ($wallet_balance < $final_total) {
+                $shortfall = $final_total - $wallet_balance;
+                
+                // Extend the hold expiration to 10 minutes (600 seconds) from now!
+                $expire_time_10m = date('Y-m-d H:i:s', strtotime('+10 minutes'));
+                $hold_update = $pdo->prepare("
+                    UPDATE trip_seats 
+                    SET hold_expires_at = ? 
+                    WHERE trip_id = ? AND seat_number IN ($seat_placeholders) AND locked_by_session = ?
+                ");
+                $hold_update->execute(array_merge([$expire_time_10m, $trip_id], $seats, [session_id()]));
+                
+                $pdo->commit(); // Commit the hold extension
+                
+                echo json_encode([
+                    'success' => false,
+                    'insufficient_wallet' => true,
+                    'shortfall' => $shortfall,
+                    'total_fare' => $final_total,
+                    'wallet_balance' => $wallet_balance
+                ]);
+                exit();
+            }
+        }
+        // --- NEW AGENT WALLET CHECK END ---
+
         // 4. Commission Calculations
         $commission_rate = 2.00; // 2%
         $admin_commission = ($final_total * $commission_rate) / 100;
@@ -298,6 +343,31 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
             $total_time_adjustment
         ]);
         $booking_id = $pdo->lastInsertId();
+
+        // --- NEW AGENT WALLET DEDUCT & LEDGER START ---
+        if ($current_role === 'agent') {
+            $new_balance = $wallet_balance - $final_total;
+            $update_wallet = $pdo->prepare("UPDATE agent_wallets SET balance = ? WHERE id = ?");
+            $update_wallet->execute([$new_balance, $wallet['id']]);
+
+            $ledger_stmt = $pdo->prepare("
+                INSERT INTO wallet_transactions (
+                    wallet_id, transaction_type, amount, balance_before, balance_after, 
+                    reference_type, reference_id, remarks, created_by
+                ) VALUES (?, 'debit', ?, ?, ?, 'booking', ?, ?, ?)
+            ");
+            $remarks = "Ticket Booking ref: $booking_ref";
+            $ledger_stmt->execute([
+                $wallet['id'],
+                $final_total,
+                $wallet_balance,
+                $new_balance,
+                $booking_id,
+                $remarks,
+                $current_user_id
+            ]);
+        }
+        // --- NEW AGENT WALLET DEDUCT & LEDGER END ---
 
         // 6. Create Passengers/Seats entries and update Seat status
         $passenger_stmt = $pdo->prepare("

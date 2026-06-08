@@ -30,6 +30,15 @@ try {
 } catch (Exception $e) {
     $parent_admin_id = 0;
 }
+
+// Fetch wallet balance
+try {
+    $wallet_stmt = $pdo->prepare("SELECT balance FROM agent_wallets WHERE agent_id = ?");
+    $wallet_stmt->execute([$user['id']]);
+    $header_wallet_balance = floatval($wallet_stmt->fetchColumn() ?: 0.00);
+} catch (Exception $e) {
+    $header_wallet_balance = 0.00;
+}
 ?>
 <!DOCTYPE html>
 <html lang="<?= CURRENT_LANG ?>">
@@ -232,6 +241,9 @@ try {
                 <a href="<?= BASE_URL ?>/agent/bookings.php" class="sidebar-link <?= ($cur === 'bookings.php') ? 'active' : '' ?>">
                     <i class="fa-solid fa-receipt"></i><?= __('nav_my_bookings', 'My Bookings') ?>
                 </a>
+                <a href="<?= BASE_URL ?>/agent/wallet_history.php" class="sidebar-link <?= ($cur === 'wallet_history.php') ? 'active' : '' ?>">
+                    <i class="fa-solid fa-wallet"></i>My Wallet
+                </a>
                 
                 <hr class="border-secondary my-4">
                 
@@ -256,6 +268,7 @@ try {
                         <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/agent/dashboard.php"><?= __('nav_dashboard', 'Dashboard') ?></a></li>
                         <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/agent/search.php"><?= __('nav_search_book', 'Search & Book') ?></a></li>
                         <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/agent/bookings.php"><?= __('nav_my_bookings', 'My Bookings') ?></a></li>
+                        <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/agent/wallet_history.php">My Wallet</a></li>
                         <li><hr class="dropdown-divider border-secondary"></li>
                         <!-- Mobile Language Switcer items -->
                         <li><a class="dropdown-item py-2 rounded <?= CURRENT_LANG === 'en' ? 'text-success fw-bold' : '' ?>" href="?lang=en">English</a></li>
@@ -296,6 +309,7 @@ try {
                         </ul>
                     </div>
 
+                    <span class="small text-secondary me-3"><i class="fa-solid fa-wallet text-info me-2"></i>₹<?= number_format($header_wallet_balance, 2) ?></span>
                     <span class="small text-secondary"><i class="fa-solid fa-briefcase text-indigo me-2"></i><?= htmlspecialchars($agent_profile['agency_name'] ?? $user['username']) ?></span>
                 </div>
             </div>

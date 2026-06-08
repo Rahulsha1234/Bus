@@ -255,6 +255,10 @@ $user = get_logged_user();
                         class="sidebar-link <?= ($cur_nav === 'agents.php') ? 'active' : '' ?>">
                         <i class="fa-solid fa-users-gear"></i><?= __('nav_manage_agents', 'Manage Agents') ?>
                     </a>
+                    <a href="<?= BASE_URL ?>/admin/wallets.php"
+                        class="sidebar-link <?= ($cur_nav === 'wallets.php') ? 'active' : '' ?>">
+                        <i class="fa-solid fa-wallet"></i>Manage Wallets
+                    </a>
 
                     <hr class="border-secondary my-4">
 
@@ -294,6 +298,8 @@ $user = get_logged_user();
                                     href="<?= BASE_URL ?>/admin/pricing.php"><?= __('nav_pricing_engine', 'Pricing Engine') ?></a></li>
                             <li><a class="dropdown-item py-2"
                                     href="<?= BASE_URL ?>/admin/agents.php"><?= __('nav_manage_agents', 'Agents') ?></a></li>
+                            <li><a class="dropdown-item py-2"
+                                    href="<?= BASE_URL ?>/admin/wallets.php">Manage Wallets</a></li>
                             <li>
                                 <hr class="dropdown-divider border-secondary">
                             </li>

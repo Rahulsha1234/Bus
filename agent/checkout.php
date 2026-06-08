@@ -65,6 +65,13 @@ foreach ($seats as $seat) {
 $total_discount = round($total_discount, 2);
 $final_fare = max(0, $total_fare - $total_discount);
 
+// Fetch current agent's wallet status and balance
+$wallet_stmt = $pdo->prepare("SELECT balance, status FROM agent_wallets WHERE agent_id = ?");
+$wallet_stmt->execute([$_SESSION['user_id']]);
+$wallet = $wallet_stmt->fetch() ?: ['balance' => 0.00, 'status' => 'active'];
+$wallet_balance = floatval($wallet['balance']);
+$wallet_status = $wallet['status'];
+
 
 // Fetch boarding and dropping points from POST
 $boarding_point = $_POST['boarding_point'] ?? '';
@@ -195,10 +202,13 @@ foreach ($seats as $seat) {
                         </div>
                     </div>
                 </div>
-
                 <div class="d-grid mt-4">
-                    <button type="button" id="btnInitiatePayment" class="btn btn-primary-gradient py-3 text-uppercase fw-bold" style="border-radius: 12px; letter-spacing: 0.5px;">
-                        <i class="fa-solid fa-lock me-2"></i><?= __('pay_issue_ticket', 'Pay & Issue Ticket') ?> &mdash; &#8377;<?= number_format($total_fare, 2) ?>
+                    <button type="button" id="btnInitiatePayment" class="btn btn-primary-gradient py-3 text-uppercase fw-bold" style="border-radius: 12px; letter-spacing: 0.5px;" <?= ($wallet_status === 'frozen') ? 'disabled' : '' ?>>
+                        <?php if ($wallet_status === 'frozen'): ?>
+                            <i class="fa-solid fa-ban me-2"></i>Wallet Frozen
+                        <?php else: ?>
+                            <i class="fa-solid fa-wallet me-2"></i>Pay & Book using Wallet
+                        <?php endif; ?>
                     </button>
                 </div>
             </form>
@@ -229,19 +239,23 @@ foreach ($seats as $seat) {
                     <span><?= __('seats', 'Seats') ?> (<?= count($seats) ?> <?= __('seats_left', 'berths') ?>)</span>
                     <span class="text-white fw-semibold"><?= htmlspecialchars($selected_seats) ?></span>
                 </div>
-                <div class="d-flex justify-content-between text-secondary small mb-3">
+                <div class="d-flex justify-content-between text-secondary small mb-2">
                     <span><?= __('base_ticket_fare', 'Base Ticket Fare') ?></span>
                     <span>₹<?= number_format($total_fare, 2) ?></span>
                 </div>
-                <?php if (false && $total_discount > 0): ?>
-                    <div class="d-flex justify-content-between text-secondary small mb-3">
-                        <span><?= __('agent_discount', 'Agent Direct Discount') ?></span>
-                        <span class="text-success">-₹<?= number_format($total_discount, 2) ?></span>
+                <?php if ($total_discount > 0): ?>
+                    <div class="d-flex justify-content-between text-secondary small mb-2 text-warning">
+                        <span>Agent Partner Discount</span>
+                        <span>-₹<?= number_format($total_discount, 2) ?></span>
                     </div>
                 <?php endif; ?>
-                <div class="d-flex justify-content-between text-white fw-bold fs-5 pt-3 border-top border-secondary border-opacity-30">
-                    <span><?= __('total_amount', 'Total Amount') ?></span>
-                    <span class="text-indigo">₹<?= number_format($total_fare, 2) ?></span>
+                <div class="d-flex justify-content-between text-white fw-bold fs-5 pt-3 border-top border-secondary border-opacity-30 mb-3">
+                    <span>Net Payable</span>
+                    <span class="text-indigo">₹<?= number_format($final_fare, 2) ?></span>
+                </div>
+                <div class="d-flex justify-content-between text-secondary small mb-2">
+                    <span>Wallet Balance</span>
+                    <span class="text-info fw-bold">₹<span id="agent-display-balance"><?= number_format($wallet_balance, 2) ?></span></span>
                 </div>
             </div>
         </div>
@@ -256,41 +270,76 @@ foreach ($seats as $seat) {
                 <div class="d-flex align-items-center gap-2">
                     <span class="p-2 rounded-3 text-white d-flex align-items-center justify-content-center" style="background:#5252ff;"><i class="fa-solid fa-shield-halved"></i></span>
                     <div>
-                        <h6 class="modal-title fw-bold text-white mb-0"><?= __('razorpay_secure_checkout', 'Razorpay Secure Checkout') ?></h6>
-                        <span class="text-secondary small" style="font-size:0.75rem;"><?= __('merchant', 'Merchant:') ?> <?= defined("SYSTEM_NAME") ? SYSTEM_NAME : "Bus Booking" ?> Inc.</span>
+                        <h6 class="modal-title fw-bold text-white mb-0">Razorpay Secure Checkout</h6>
+                        <span class="text-secondary small" style="font-size:0.75rem;">Merchant: <?= SYSTEM_NAME ?> Inc.</span>
                     </div>
                 </div>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4">
                 <div class="text-center mb-4">
-                    <span class="text-secondary small d-block"><?= __('amount_to_pay', 'AMOUNT TO PAY') ?></span>
-                    <h2 class="fw-bold" style="font-size: 2.5rem; color:#0F5132;">&#8377;<?= number_format($final_fare, 2) ?></h2>
-                    <?php if (false && $total_discount > 0): ?>
-                        <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-1 mt-1"><?= __('agent_discount_colon', 'Agent Discount:') ?> -&#8377;<?= number_format($total_discount, 2) ?></span>
-                    <?php endif; ?>
+                    <span class="text-secondary small d-block">AMOUNT TO RECHARGE</span>
+                    <h2 class="fw-bold" style="font-size: 2.5rem; color:#ffc107;">₹<span id="razorpay-recharge-amount">0.00</span></h2>
                 </div>
                 <div class="p-3 rounded-4 bg-dark bg-opacity-30 border border-secondary border-opacity-20 mb-4 small text-secondary">
-                    <div class="d-flex justify-content-between mb-2"><span><?= __('order_reference', 'Order Reference') ?></span><span class="text-white font-monospace">AGT-<?= time() ?></span></div>
-                    <div class="d-flex justify-content-between"><span><?= __('seats', 'Seats') ?></span><span class="text-white"><?= htmlspecialchars($selected_seats) ?></span></div>
+                    <div class="d-flex justify-content-between mb-2"><span>Order Reference</span><span class="text-white font-monospace" id="razorpay-order-ref">RECH-<?= time() ?></span></div>
                 </div>
                 <div class="mb-4">
-                    <label class="form-label text-secondary small fw-semibold"><?= __('select_payment_method', 'Select Payment Method') ?></label>
+                    <label class="form-label text-secondary small fw-semibold">Select Payment Method</label>
                     <div class="d-grid gap-3">
                         <button type="button" class="btn btn-secondary-glass text-start py-3 px-3 d-flex align-items-center justify-content-between w-100 rounded-3 select-payment-opt" data-status="success">
-                            <span><i class="fa-solid fa-credit-card text-success me-3"></i><?= __('credit_card_simulate', 'Credit / Debit Card (Simulate Success)') ?></span>
+                            <span><i class="fa-solid fa-credit-card text-success me-3"></i>Credit / Debit Card (Simulate Success)</span>
                             <i class="fa-solid fa-chevron-right text-secondary small"></i>
                         </button>
                         <button type="button" class="btn btn-secondary-glass text-start py-3 px-3 d-flex align-items-center justify-content-between w-100 rounded-3 select-payment-opt" data-status="failed">
-                            <span><i class="fa-solid fa-circle-xmark text-danger me-3"></i><?= __('failed_transaction_simulate', 'Simulate Failed Transaction') ?></span>
+                            <span><i class="fa-solid fa-circle-xmark text-danger me-3"></i>Simulate Failed Transaction</span>
                             <i class="fa-solid fa-chevron-right text-secondary small"></i>
                         </button>
                     </div>
                 </div>
             </div>
             <div class="modal-footer border-secondary p-4 d-flex justify-content-between align-items-center">
-                <span class="text-secondary small" style="font-size: 0.75rem;"><i class="fa-solid fa-lock me-1"></i><?= __('ssl_encryption_note', '256-bit SSL Encrypted Connection') ?></span>
+                <span class="text-secondary small" style="font-size: 0.75rem;"><i class="fa-solid fa-lock me-1"></i>256-bit SSL Encrypted Connection</span>
                 <span class="text-secondary small font-monospace text-uppercase" style="font-size: 0.75rem;">Razorpay v3</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- WALLET RECHARGE CHOOSE AMOUNT MODAL -->
+<div class="modal fade" id="walletRechargeModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-card border-secondary text-white shadow-2xl" style="border-radius: 24px; background: #121829;">
+            <div class="modal-header border-secondary p-4 d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="p-2 rounded-3 text-white d-flex align-items-center justify-content-center" style="background:#ffc107; color: #000 !important;"><i class="fa-solid fa-wallet text-dark"></i></span>
+                    <div>
+                        <h6 class="modal-title fw-bold text-white mb-0">Insufficient Wallet Balance</h6>
+                        <span class="text-secondary small" style="font-size:0.75rem;">Recharge wallet to continue booking</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="p-3 rounded-4 bg-dark bg-opacity-30 border border-secondary border-opacity-20 mb-4 small">
+                    <div class="d-flex justify-content-between mb-2"><span>Total Fare</span><span class="text-white fw-bold">₹<span id="recharge-total-fare">0.00</span></span></div>
+                    <div class="d-flex justify-content-between mb-2"><span>Wallet Balance</span><span class="text-white fw-bold">₹<span id="recharge-wallet-balance">0.00</span></span></div>
+                    <div class="d-flex justify-content-between border-top border-secondary border-opacity-20 pt-2 text-warning fw-bold"><span>Shortfall</span><span>₹<span id="recharge-shortfall">0.00</span></span></div>
+                </div>
+                
+                <div class="d-grid gap-3">
+                    <button type="button" id="btnRechargeShortfall" class="btn btn-warning py-3 fw-bold text-dark">
+                        <i class="fa-solid fa-credit-card me-2"></i>Recharge Shortfall (₹<span id="recharge-shortfall-btn">0.00</span>)
+                    </button>
+                    
+                    <div class="border-top border-secondary border-opacity-20 my-2 pt-3 text-center small text-secondary">OR RECHARGE CUSTOM AMOUNT</div>
+                    
+                    <div class="input-group">
+                        <span class="input-group-text bg-dark border-secondary text-secondary">₹</span>
+                        <input type="number" id="customRechargeAmount" class="form-control form-control-swift bg-dark text-white border-secondary" placeholder="Enter custom amount (e.g. 1000)" min="1">
+                        <button type="button" id="btnRechargeCustom" class="btn btn-indigo text-white px-4">Recharge Custom</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -298,27 +347,23 @@ foreach ($seats as $seat) {
 
 <script>
 $(document).ready(function() {
-    // Open Razorpay modal on button click
+    var rechargeAmount = 0;
+
+    // Direct booking attempt when clicking Pay & Issue Ticket
     $('#btnInitiatePayment').click(function() {
         var form = $('#paymentCheckForm')[0];
         if (!form.checkValidity()) {
             form.reportValidity();
             return;
         }
-        $('#razorpayModal').modal('show');
+
+        processWalletBooking();
     });
 
-    // Handle payment simulation
-    $('.select-payment-opt').click(function() {
-        var status = $(this).data('status');
-        if (status === 'failed') {
-            alert("<?= __('mock_payment_failed_alert', 'Mock Payment Failed: Simulated transaction failure. Please use card simulation for success.') ?>");
-            $('#razorpayModal').modal('hide');
-            return;
-        }
-        $('#razorpayModal').modal('hide');
+    function processWalletBooking() {
         var originalBtnText = $('#btnInitiatePayment').html();
-        $('#btnInitiatePayment').html('<i class="fa-solid fa-spinner fa-spin me-2"></i><?= __('processing', 'Processing...') ?>').addClass('disabled');
+        $('#btnInitiatePayment').html('<i class="fa-solid fa-spinner fa-spin me-2"></i>Processing Wallet Debit...').addClass('disabled');
+        
         var formData = $('#paymentCheckForm').serialize();
         $.ajax({
             url: '<?= BASE_URL ?>/checkout.php?action=process_payment',
@@ -328,14 +373,99 @@ $(document).ready(function() {
             success: function(response) {
                 if (response.success) {
                     window.location.href = '<?= BASE_URL ?>/ticket.php?ref=' + response.booking_ref;
+                } else if (response.insufficient_wallet) {
+                    // Show insufficient balance modal
+                    $('#recharge-total-fare').text(Number(response.total_fare).toFixed(2));
+                    $('#recharge-wallet-balance').text(Number(response.wallet_balance).toFixed(2));
+                    $('#recharge-shortfall').text(Number(response.shortfall).toFixed(2));
+                    $('#recharge-shortfall-btn').text(Number(response.shortfall).toFixed(2));
+                    
+                    // Reset custom amount field
+                    $('#customRechargeAmount').val(Math.ceil(response.shortfall));
+                    
+                    $('#walletRechargeModal').modal('show');
+                    $('#btnInitiatePayment').html(originalBtnText).removeClass('disabled');
                 } else {
-                    alert("<?= __('booking_error_prefix', 'Booking Error: ') ?>" + response.message);
+                    alert("Booking Error: " + response.message);
                     $('#btnInitiatePayment').html(originalBtnText).removeClass('disabled');
                 }
             },
             error: function() {
-                alert("<?= __('payment_communication_error', 'CRITICAL ERROR: Failed to communicate with payment processor.') ?>");
+                alert("CRITICAL ERROR: Failed to communicate with payment processor.");
                 $('#btnInitiatePayment').html(originalBtnText).removeClass('disabled');
+            }
+        });
+    }
+
+    // Recharge options triggers
+    $('#btnRechargeShortfall').click(function() {
+        var shortfallVal = parseFloat($('#recharge-shortfall').text());
+        if (isNaN(shortfallVal) || shortfallVal <= 0) return;
+        rechargeAmount = shortfallVal;
+        
+        $('#walletRechargeModal').modal('hide');
+        $('#razorpay-recharge-amount').text(rechargeAmount.toFixed(2));
+        $('#razorpayModal').modal('show');
+    });
+
+    $('#btnRechargeCustom').click(function() {
+        var customAmount = parseFloat($('#customRechargeAmount').val());
+        var shortfallVal = parseFloat($('#recharge-shortfall').text());
+        if (isNaN(customAmount) || customAmount <= 0) {
+            alert("Please enter a valid recharge amount.");
+            return;
+        }
+        if (customAmount < shortfallVal) {
+            alert("Custom recharge amount must cover the shortfall of ₹" + shortfallVal.toFixed(2));
+            return;
+        }
+        rechargeAmount = customAmount;
+        
+        $('#walletRechargeModal').modal('hide');
+        $('#razorpay-recharge-amount').text(rechargeAmount.toFixed(2));
+        $('#razorpayModal').modal('show');
+    });
+
+    // Handle payment simulation inside Razorpay Modal
+    $('.select-payment-opt').click(function() {
+        var status = $(this).data('status');
+        if (status === 'failed') {
+            alert("Simulated recharge failed. Please try again.");
+            $('#razorpayModal').modal('hide');
+            return;
+        }
+        
+        $('#razorpayModal').modal('hide');
+        
+        // Call ajax/wallet_recharge.php to credit the wallet
+        var mockPayId = 'pay_' + Math.random().toString(36).substr(2, 9);
+        var mockOrderId = 'order_' + Math.random().toString(36).substr(2, 9);
+        var mockSig = 'sig_' + Math.random().toString(36).substr(2, 9);
+        
+        $.ajax({
+            url: '<?= BASE_URL ?>/ajax/wallet_recharge.php',
+            type: 'POST',
+            data: {
+                csrf_token: $('#payment_csrf_token').val(),
+                amount: rechargeAmount,
+                razorpay_payment_id: mockPayId,
+                razorpay_order_id: mockOrderId,
+                razorpay_signature: mockSig
+            },
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    alert("Recharge of ₹" + rechargeAmount.toFixed(2) + " Successful! Continuing booking automatically...");
+                    // Update display balance
+                    $('#agent-display-balance').text(Number(response.new_balance).toFixed(2));
+                    // Re-trigger the booking
+                    processWalletBooking();
+                } else {
+                    alert("Recharge Error: " + response.message);
+                }
+            },
+            error: function() {
+                alert("CRITICAL ERROR: Failed to recharge wallet.");
             }
         });
     });
