@@ -35,7 +35,9 @@ if (isset($_GET['lang']) && in_array($_GET['lang'], $supported_languages)) {
             'samesite' => 'Lax'
         ]);
     } else {
-        setcookie('lang', $current_lang, time() + (86400 * 30), '/; SameSite=Lax', null, $is_secure, false);
+        // For PHP < 7.3 the setcookie signature doesn't support options array or SameSite flag.
+        // Use a safe call with explicit parameters (domain set to empty string instead of null).
+        setcookie('lang', $current_lang, time() + (86400 * 30), '/', '', $is_secure, false);
     }
 
     // Redirect to the same page without the 'lang' query parameter to clean the URL
