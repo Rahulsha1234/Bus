@@ -1,5 +1,4 @@
 -- Database migrations for PhonePe / Razorpay dynamic Payment Gateway integration
-USE bus_booking;
 
 -- 1. Create Payments table
 CREATE TABLE IF NOT EXISTS payments (

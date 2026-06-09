@@ -1,7 +1,5 @@
 -- Wallet System Database Migration Schema
 
-USE bus_booking;
-
 -- 1. Agent Wallets Table
 CREATE TABLE IF NOT EXISTS agent_wallets (
     id INT AUTO_INCREMENT PRIMARY KEY,
