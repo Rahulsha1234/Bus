@@ -4,6 +4,7 @@
  * Passenger Details & Payment Checkout Controller
  */
 require_once __DIR__ . '/includes/auth_middleware.php';
+require_once __DIR__ . '/config/PaymentGateway.php';
 
 $page_title = __('passenger_details', 'Checkout');
 
@@ -21,7 +22,8 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
     $seats_str = $_POST['selected_seats'] ?? '';
     $cust_name = trim($_POST['contact_name'] ?? '');
     $cust_email = trim($_POST['contact_email'] ?? '');
-    $cust_phone = trim($_POST['contact_phone'] ?? '');
+    $isd_code = trim($_POST['isd_code'] ?? '+91');
+    $cust_phone = $isd_code . ' ' . trim($_POST['contact_phone'] ?? '');
     $boarding_point = trim($_POST['boarding_point'] ?? '');
     $dropping_point = trim($_POST['dropping_point'] ?? '');
 
@@ -311,6 +313,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
         // 5. Create Booking Entry
         $booking_ref = 'SB' . strtoupper(substr(uniqid(), 7)) . rand(10, 99);
         $customer_id = ($booking_source === 'customer') ? $current_user_id : null;
+        $is_agent = ($current_role === 'agent');
 
         $booking_stmt = $pdo->prepare("
             INSERT INTO bookings (
@@ -318,10 +321,11 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
                 total_amount, admin_commission, agent_net_earning, payment_status, payment_gateway, transaction_id,
                 boarding_point, dropping_point, status, discount_amount, promo_code, booking_source, original_fare, discount_applied, final_fare,
                 dynamic_occupancy_adjustment, dynamic_time_adjustment, base_fare, gst_rate, gst_amount, total_fare_after_tax
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'paid', 'Razorpay', ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PhonePe', ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
 
-        $mock_tx_id = 'pay_mock_' . bin2hex(random_bytes(8));
+        $payment_status_init = $is_agent ? 'paid' : 'pending';
+        $mock_tx_id = $is_agent ? ('pay_mock_' . bin2hex(random_bytes(8))) : null;
         $applied_promo_code = ($booking_source === 'customer' && !empty($applied_promo)) ? $applied_promo : null;
 
         $booking_stmt->execute([
@@ -336,6 +340,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
             $grand_total,
             $admin_commission,
             $agent_net_earning,
+            $payment_status_init,
             $mock_tx_id,
             $boarding_point,
             $dropping_point,
@@ -355,7 +360,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
         $booking_id = $pdo->lastInsertId();
 
         // --- NEW AGENT WALLET DEDUCT & LEDGER START ---
-        if ($current_role === 'agent') {
+        if ($is_agent) {
             $new_balance = $wallet_balance - $grand_total;
             $update_wallet = $pdo->prepare("UPDATE agent_wallets SET balance = ? WHERE id = ?");
             $update_wallet->execute([$new_balance, $wallet['id']]);
@@ -387,9 +392,14 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
 
         $update_seat_stmt = $pdo->prepare("
             UPDATE trip_seats 
-            SET status = 'booked', hold_expires_at = NULL, locked_by_session = NULL, locked_at = NULL 
+            SET status = ?, hold_expires_at = ?, locked_by_session = ?, locked_at = ?
             WHERE trip_id = ? AND seat_number = ?
         ");
+
+        $seat_status_init = $is_agent ? 'booked' : 'hold';
+        $expire_time_15m = $is_agent ? null : date('Y-m-d H:i:s', strtotime('+15 minutes'));
+        $session_marker = $is_agent ? null : session_id();
+        $locked_at_val = $is_agent ? null : date('Y-m-d H:i:s');
 
         foreach ($seats as $index => $seat) {
             $name = trim($passenger_names[$index] ?? 'Passenger ' . ($index + 1));
@@ -398,7 +408,30 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
             $price = $seat_fares[$seat];
 
             $passenger_stmt->execute([$booking_id, $seat, $name, $age, $gender, $price]);
-            $update_seat_stmt->execute([$trip_id, $seat]);
+            $update_seat_stmt->execute([$seat_status_init, $expire_time_15m, $session_marker, $locked_at_val, $trip_id, $seat]);
+        }
+
+        // --- GATEWAY INTEGRATION FOR CUSTOMERS ---
+        if (!$is_agent) {
+            $gateway = new PaymentGateway($pdo);
+            $payRec = $gateway->createPayment('booking', $booking_id, $grand_total, $booking_ref);
+            $initPay = $gateway->initiatePayment($payRec['payment_reference'], $payRec['attempt_reference'], $grand_total, $current_user_id);
+            
+            if ($initPay['success'] && isset($initPay['url'])) {
+                // Update booking with the merchant reference as the transaction_id for lookup
+                $updBk = $pdo->prepare("UPDATE bookings SET transaction_id = ? WHERE id = ?");
+                $updBk->execute([$payRec['payment_reference'], $booking_id]);
+
+                $pdo->commit();
+                echo json_encode([
+                    'success' => true,
+                    'redirect' => true,
+                    'url' => $initPay['url']
+                ]);
+                exit();
+            } else {
+                throw new Exception($initPay['message'] ?? 'Payment gateway initialization failed.');
+            }
         }
 
         // Notify Operator Admin
@@ -704,7 +737,18 @@ require_once __DIR__ . '/includes/header.php';
                         </div>
                         <div class="col-md-4 mb-3">
                             <label class="form-label text-secondary small fw-semibold"><?= __('phone', 'Mobile Number') ?></label>
-                            <input type="tel" name="contact_phone" class="form-control form-control-swift" placeholder="<?= __('phone', '10-digit number') ?>" required>
+                            <div class="input-group">
+                                <select name="isd_code" class="form-select bg-dark border-secondary text-white border-end-0" style="max-width: 95px; border-radius: 12px 0 0 12px; height: 48px;">
+                                    <option value="+91" selected>+91</option>
+                                    <option value="+1">+1</option>
+                                    <option value="+44">+44</option>
+                                    <option value="+977">+977</option>
+                                    <option value="+971">+971</option>
+                                    <option value="+60">+60</option>
+                                    <option value="+65">+65</option>
+                                </select>
+                                <input type="tel" name="contact_phone" class="form-control form-control-swift border-start-0" style="border-radius: 0 12px 12px 0; height: 48px;" placeholder="<?= __('phone', '10-digit number') ?>" required>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -767,61 +811,8 @@ require_once __DIR__ . '/includes/header.php';
     </div>
 </div>
 
-<!-- MOCK RAZORPAY GATEWAY OVERLAY MODAL -->
-<div class="modal fade" id="razorpayModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content glass-card border-secondary text-white shadow-2xl" style="border-radius: 24px; background: #111111;">
-            <!-- Modal Header -->
-            <div class="modal-header border-secondary p-4 d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center gap-2">
-                    <span class="bg-indigo p-2 rounded-3 text-white d-flex align-items-center justify-content-center" style="background:#5252ff;"><i class="fa-solid fa-shield-halved"></i></span>
-                    <div>
-                        <h6 class="modal-title fw-bold text-white mb-0">Razorpay Secure Checkout</h6>
-                        <span class="text-secondary small" style="font-size:0.75rem;">Merchant: <?= SYSTEM_NAME ?> Inc.</span>
-                    </div>
-                </div>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-
-            <!-- Modal Body -->
-            <div class="modal-body p-4">
-                <div class="text-center mb-4">
-                    <span class="text-secondary small d-block">AMOUNT TO PAY</span>
-                    <h2 class="fw-bold text-indigo" style="font-size: 2.5rem; color:#818cf8;">₹<?= number_format($grand_total, 2) ?></h2>
-                </div>
-
-                <div class="p-3 rounded-4 bg-dark bg-opacity-30 border border-secondary border-opacity-20 mb-4 small text-secondary">
-                    <div class="d-flex justify-content-between mb-2"><span>Order Reference</span><span class="text-white font-monospace">ORD-<?= time() ?></span></div>
-                    <div class="d-flex justify-content-between"><span>Email Contact</span><span class="text-white" id="modal-email-fill"></span></div>
-                </div>
-
-                <div class="mb-4">
-                    <label class="form-label text-secondary small fw-semibold">Select Mock Payment Method</label>
-                    <div class="d-grid gap-3">
-                        <button type="button" class="btn btn-secondary-glass text-start py-3 px-3 d-flex align-items-center justify-content-between w-100 rounded-3 select-payment-opt" data-status="success">
-                            <span><i class="fa-solid fa-credit-card text-indigo me-3"></i>Mock Credit Card (Simulate Success)</span>
-                            <i class="fa-solid fa-chevron-right text-secondary small"></i>
-                        </button>
-                        <button type="button" class="btn btn-secondary-glass text-start py-3 px-3 d-flex align-items-center justify-content-between w-100 rounded-3 select-payment-opt" data-status="failed">
-                            <span><i class="fa-solid fa-circle-xmark text-danger me-3"></i>Simulate Failed Transaction</span>
-                            <i class="fa-solid fa-chevron-right text-secondary small"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Modal Footer -->
-            <div class="modal-footer border-secondary p-4 d-flex justify-content-between align-items-center">
-                <span class="text-secondary small" style="font-size: 0.75rem;"><i class="fa-solid fa-lock me-1"></i>256-bit SSL Encrypted Connection</span>
-                <span class="text-secondary small font-monospace text-uppercase" style="font-size: 0.75rem;">Razorpay v3</span>
-            </div>
-        </div>
-    </div>
-</div>
-
 <script>
     $(document).ready(function() {
-
         // Initiate secure checkout trigger
         $('#btnInitiatePayment').click(function() {
             // Validate form input elements first
@@ -830,27 +821,6 @@ require_once __DIR__ . '/includes/header.php';
                 form.reportValidity();
                 return;
             }
-
-            // Fill modal details
-            var email = $('input[name="contact_email"]').val();
-            $('#modal-email-fill').text(email);
-
-            // Show Razorpay modal
-            $('#razorpayModal').modal('show');
-        });
-
-        // Handle Payment Selection Simulation
-        $('.select-payment-opt').click(function() {
-            var status = $(this).data('status');
-
-            if (status === 'failed') {
-                alert("Mock Payment Failed: You simulated a failed transaction. Please choose card simulation for success.");
-                $('#razorpayModal').modal('hide');
-                return;
-            }
-
-            // Payment approved - Trigger AJAX execution
-            $('#razorpayModal').modal('hide');
 
             // Show interactive processing indicator
             var originalBtnText = $('#btnInitiatePayment').html();
@@ -866,8 +836,15 @@ require_once __DIR__ . '/includes/header.php';
                 dataType: 'json',
                 success: function(response) {
                     if (response.success) {
-                        alert("Mock Payment Successful! Generating your ticket...");
-                        window.location.href = '<?= BASE_URL ?>/ticket.php?ref=' + response.booking_ref;
+                        if (response.redirect) {
+                            window.location.href = response.url;
+                        } else {
+                            alert("Booking Successful! Generating your ticket...");
+                            window.location.href = '<?= BASE_URL ?>/ticket.php?ref=' + response.booking_ref;
+                        }
+                    } else if (response.insufficient_wallet) {
+                        alert("Insufficient Wallet Balance! Need additional ₹" + response.shortfall.toFixed(2) + ". Redirecting to wallet history...");
+                        window.location.href = '<?= BASE_URL ?>/agent/wallet_history.php?shortfall=' + response.shortfall;
                     } else {
                         alert("Booking Error: " + response.message);
                         $('#btnInitiatePayment').html(originalBtnText).removeClass('disabled');

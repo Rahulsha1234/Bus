@@ -268,6 +268,10 @@ $user = get_logged_user();
                         class="sidebar-link <?= ($cur_nav === 'wallets.php') ? 'active' : '' ?>">
                         <i class="fa-solid fa-wallet"></i>Manage Wallets
                     </a>
+                    <a href="<?= BASE_URL ?>/admin/payments_dashboard.php"
+                        class="sidebar-link <?= ($cur_nav === 'payments_dashboard.php') ? 'active' : '' ?>">
+                        <i class="fa-solid fa-credit-card"></i>Payments Dashboard
+                    </a>
 
                     <hr class="border-secondary my-4">
 
@@ -309,9 +313,11 @@ $user = get_logged_user();
                                     href="<?= BASE_URL ?>/admin/agents.php"><?= __('nav_manage_agents', 'Agents') ?></a></li>
                             <li><a class="dropdown-item py-2"
                                     href="<?= BASE_URL ?>/admin/wallets.php">Manage Wallets</a></li>
-                            <li>
-                                <hr class="dropdown-divider border-secondary">
-                            </li>
+                             <li><a class="dropdown-item py-2"
+                                     href="<?= BASE_URL ?>/admin/payments_dashboard.php">Payments Dashboard</a></li>
+                             <li>
+                                 <hr class="dropdown-divider border-secondary">
+                             </li>
                             <!-- Mobile Language Switcher Items -->
                             <li><a class="dropdown-item py-2 rounded <?= CURRENT_LANG === 'en' ? 'text-success fw-bold' : '' ?>" href="?lang=en">English</a></li>
                             <li><a class="dropdown-item py-2 rounded <?= CURRENT_LANG === 'hi' ? 'text-success fw-bold' : '' ?>" href="?lang=hi">हिन्दी</a></li>

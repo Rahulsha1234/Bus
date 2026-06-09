@@ -232,54 +232,13 @@ $recharge_records = $recharges_stmt->fetchAll();
                         <label class="form-label text-secondary small fw-semibold">Enter Amount to Recharge (₹)</label>
                         <div class="input-group">
                             <span class="input-group-text bg-dark border-secondary text-secondary">₹</span>
-                            <input type="number" id="rechargeAmountVal" class="form-control form-control-swift bg-dark text-white border-secondary" placeholder="e.g. 2000" min="1" required>
+                            <input type="number" id="rechargeAmountVal" name="amount" class="form-control form-control-swift bg-dark text-white border-secondary" placeholder="e.g. 2000" min="1" required>
                         </div>
                     </div>
                     <div class="d-grid">
-                        <button type="submit" class="btn btn-primary-gradient py-3 fw-bold text-uppercase" style="border-radius: 12px;">Initiate Razorpay Payment</button>
+                        <button type="submit" id="btnSubmitRecharge" class="btn btn-primary-gradient py-3 fw-bold text-uppercase" style="border-radius: 12px;">Initiate Secure Recharge</button>
                     </div>
                 </form>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- MOCK RAZORPAY GATEWAY OVERLAY MODAL -->
-<div class="modal fade" id="razorpayModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content glass-card border-secondary text-white shadow-2xl" style="border-radius: 24px; background: #121829;">
-            <div class="modal-header border-secondary p-4 d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center gap-2">
-                    <span class="p-2 rounded-3 text-white d-flex align-items-center justify-content-center" style="background:#5252ff;"><i class="fa-solid fa-shield-halved"></i></span>
-                    <div>
-                        <h6 class="modal-title fw-bold text-white mb-0">Razorpay Secure Checkout</h6>
-                        <span class="text-secondary small" style="font-size:0.75rem;">Merchant: <?= SYSTEM_NAME ?> Inc.</span>
-                    </div>
-                </div>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-4">
-                <div class="text-center mb-4">
-                    <span class="text-secondary small d-block">AMOUNT TO RECHARGE</span>
-                    <h2 class="fw-bold" style="font-size: 2.5rem; color:#ffc107;">₹<span id="razorpay-recharge-amount">0.00</span></h2>
-                </div>
-                <div class="mb-4">
-                    <label class="form-label text-secondary small fw-semibold">Select Payment Method</label>
-                    <div class="d-grid gap-3">
-                        <button type="button" class="btn btn-secondary-glass text-start py-3 px-3 d-flex align-items-center justify-content-between w-100 rounded-3 select-payment-opt" data-status="success">
-                            <span><i class="fa-solid fa-credit-card text-success me-3"></i>Credit / Debit Card (Simulate Success)</span>
-                            <i class="fa-solid fa-chevron-right text-secondary small"></i>
-                        </button>
-                        <button type="button" class="btn btn-secondary-glass text-start py-3 px-3 d-flex align-items-center justify-content-between w-100 rounded-3 select-payment-opt" data-status="failed">
-                            <span><i class="fa-solid fa-circle-xmark text-danger me-3"></i>Simulate Failed Transaction</span>
-                            <i class="fa-solid fa-chevron-right text-secondary small"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer border-secondary p-4 d-flex justify-content-between align-items-center">
-                <span class="text-secondary small" style="font-size: 0.75rem;"><i class="fa-solid fa-lock me-1"></i>256-bit SSL Encrypted Connection</span>
-                <span class="text-secondary small font-monospace text-uppercase" style="font-size: 0.75rem;">Razorpay v3</span>
             </div>
         </div>
     </div>
@@ -308,14 +267,21 @@ $(document).ready(function() {
         }
     });
 
-    // Auto-open recharge modal if parameter recharge=1 is present
-    if (new URLSearchParams(window.location.search).get('recharge') === '1') {
+    // Check if shortfall or recharge is passed in URL
+    var urlParams = new URLSearchParams(window.location.search);
+    var shortfall = urlParams.get('shortfall');
+    if (shortfall) {
+        var cleanShortfall = Math.ceil(parseFloat(shortfall));
+        $('#rechargeAmountVal').val(cleanShortfall);
         $('#rechargeModal').modal('show');
-        // Clean URL parameter so refresh doesn't pop it up repeatedly
-        window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (urlParams.get('recharge') === '1') {
+        $('#rechargeModal').modal('show');
     }
 
-    var selectedRechargeAmount = 0;
+    // Clean URL query parameters so refresh doesn't trigger modal again
+    if (window.location.search) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
 
     $('#rechargeForm').submit(function(e) {
         e.preventDefault();
@@ -324,48 +290,29 @@ $(document).ready(function() {
             alert("Please enter a valid amount.");
             return;
         }
-        selectedRechargeAmount = amountVal;
 
-        $('#rechargeModal').modal('hide');
-        $('#razorpay-recharge-amount').text(selectedRechargeAmount.toFixed(2));
-        $('#razorpayModal').modal('show');
-    });
-
-    $('.select-payment-opt').click(function() {
-        var status = $(this).data('status');
-        if (status === 'failed') {
-            alert("Simulated recharge payment failed.");
-            $('#razorpayModal').modal('hide');
-            return;
-        }
-
-        $('#razorpayModal').modal('hide');
-
-        var mockPayId = 'pay_' + Math.random().toString(36).substr(2, 9);
-        var mockOrderId = 'order_' + Math.random().toString(36).substr(2, 9);
-        var mockSig = 'sig_' + Math.random().toString(36).substr(2, 9);
+        var origBtnText = $('#btnSubmitRecharge').html();
+        $('#btnSubmitRecharge').html('<i class="fa-solid fa-spinner fa-spin me-2"></i>Processing Secure Transaction...').addClass('disabled');
 
         $.ajax({
-            url: '<?= BASE_URL ?>/ajax/wallet_recharge.php',
+            url: '<?= BASE_URL ?>/ajax/initiate_recharge.php',
             type: 'POST',
             data: {
                 csrf_token: $('#recharge_csrf_token').val(),
-                amount: selectedRechargeAmount,
-                razorpay_payment_id: mockPayId,
-                razorpay_order_id: mockOrderId,
-                razorpay_signature: mockSig
+                amount: amountVal
             },
             dataType: 'json',
             success: function(response) {
-                if (response.success) {
-                    alert("Wallet recharged successfully with ₹" + selectedRechargeAmount.toFixed(2));
-                    window.location.reload();
+                if (response.success && response.redirect) {
+                    window.location.href = response.url;
                 } else {
-                    alert("Recharge failed: " + response.message);
+                    alert("Recharge Error: " + response.message);
+                    $('#btnSubmitRecharge').html(origBtnText).removeClass('disabled');
                 }
             },
             error: function() {
-                alert("CRITICAL ERROR: Failed to recharge wallet.");
+                alert("CRITICAL ERROR: Failed to communicate with payment processor. Please check connection.");
+                $('#btnSubmitRecharge').html(origBtnText).removeClass('disabled');
             }
         });
     });

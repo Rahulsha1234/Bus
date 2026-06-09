@@ -89,6 +89,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 $error = "Failed to update GST settings: " . $e->getMessage();
             }
+        } elseif ($action === 'update_payment') {
+            $p_merchant = trim($_POST['payment_merchant_id'] ?? 'DEMO_MERCHANT');
+            $p_client = trim($_POST['payment_client_id'] ?? 'DEMO_CLIENT');
+            $p_secret = trim($_POST['payment_client_secret'] ?? 'DEMO_SECRET');
+            $p_salt = trim($_POST['payment_salt_key'] ?? 'DEMO_SALT');
+            $p_salt_index = trim($_POST['payment_salt_index'] ?? '1');
+            $p_env = trim($_POST['payment_environment'] ?? 'sandbox');
+            $p_callback = trim($_POST['payment_callback_url'] ?? '');
+            $p_webhook = trim($_POST['payment_webhook_url'] ?? '');
+            $p_mock = isset($_POST['payment_mock_mode']) ? '1' : '0';
+
+            try {
+                $pdo->beginTransaction();
+
+                $stmt = $pdo->prepare("UPDATE system_settings SET setting_value = ? WHERE setting_key = 'payment_merchant_id'");
+                $stmt->execute([$p_merchant]);
+
+                $stmt = $pdo->prepare("UPDATE system_settings SET setting_value = ? WHERE setting_key = 'payment_client_id'");
+                $stmt->execute([$p_client]);
+
+                $stmt = $pdo->prepare("UPDATE system_settings SET setting_value = ? WHERE setting_key = 'payment_client_secret'");
+                $stmt->execute([$p_secret]);
+
+                $stmt = $pdo->prepare("UPDATE system_settings SET setting_value = ? WHERE setting_key = 'payment_salt_key'");
+                $stmt->execute([$p_salt]);
+
+                $stmt = $pdo->prepare("UPDATE system_settings SET setting_value = ? WHERE setting_key = 'payment_salt_index'");
+                $stmt->execute([$p_salt_index]);
+
+                $stmt = $pdo->prepare("UPDATE system_settings SET setting_value = ? WHERE setting_key = 'payment_environment'");
+                $stmt->execute([$p_env]);
+
+                $stmt = $pdo->prepare("UPDATE system_settings SET setting_value = ? WHERE setting_key = 'payment_callback_url'");
+                $stmt->execute([$p_callback]);
+
+                $stmt = $pdo->prepare("UPDATE system_settings SET setting_value = ? WHERE setting_key = 'payment_webhook_url'");
+                $stmt->execute([$p_webhook]);
+
+                $stmt = $pdo->prepare("UPDATE system_settings SET setting_value = ? WHERE setting_key = 'payment_mock_mode'");
+                $stmt->execute([$p_mock]);
+
+                $pdo->commit();
+                
+                $success = "Payment Gateway Settings updated successfully!";
+                log_activity($pdo, $_SESSION['user_id'], 'OWNER_PAYMENT_UPDATE', "Merchant: $p_merchant, Env: $p_env, Mock: $p_mock");
+                
+                echo "<script>setTimeout(function(){ window.location.href = '" . BASE_URL . "/super_admin/owner_control.php'; }, 1000);</script>";
+
+            } catch (Exception $e) {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+                $error = "Failed to update Payment settings: " . $e->getMessage();
+            }
         }
     }
 }
@@ -102,6 +156,17 @@ try {
     $gst_status = $pdo->query("SELECT setting_value FROM system_settings WHERE setting_key = 'gst_status'")->fetchColumn() ?: '1';
     $gst_name = $pdo->query("SELECT setting_value FROM system_settings WHERE setting_key = 'gst_name'")->fetchColumn() ?: 'GST';
     $gst_effective_date = $pdo->query("SELECT setting_value FROM system_settings WHERE setting_key = 'gst_effective_date'")->fetchColumn() ?: date('Y-m-d');
+    
+    // Fetch payment gateway configuration
+    $p_merchant = $pdo->query("SELECT setting_value FROM system_settings WHERE setting_key = 'payment_merchant_id'")->fetchColumn() ?: 'DEMO_MERCHANT';
+    $p_client = $pdo->query("SELECT setting_value FROM system_settings WHERE setting_key = 'payment_client_id'")->fetchColumn() ?: 'DEMO_CLIENT';
+    $p_secret = $pdo->query("SELECT setting_value FROM system_settings WHERE setting_key = 'payment_client_secret'")->fetchColumn() ?: 'DEMO_SECRET';
+    $p_salt = $pdo->query("SELECT setting_value FROM system_settings WHERE setting_key = 'payment_salt_key'")->fetchColumn() ?: 'DEMO_SALT';
+    $p_salt_index = $pdo->query("SELECT setting_value FROM system_settings WHERE setting_key = 'payment_salt_index'")->fetchColumn() ?: '1';
+    $p_env = $pdo->query("SELECT setting_value FROM system_settings WHERE setting_key = 'payment_environment'")->fetchColumn() ?: 'sandbox';
+    $p_callback = $pdo->query("SELECT setting_value FROM system_settings WHERE setting_key = 'payment_callback_url'")->fetchColumn() ?: '';
+    $p_webhook = $pdo->query("SELECT setting_value FROM system_settings WHERE setting_key = 'payment_webhook_url'")->fetchColumn() ?: '';
+    $p_mock = $pdo->query("SELECT setting_value FROM system_settings WHERE setting_key = 'payment_mock_mode'")->fetchColumn() ?: '1';
 } catch (PDOException $e) {
     $m_mode = '0';
     $a_suspend = '0';
@@ -110,6 +175,16 @@ try {
     $gst_status = '1';
     $gst_name = 'GST';
     $gst_effective_date = date('Y-m-d');
+    
+    $p_merchant = 'DEMO_MERCHANT';
+    $p_client = 'DEMO_CLIENT';
+    $p_secret = 'DEMO_SECRET';
+    $p_salt = 'DEMO_SALT';
+    $p_salt_index = '1';
+    $p_env = 'sandbox';
+    $p_callback = '';
+    $p_webhook = '';
+    $p_mock = '1';
 }
 
 // Fetch security audit logs (Limit 50)
@@ -310,6 +385,85 @@ try {
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mt-2">
+    <!-- PhonePe Payment Gateway Configuration Card -->
+    <div class="col-lg-12">
+        <div class="glass-card p-5">
+            <h4 class="fw-bold text-white mb-4"><i class="fa-solid fa-credit-card text-indigo me-2"></i>PhonePe Payment Gateway Settings</h4>
+            <span class="text-secondary small d-block mb-4">Configure credentials for production or sandbox environments. Enable the mock switch for full local testing.</span>
+            
+            <form action="<?= htmlspecialchars($_SERVER['PHP_SELF']) ?>" method="POST" autocomplete="off">
+                <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
+                <input type="hidden" name="action" value="update_payment">
+                
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <!-- Mock Payment Switch -->
+                        <div class="form-check form-switch p-3 rounded-4 bg-dark bg-opacity-20 border border-secondary border-opacity-10 h-100">
+                            <input class="form-check-input ms-0 me-3" type="checkbox" role="switch" name="payment_mock_mode" id="payMockToggle" value="1" <?= ($p_mock === '1') ? 'checked' : '' ?>>
+                            <label class="form-check-label text-white fw-bold d-block" for="payMockToggle">Enable Developer Mock Payment Gateway</label>
+                            <span class="text-secondary small">When enabled, transactions will bypass external API endpoints and redirect to the mock checkout terminal allowing simulated results.</span>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <!-- Environment -->
+                        <div class="p-3 rounded-4 bg-dark bg-opacity-20 border border-secondary border-opacity-10 h-100">
+                            <label for="payment_environment" class="form-label text-secondary small fw-semibold">Gateway Environment</label>
+                            <select name="payment_environment" id="payment_environment" class="form-select form-control-swift" required>
+                                <option value="sandbox" <?= $p_env === 'sandbox' ? 'selected' : '' ?>>Sandbox / Pre-Production</option>
+                                <option value="production" <?= $p_env === 'production' ? 'selected' : '' ?>>Production / Live Merchant</option>
+                            </select>
+                            <span class="text-secondary small d-block mt-2">Sandbox connects to preprod URLs; Production processes actual payments.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-4 mb-3">
+                        <label for="payment_merchant_id" class="form-label text-secondary small fw-semibold">Merchant ID</label>
+                        <input type="text" name="payment_merchant_id" id="payment_merchant_id" class="form-control form-control-swift" value="<?= htmlspecialchars($p_merchant) ?>" placeholder="e.g. DEMO_MERCHANT" required>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="payment_client_id" class="form-label text-secondary small fw-semibold">Client ID</label>
+                        <input type="text" name="payment_client_id" id="payment_client_id" class="form-control form-control-swift" value="<?= htmlspecialchars($p_client) ?>" placeholder="e.g. DEMO_CLIENT" required>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="payment_client_secret" class="form-label text-secondary small fw-semibold">Client Secret</label>
+                        <input type="password" name="payment_client_secret" id="payment_client_secret" class="form-control form-control-swift" value="<?= htmlspecialchars($p_secret) ?>" placeholder="e.g. DEMO_SECRET" required>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-6 mb-3">
+                        <label for="payment_salt_key" class="form-label text-secondary small fw-semibold">Salt Key (AES encryption / signing)</label>
+                        <input type="password" name="payment_salt_key" id="payment_salt_key" class="form-control form-control-swift" value="<?= htmlspecialchars($p_salt) ?>" placeholder="e.g. DEMO_SALT" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="payment_salt_index" class="form-label text-secondary small fw-semibold">Salt Index</label>
+                        <input type="number" name="payment_salt_index" id="payment_salt_index" class="form-control form-control-swift" value="<?= htmlspecialchars($p_salt_index) ?>" min="1" max="10" placeholder="e.g. 1" required>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-6 mb-3">
+                        <label for="payment_callback_url" class="form-label text-secondary small fw-semibold">Callback URL (Redirect redirectUrl)</label>
+                        <input type="url" name="payment_callback_url" id="payment_callback_url" class="form-control form-control-swift" value="<?= htmlspecialchars($p_callback ?: BASE_URL . '/payment_callback.php') ?>" placeholder="e.g. http://yoursite.com/payment_callback.php" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="payment_webhook_url" class="form-label text-secondary small fw-semibold">Webhook URL (Server callbackUrl)</label>
+                        <input type="url" name="payment_webhook_url" id="payment_webhook_url" class="form-control form-control-swift" value="<?= htmlspecialchars($p_webhook ?: BASE_URL . '/payment_webhook.php') ?>" placeholder="e.g. http://yoursite.com/payment_webhook.php" required>
+                    </div>
+                </div>
+                
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary-gradient py-3 text-uppercase fw-bold" onclick="return confirm('Apply changes to global Payment settings?')">Save Payment Gateway Settings</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
