@@ -107,12 +107,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         elseif ($action === 'operator') {
             $bus_id = intval($_POST['bus_id'] ?? 0);
             $op_name = trim($_POST['operator_name'] ?? '');
-            $op_phone = trim($_POST['contact_number'] ?? '');
-            $op_whatsapp = trim($_POST['whatsapp_number'] ?? '');
-            $op_emergency = trim($_POST['emergency_number'] ?? '');
+            
+            $op_phone_code = trim($_POST['contact_number_code'] ?? '');
+            $op_phone_num = trim($_POST['contact_number'] ?? '');
+            $op_phone = trim($op_phone_code . ' ' . $op_phone_num);
+
+            $op_whatsapp_code = trim($_POST['whatsapp_number_code'] ?? '');
+            $op_whatsapp_num = trim($_POST['whatsapp_number'] ?? '');
+            $op_whatsapp = trim($op_whatsapp_code . ' ' . $op_whatsapp_num);
+
+            $op_emergency_code = trim($_POST['emergency_number_code'] ?? '');
+            $op_emergency_num = trim($_POST['emergency_number'] ?? '');
+            $op_emergency = trim($op_emergency_code . ' ' . $op_emergency_num);
+
             $op_email = trim($_POST['support_email'] ?? '');
 
-            if (empty($op_name) || empty($op_phone) || empty($op_whatsapp) || empty($op_emergency) || empty($op_email) || $bus_id === 0) {
+            if (empty($op_name) || empty($op_phone_num) || empty($op_whatsapp_num) || empty($op_emergency_num) || empty($op_email) || $bus_id === 0) {
                 $error = __('fill_all_operator_fields', "Please fill in all operator contact fields.");
             } else {
                 // Verify ownership of the bus
@@ -393,17 +403,59 @@ try {
 
                     <div class="mb-3">
                         <label class="form-label text-secondary small fw-semibold"><?= __('support_contact_number', 'Support Contact Number') ?></label>
-                        <input type="text" name="contact_number" id="op_contact_number" class="form-control form-control-swift" placeholder="E.G. +91 9876543210" oninput="this.value = this.value.toUpperCase()" required>
+                        <div class="input-group">
+                            <select name="contact_number_code" id="op_contact_number_code" class="form-select form-control-swift" style="max-width: 120px;">
+                                <option value="+91">+91 (IN)</option>
+                                <option value="+977">+977 (NP)</option>
+                                <option value="+1">+1 (US)</option>
+                                <option value="+44">+44 (UK)</option>
+                                <option value="+971">+971 (AE)</option>
+                                <option value="+92">+92 (PK)</option>
+                                <option value="+94">+94 (LK)</option>
+                                <option value="+880">+880 (BD)</option>
+                                <option value="+975">+975 (BT)</option>
+                                <option value="+960">+960 (MV)</option>
+                            </select>
+                            <input type="text" name="contact_number" id="op_contact_number" class="form-control form-control-swift" placeholder="9876543210" oninput="this.value = this.value.toUpperCase().replace(/[^0-9\-]/g, '')" required>
+                        </div>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label text-secondary small fw-semibold"><?= __('whatsapp_number', 'WhatsApp Number') ?></label>
-                        <input type="text" name="whatsapp_number" id="op_whatsapp_number" class="form-control form-control-swift" placeholder="E.G. +91 9876543210" oninput="this.value = this.value.toUpperCase()" required>
+                        <div class="input-group">
+                            <select name="whatsapp_number_code" id="op_whatsapp_number_code" class="form-select form-control-swift" style="max-width: 120px;">
+                                <option value="+91">+91 (IN)</option>
+                                <option value="+977">+977 (NP)</option>
+                                <option value="+1">+1 (US)</option>
+                                <option value="+44">+44 (UK)</option>
+                                <option value="+971">+971 (AE)</option>
+                                <option value="+92">+92 (PK)</option>
+                                <option value="+94">+94 (LK)</option>
+                                <option value="+880">+880 (BD)</option>
+                                <option value="+975">+975 (BT)</option>
+                                <option value="+960">+960 (MV)</option>
+                            </select>
+                            <input type="text" name="whatsapp_number" id="op_whatsapp_number" class="form-control form-control-swift" placeholder="9876543210" oninput="this.value = this.value.toUpperCase().replace(/[^0-9\-]/g, '')" required>
+                        </div>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold"><?= __('emergency_helpline_number', 'Emergency Helpline Number') ?></label>
-                        <input type="text" name="emergency_number" id="op_emergency_number" class="form-control form-control-swift" placeholder="E.G. 1800-XXX-XXXX" oninput="this.value = this.value.toUpperCase()" required>
+                        <label class="form-label text-secondary small fw-semibold"><?= __('emergency_helpline_number', 'Helpline Number') ?></label>
+                        <div class="input-group">
+                            <select name="emergency_number_code" id="op_emergency_number_code" class="form-select form-control-swift" style="max-width: 120px;">
+                                <option value="+91">+91 (IN)</option>
+                                <option value="+977">+977 (NP)</option>
+                                <option value="+1">+1 (US)</option>
+                                <option value="+44">+44 (UK)</option>
+                                <option value="+971">+971 (AE)</option>
+                                <option value="+92">+92 (PK)</option>
+                                <option value="+94">+94 (LK)</option>
+                                <option value="+880">+880 (BD)</option>
+                                <option value="+975">+975 (BT)</option>
+                                <option value="+960">+960 (MV)</option>
+                            </select>
+                            <input type="text" name="emergency_number" id="op_emergency_number" class="form-control form-control-swift" placeholder="9876543210" oninput="this.value = this.value.toUpperCase().replace(/[^0-9\-]/g, '')" required>
+                        </div>
                     </div>
 
                     <div class="mb-3">
@@ -438,13 +490,47 @@ $(document).ready(function() {
         $('#delete_bus_id').val($(this).data('id'));
     });
 
+    // Helper to parse phone with country code
+    function parsePhone(fullPhone) {
+        fullPhone = (fullPhone || '').trim();
+        var code = '+91'; // default
+        var num = fullPhone;
+        if (fullPhone.startsWith('+')) {
+            var parts = fullPhone.split(' ');
+            if (parts.length > 1) {
+                code = parts[0];
+                num = parts.slice(1).join(' ');
+            } else {
+                var codes = ['+977', '+880', '+975', '+94', '+960', '+92', '+971', '+91', '+44', '+1'];
+                for (var i = 0; i < codes.length; i++) {
+                    if (fullPhone.startsWith(codes[i])) {
+                        code = codes[i];
+                        num = fullPhone.substring(codes[i].length).trim();
+                        break;
+                    }
+                }
+            }
+        }
+        return { code: code, num: num };
+    }
+
     // Fill Operator details fields
     $('.operator-btn').click(function() {
         $('#op_bus_id').val($(this).data('id'));
         $('#op_operator_name').val($(this).data('name'));
-        $('#op_contact_number').val($(this).data('phone'));
-        $('#op_whatsapp_number').val($(this).data('whatsapp'));
-        $('#op_emergency_number').val($(this).data('emergency'));
+        
+        var phoneData = parsePhone($(this).data('phone'));
+        $('#op_contact_number_code').val(phoneData.code);
+        $('#op_contact_number').val(phoneData.num);
+        
+        var whatsappData = parsePhone($(this).data('whatsapp'));
+        $('#op_whatsapp_number_code').val(whatsappData.code);
+        $('#op_whatsapp_number').val(whatsappData.num);
+        
+        var emergencyData = parsePhone($(this).data('emergency'));
+        $('#op_emergency_number_code').val(emergencyData.code);
+        $('#op_emergency_number').val(emergencyData.num);
+        
         $('#op_support_email').val($(this).data('email'));
     });
 });

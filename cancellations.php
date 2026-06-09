@@ -294,7 +294,7 @@ require_once __DIR__ . '/includes/header.php';
                     <div class="mb-2"><strong>Operator:</strong> <?= htmlspecialchars($operator['operator_name']) ?></div>
                     <div class="mb-2"><strong>Direct Helpline:</strong> <?= htmlspecialchars($operator['contact_number']) ?></div>
                     <div class="mb-2"><strong>WhatsApp Support:</strong> <?= htmlspecialchars($operator['whatsapp_number']) ?></div>
-                    <div class="mb-2"><strong>Emergency Hot-Line:</strong> <span class="text-danger fw-bold"><?= htmlspecialchars($operator['emergency_number']) ?></span></div>
+                    <div class="mb-2"><strong><?= __('emergency', 'Helpline') ?>:</strong> <span class="text-danger fw-bold"><?= htmlspecialchars($operator['emergency_number']) ?></span></div>
                     <div><strong>Support Email:</strong> <?= htmlspecialchars($operator['support_email']) ?></div>
                 </div>
             </div>

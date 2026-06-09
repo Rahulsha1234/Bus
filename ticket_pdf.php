@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Premium E-Ticket PDF / Print Controller
  */
@@ -95,7 +96,6 @@ try {
         'emergency_number' => '+1 (555) 911-0099',
         'support_email' => 'support@swiftbus-fleet.com'
     ];
-
 } catch (PDOException $e) {
     die("Error retrieving ticket: " . $e->getMessage());
 }
@@ -114,10 +114,10 @@ render_pdf_toolbar("ticket.php?ref=" . urlencode($booking['booking_reference']),
 ?>
 
 <div class="pdf-container">
-    <?php 
+    <?php
     // 2. Render Header Component
     $header_title = $is_customer_copy ? "E-Ticket & Boarding Pass" : "Agent Invoice copy";
-    render_pdf_header($header_title, "Booking Reference", $booking['booking_reference']); 
+    render_pdf_header($header_title, "Booking Reference", $booking['booking_reference']);
     ?>
 
     <!-- Status Highlight Row -->
@@ -144,8 +144,8 @@ render_pdf_toolbar("ticket.php?ref=" . urlencode($booking['booking_reference']),
                 <div class="mb-3">
                     <div class="info-label">Route Voyage</div>
                     <div class="info-value fs-5 text-success">
-                        <?= htmlspecialchars($booking['source']) ?> 
-                        <i class="fa-solid fa-arrow-right mx-2 text-muted" style="font-size:0.9rem;"></i> 
+                        <?= htmlspecialchars($booking['source']) ?>
+                        <i class="fa-solid fa-arrow-right mx-2 text-muted" style="font-size:0.9rem;"></i>
                         <?= htmlspecialchars($booking['destination']) ?>
                     </div>
                 </div>
@@ -231,7 +231,7 @@ render_pdf_toolbar("ticket.php?ref=" . urlencode($booking['booking_reference']),
                     <div class="small">
                         <strong>Operator:</strong> <?= htmlspecialchars($operator['operator_name']) ?><br>
                         <strong>Phone:</strong> <?= htmlspecialchars($operator['contact_number']) ?> | WhatsApp: <?= htmlspecialchars($operator['whatsapp_number']) ?><br>
-                        <strong>Emergency:</strong> <span class="text-danger fw-bold"><?= htmlspecialchars($operator['emergency_number']) ?></span>
+                        <strong><?= __('emergency', 'Helpline') ?>:</strong> <span class="text-danger fw-bold"><?= htmlspecialchars($operator['emergency_number']) ?></span>
                     </div>
                 </div>
             </div>
@@ -239,17 +239,17 @@ render_pdf_toolbar("ticket.php?ref=" . urlencode($booking['booking_reference']),
         <!-- 5. Summary Component -->
         <div class="col-md-6 text-md-end">
             <?php
-                $show_discount = true;
-                $base_fare_disp = floatval($booking['base_fare']);
-                $gst_amount_disp = floatval($booking['gst_amount']);
-                $total_paid_disp = floatval($booking['total_amount']);
+            $show_discount = true;
+            $base_fare_disp = floatval($booking['base_fare']);
+            $gst_amount_disp = floatval($booking['gst_amount']);
+            $total_paid_disp = floatval($booking['total_amount']);
 
-                if ($is_customer_copy && $booking['booking_source'] === 'agent') {
-                    $show_discount = false;
-                    $base_fare_disp = floatval($booking['base_fare']) + floatval($booking['discount_amount']);
-                    $gst_amount_disp = ($base_fare_disp * floatval($booking['gst_rate'])) / 100.00;
-                    $total_paid_disp = $base_fare_disp + $gst_amount_disp;
-                }
+            if ($is_customer_copy && $booking['booking_source'] === 'agent') {
+                $show_discount = false;
+                $base_fare_disp = floatval($booking['base_fare']) + floatval($booking['discount_amount']);
+                $gst_amount_disp = ($base_fare_disp * floatval($booking['gst_rate'])) / 100.00;
+                $total_paid_disp = $base_fare_disp + $gst_amount_disp;
+            }
             ?>
             <div class="pdf-summary-box d-block ms-md-auto">
                 <h6 class="info-label text-start border-bottom pb-2 mb-3">Fare Breakdown</h6>
@@ -269,14 +269,14 @@ render_pdf_toolbar("ticket.php?ref=" . urlencode($booking['booking_reference']),
                 </div>
                 <!-- SGST & CGST Split -->
                 <div class="pdf-summary-item text-muted" style="font-size: 0.75rem; padding-left: 15px;">
-                    <span>CGST (<?= number_format($booking['gst_rate']/2, 2) ?>%):</span>
-                    <strong>₹<?= number_format($gst_amount_disp/2, 2) ?></strong>
+                    <span>CGST (<?= number_format($booking['gst_rate'] / 2, 2) ?>%):</span>
+                    <strong>₹<?= number_format($gst_amount_disp / 2, 2) ?></strong>
                 </div>
                 <div class="pdf-summary-item text-muted" style="font-size: 0.75rem; padding-left: 15px;">
-                    <span>SGST (<?= number_format($booking['gst_rate']/2, 2) ?>%):</span>
-                    <strong>₹<?= number_format($gst_amount_disp/2, 2) ?></strong>
+                    <span>SGST (<?= number_format($booking['gst_rate'] / 2, 2) ?>%):</span>
+                    <strong>₹<?= number_format($gst_amount_disp / 2, 2) ?></strong>
                 </div>
-                <?php 
+                <?php
                 $invoice_convenience = floatval($total_paid_disp) - (floatval($base_fare_disp) + floatval($gst_amount_disp));
                 if ($invoice_convenience > 0.01):
                 ?>
@@ -296,7 +296,7 @@ render_pdf_toolbar("ticket.php?ref=" . urlencode($booking['booking_reference']),
 
     <!-- Guidelines -->
     <div class="mt-4 p-3 rounded bg-light bg-opacity-50 small text-center text-muted border">
-        <i class="fa-solid fa-circle-exclamation me-1 text-success"></i> 
+        <i class="fa-solid fa-circle-exclamation me-1 text-success"></i>
         Please arrive at the boarding point at least 15 minutes before the departure time. Carry this ticket along with a valid ID proof.
     </div>
 

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Visual Seating Layout Builder
  */
@@ -60,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         // APPLY TEMPLATE
         elseif ($action === 'apply_template') {
             $template_id = intval($_POST['template_id'] ?? 0);
-            
+
             try {
                 $stmt = $pdo->prepare("SELECT * FROM layout_templates WHERE id = ? AND admin_id = ? LIMIT 1");
                 $stmt->execute([$template_id, $_SESSION['user_id']]);
@@ -107,7 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $pdo->commit();
                     $success = __('template_applied_success', "Template successfully applied to this bus!");
                     log_activity($pdo, $_SESSION['user_id'], 'LAYOUT_TEMPLATE_APPLY', "Applied template ID $template_id to bus $bus_id");
-                    
+
                     // JS redirect because headers already sent by header.php
                     $js_redirect = "configure_layout.php?bus_id=" . $bus_id . "&success=" . urlencode($success);
                 }
@@ -233,8 +234,11 @@ $templates_stmt->execute([$_SESSION['user_id']]);
 $templates = $templates_stmt->fetchAll();
 ?>
 <?php if (!empty($js_redirect)): ?>
-<script>window.location.replace("<?= htmlspecialchars($js_redirect) ?>");</script>
-<?php exit(); endif; ?>
+    <script>
+        window.location.replace("<?= htmlspecialchars($js_redirect) ?>");
+    </script>
+<?php exit();
+endif; ?>
 
 <?php if (!empty($error)): ?>
     <div class="alert alert-danger border-0 bg-danger bg-opacity-10 text-danger rounded-3" role="alert">
@@ -288,7 +292,7 @@ $templates = $templates_stmt->fetchAll();
                 <input type="hidden" name="cols_count" id="form_cols" value="<?= $cols_count ?>">
                 <input type="hidden" name="layout_type" id="form_layout_type" value="<?= $layout_type ?>">
                 <input type="hidden" name="seats_data" id="form_seats_data">
-                
+
                 <button type="submit" id="btnSaveLayout" class="btn btn-primary-gradient w-100 py-3 font-semibold">
                     <i class="fa-solid fa-floppy-disk me-2"></i><?= __('save_visual_layout_btn', 'Save Visual Layout') ?>
                 </button>
@@ -305,7 +309,7 @@ $templates = $templates_stmt->fetchAll();
                 <input type="hidden" name="cols_count" id="tpl_cols" value="<?= $cols_count ?>">
                 <input type="hidden" name="layout_type" id="tpl_layout_type" value="<?= $layout_type ?>">
                 <input type="hidden" name="seats_data" id="tpl_seats_data">
-                
+
                 <div class="mb-3">
                     <label class="form-label text-secondary small fw-semibold"><?= __('template_name_label', 'Template Name') ?></label>
                     <input type="text" name="template_name" class="form-control form-control-swift" placeholder="<?= __('template_placeholder', 'e.g. Sleeper 2x1 Premium') ?>" required>
@@ -348,7 +352,7 @@ $templates = $templates_stmt->fetchAll();
             <?php endif; ?>
 
             <hr class="border-secondary my-4">
-            
+
             <a href="buses.php" class="btn btn-secondary-glass w-100"><?= __('back_to_fleet_btn', 'Back to Fleet') ?></a>
         </div>
     </div>
@@ -442,519 +446,690 @@ $templates = $templates_stmt->fetchAll();
 </div>
 
 <style>
-/* Grid canvas adapts to theme */
-.grid-canvas-board {
-    background: var(--grid-canvas-bg);
-    border: 1px solid var(--border-glass);
-}
+    /* Grid canvas adapts to theme */
+    .grid-canvas-board {
+        background: var(--grid-canvas-bg);
+        border: 1px solid var(--border-glass);
+    }
 
-/* Light theme canvas background */
-:root {
-    --grid-canvas-bg: rgba(44, 44, 44, 0.06);
-    --grid-cell-border: rgba(92, 92, 92, 0.45);
-}
-[data-theme="dark"] {
-    --grid-canvas-bg: rgba(0, 0, 0, 0.35);
-    --grid-cell-border: rgba(255, 255, 255, 0.18);
-}
+    /* Light theme canvas background */
+    :root {
+        --grid-canvas-bg: rgba(44, 44, 44, 0.06);
+        --grid-cell-border: rgba(92, 92, 92, 0.45);
+    }
 
-.grid-cell {
-    width: 60px;
-    height: 60px;
-    border: 1.5px dashed var(--grid-cell-border);
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    background: transparent;
-    transition: all 0.2s ease;
-}
-.grid-cell:hover {
-    background: rgba(200, 169, 107, 0.1);
-    border-color: var(--accent-primary);
-    border-style: solid;
-}
-.builder-seat {
-    width: 100%;
-    height: 100%;
-    border-radius: 8px;
-    border: 1.5px solid var(--accent-primary);
-    background: var(--bg-card);
-    color: var(--text-main);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.75rem;
-    font-weight: 700;
-    user-select: none;
-    box-shadow: var(--shadow-main);
-    cursor: grab;
-}
-.builder-seat.disabled-seat {
-    opacity: 0.45;
-    background: var(--bg-secondary);
-    border-color: var(--border-glass);
-}
-.builder-seat .seat-type-badge {
-    font-size: 0.55rem;
-    color: var(--text-muted);
-    font-weight: 500;
-}
-.builder-seat.sleeper-berth {
-    height: 130px;
-    z-index: 10;
-    position: relative;
-}
+    [data-theme="dark"] {
+        --grid-canvas-bg: rgba(0, 0, 0, 0.35);
+        --grid-cell-border: rgba(255, 255, 255, 0.18);
+    }
+
+    .grid-cell {
+        width: 60px;
+        height: 60px;
+        border: 1.5px dashed var(--grid-cell-border);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        background: transparent;
+        transition: all 0.2s ease;
+    }
+
+    .grid-cell:hover {
+        background: rgba(200, 169, 107, 0.1);
+        border-color: var(--accent-primary);
+        border-style: solid;
+    }
+
+    .builder-seat {
+        width: 100%;
+        height: 100%;
+        border-radius: 8px;
+        border: 1.5px solid var(--accent-primary);
+        background: var(--bg-card);
+        color: var(--text-main);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 700;
+        user-select: none;
+        box-shadow: var(--shadow-main);
+        cursor: grab;
+    }
+
+    .builder-seat.disabled-seat {
+        opacity: 0.45;
+        background: var(--bg-secondary);
+        border-color: var(--border-glass);
+    }
+
+    .builder-seat .seat-type-badge {
+        font-size: 0.55rem;
+        color: var(--text-muted);
+        font-weight: 500;
+    }
+
+    .builder-seat.sleeper-berth {
+        height: 130px;
+        z-index: 10;
+        position: relative;
+    }
 </style>
 
 <script>
-$(document).ready(function() {
-    var seats = <?= json_encode($seats_json) ?>;
-    var rows = <?= $rows_count ?>;
-    var cols = <?= $cols_count ?>;
-    var currentBuilderDeck = 'lower';
+    $(document).ready(function() {
+        var seats = <?= json_encode($seats_json) ?>;
+        var rows = <?= $rows_count ?>;
+        var cols = <?= $cols_count ?>;
+        var currentBuilderDeck = 'lower';
 
-    // Render visual grid
-    function renderGrid() {
-        var layoutType = $('#layout_type').val();
-        var hasUpper = (layoutType === 'Sleeper' || layoutType === 'Mixed');
-        if (hasUpper) {
-            $('#deck-tabs-builder').show();
-        } else {
-            $('#deck-tabs-builder').hide();
-            currentBuilderDeck = 'lower';
-        }
-
-        renderCanvasGrid($('#grid-canvas-lower'), false, hasUpper);
-        if (hasUpper) {
-            renderCanvasGrid($('#grid-canvas-upper'), true, hasUpper);
-        }
-    }
-
-    function renderCanvasGrid(canvas, getUpper, hasUpper) {
-        canvas.empty();
-        canvas.css({
-            'grid-template-rows': 'repeat(' + rows + ', 60px)',
-            'grid-template-columns': 'repeat(' + cols + ', 60px)'
-        });
-
-        var canvasSeats = seats.filter(s => {
-            var isUpper = s.type.toLowerCase().includes('upper');
-            return getUpper ? isUpper : (!hasUpper || !isUpper);
-        });
-
-        // Map occupied cells due to row-spanning sleepers (excluding Semi Sleeper) in this deck
-        var occupied = {};
-        canvasSeats.forEach(function(s) {
-            var isSleeper = s.type.toLowerCase().indexOf('sleeper') !== -1 && s.type.toLowerCase().indexOf('semi') === -1;
-            if (isSleeper) {
-                occupied[(s.row + 1) + ',' + s.col] = true;
-            }
-        });
-
-        for (var r = 0; r < rows; r++) {
-            for (var c = 0; c < cols; c++) {
-                if (occupied[r + ',' + c]) {
-                    // Render empty, non-interactive grid slot spacer to maintain correct grid alignment
-                    var spacer = $('<div class="grid-cell spacer-cell"></div>');
-                    spacer.css({
-                        'grid-row': (r + 1),
-                        'grid-column': (c + 1),
-                        'visibility': 'hidden',
-                        'pointer-events': 'none'
-                    });
-                    canvas.append(spacer);
-                    continue;
-                }
-
-                // Find seat at this position on this deck
-                var seat = findSeat(r, c, getUpper);
-                var cell = $('<div class="grid-cell" data-row="' + r + '" data-col="' + c + '"></div>');
-                cell.css({
-                    'grid-row': (r + 1),
-                    'grid-column': (c + 1)
-                });
-
-                if (seat) {
-                    var activeClass = seat.active === 1 ? '' : ' disabled-seat';
-                    var typeClass = ' type-' + seat.type.toLowerCase().replace(/ /g, '-');
-                    var isSleeper = seat.type.toLowerCase().indexOf('sleeper') !== -1 && seat.type.toLowerCase().indexOf('semi') === -1;
-                    if (isSleeper) {
-                        cell.css({
-                            'grid-row': (r + 1) + ' / span 2',
-                            'height': '130px'
-                        });
-                    }
-                    var sleeperClass = isSleeper ? ' sleeper-berth' : '';
-                    var seatElement = $('<div class="builder-seat' + activeClass + typeClass + sleeperClass + '" draggable="true">' +
-                        '<span>' + seat.number + '</span>' +
-                        '<span class="seat-type-badge">' + seat.type + '</span>' +
-                        '</div>');
-
-                    seatElement.on('dragstart', handleDragStart(r, c, getUpper));
-                    cell.append(seatElement);
-                } else {
-                    cell.on('click', handleCellClick(r, c, getUpper));
-                }
-
-                cell.on('dragover', function(e) { e.preventDefault(); });
-                cell.on('drop', handleDrop(r, c, getUpper));
-
-                canvas.append(cell);
-            }
-        }
-    }
-
-    function findSeat(row, col, getUpper) {
-        if (typeof getUpper === 'undefined') {
-            getUpper = $('#builder-up-deck-pane').hasClass('active');
-        }
-        return seats.find(s => {
-            var isUpper = s.type.toLowerCase().includes('upper');
-            return s.row === row && s.col === col && (getUpper ? isUpper : !isUpper);
-        });
-    }
-
-    // Add new seat on click
-    function handleCellClick(row, col, getUpper) {
-        return function() {
-            var rowLetter = String.fromCharCode(65 + row);
-            
-            // Determine column sequence position within the row for this deck
-            var colCountInRow = 1;
-            for (var c = 0; c < col; c++) {
-                if (findSeat(row, c, getUpper)) {
-                    colCountInRow++;
-                }
-            }
-            
-            var prefix = getUpper ? 'U' : 'L';
-            var seatNum = prefix + rowLetter + colCountInRow;
-            
-            if (seats.find(s => s.number === seatNum)) {
-                seatNum = prefix + rowLetter + (col + 1);
-            }
-            
-            var defaultType = getUpper ? 'Upper Sleeper' : 'Normal';
+        // Render visual grid
+        function renderGrid() {
             var layoutType = $('#layout_type').val();
-            if (layoutType === 'Sleeper' && !getUpper) {
-                defaultType = 'Lower Sleeper';
+            var hasUpper = (layoutType === 'Sleeper' || layoutType === 'Mixed');
+            if (hasUpper) {
+                $('#deck-tabs-builder').show();
+            } else {
+                $('#deck-tabs-builder').hide();
+                currentBuilderDeck = 'lower';
             }
-            
-            seats.push({
-                number: seatNum,
-                row: row,
-                col: col,
-                type: defaultType,
-                active: 1,
-                price: 500.00
+
+            renderCanvasGrid($('#grid-canvas-lower'), false, hasUpper);
+            if (hasUpper) {
+                renderCanvasGrid($('#grid-canvas-upper'), true, hasUpper);
+            }
+        }
+
+        function renderCanvasGrid(canvas, getUpper, hasUpper) {
+            canvas.empty();
+            canvas.css({
+                'grid-template-rows': 'repeat(' + rows + ', 60px)',
+                'grid-template-columns': 'repeat(' + cols + ', 60px)'
             });
-            renderGrid();
-        };
-    }
 
-    // Configure details modal trigger
-    $(document).on('click', '.builder-seat', function(e) {
-        e.stopPropagation();
-        var cell = $(this).parent();
-        var row = parseInt(cell.data('row'));
-        var col = parseInt(cell.data('col'));
-        var getUpper = cell.closest('.tab-pane').attr('id') === 'builder-up-deck-pane';
-        var seat = findSeat(row, col, getUpper);
+            var canvasSeats = seats.filter(s => {
+                var isUpper = s.type.toLowerCase().includes('upper');
+                return getUpper ? isUpper : (!hasUpper || !isUpper);
+            });
 
-        if (seat) {
-            $('#modal_seat_row').val(row);
-            $('#modal_seat_col').val(col);
-            $('#modal_seat_is_upper').val(getUpper ? '1' : '0');
-            $('#modal_seat_number').val(seat.number);
-            $('#modal_seat_type').val(seat.type);
-            $('#modal_seat_price').val(seat.price);
-            $('#modal_seat_active').val(seat.active);
-            $('#seatConfigModal').modal('show');
-        }
-    });
+            // Map occupied cells due to row-spanning sleepers (excluding Semi Sleeper) in this deck
+            var occupied = {};
+            canvasSeats.forEach(function(s) {
+                var isSleeper = s.type.toLowerCase().indexOf('sleeper') !== -1 && s.type.toLowerCase().indexOf('semi') === -1;
+                if (isSleeper) {
+                    occupied[(s.row + 1) + ',' + s.col] = true;
+                }
+            });
 
-    // Apply config changes
-    $('#btnApplySeat').click(function() {
-        var row = parseInt($('#modal_seat_row').val());
-        var col = parseInt($('#modal_seat_col').val());
-        var isUpper = $('#modal_seat_is_upper').val() === '1';
-        var seat = findSeat(row, col, isUpper);
-
-        if (seat) {
-            seat.number = $('#modal_seat_number').val();
-            seat.type = $('#modal_seat_type').val();
-            seat.price = parseFloat($('#modal_seat_price').val());
-            seat.active = parseInt($('#modal_seat_active').val());
-            $('#seatConfigModal').modal('hide');
-            renderGrid();
-        }
-    });
-
-    // Remove seat
-    $('#btnRemoveSeat').click(function() {
-        var row = parseInt($('#modal_seat_row').val());
-        var col = parseInt($('#modal_seat_col').val());
-        var isUpper = $('#modal_seat_is_upper').val() === '1';
-        seats = seats.filter(s => {
-            var isUpperSeat = s.type.toLowerCase().includes('upper');
-            return !(s.row === row && s.col === col && (isUpper ? isUpperSeat : !isUpperSeat));
-        });
-        $('#seatConfigModal').modal('hide');
-        renderGrid();
-    });
-
-    // Drag-and-drop properties
-    var dragSrcRow = null;
-    var dragSrcCol = null;
-    var dragSrcIsUpper = null;
-
-    function isSleeper(type) {
-        if (!type) return false;
-        var t = type.toLowerCase();
-        return t.indexOf('sleeper') !== -1 && t.indexOf('semi') === -1;
-    }
-
-    // Returns shadowed (row,col) keys
-    function getShadowedCells(getUpper) {
-        var shadowed = {};
-        seats.forEach(function(s) {
-            var isUpper = s.type.toLowerCase().includes('upper');
-            if ((getUpper ? isUpper : !isUpper) && isSleeper(s.type)) {
-                shadowed[(s.row + 1) + ',' + s.col] = true;
-            }
-        });
-        return shadowed;
-    }
-
-    function handleDragStart(row, col, getUpper) {
-        return function(e) {
-            dragSrcRow = row;
-            dragSrcCol = col;
-            dragSrcIsUpper = getUpper;
-            e.originalEvent.dataTransfer.setData('text/plain', '');
-        };
-    }
-
-    function incrementSeatNumber(numStr) {
-        var match = numStr.match(/^([A-Za-z\-]+)?(\d+)$/);
-        if (match) {
-            var prefix = match[1] || '';
-            var num = parseInt(match[2]);
-            return prefix + (num + 1);
-        }
-        return numStr + '2';
-    }
-
-    function handleDrop(row, col, getUpper) {
-        return function(e) {
-            e.preventDefault();
-            if (dragSrcRow === null || dragSrcCol === null) return;
-
-            var srcSeat = findSeat(dragSrcRow, dragSrcCol, dragSrcIsUpper);
-            var destSeat = findSeat(row, col, getUpper);
-
-            // Cannot drag between different decks
-            if (dragSrcIsUpper !== getUpper) {
-                alert('<?= __('cannot_drag_between_decks', "You cannot drag seats between the Lower and Upper decks.") ?>');
-                dragSrcRow = null;
-                dragSrcCol = null;
-                return;
-            }
-
-            // Check if drop target is shadowed by another sleeper
-            var shadowed = getShadowedCells(getUpper);
-            if (shadowed[row + ',' + col]) {
-                alert('<?= __('cell_occupied_sleeper_shadow', "This cell is occupied by the lower half of a sleeper above it. Choose a different cell.") ?>');
-                dragSrcRow = null;
-                dragSrcCol = null;
-                return;
-            }
-
-            if (srcSeat && !destSeat) {
-                var sleeperSeat = isSleeper(srcSeat.type);
-
-                // Sleeper needs 2 rows
-                if (sleeperSeat) {
-                    if (row + 1 >= rows) {
-                        alert('<?= __('sleeper_needs_two_rows', "A sleeper berth needs 2 row-heights. This is the last row — not enough space.") ?>');
-                        dragSrcRow = null;
-                        dragSrcCol = null;
-                        return;
+            for (var r = 0; r < rows; r++) {
+                for (var c = 0; c < cols; c++) {
+                    if (occupied[r + ',' + c]) {
+                        // Render empty, non-interactive grid slot spacer to maintain correct grid alignment
+                        var spacer = $('<div class="grid-cell spacer-cell"></div>');
+                        spacer.css({
+                            'grid-row': (r + 1),
+                            'grid-column': (c + 1),
+                            'visibility': 'hidden',
+                            'pointer-events': 'none'
+                        });
+                        canvas.append(spacer);
+                        continue;
                     }
-                    if (findSeat(row + 1, col, getUpper)) {
-                        alert('<?= __('sleeper_needs_free_cells', "A sleeper berth needs 2 free consecutive vertical cells. The cell below is occupied.") ?>');
-                        dragSrcRow = null;
-                        dragSrcCol = null;
-                        return;
+
+                    // Find seat at this position on this deck
+                    var seat = findSeat(r, c, getUpper);
+                    var cell = $('<div class="grid-cell" data-row="' + r + '" data-col="' + c + '"></div>');
+                    cell.css({
+                        'grid-row': (r + 1),
+                        'grid-column': (c + 1)
+                    });
+
+                    if (seat) {
+                        var activeClass = seat.active === 1 ? '' : ' disabled-seat';
+                        var typeClass = ' type-' + seat.type.toLowerCase().replace(/ /g, '-');
+                        var isSleeper = seat.type.toLowerCase().indexOf('sleeper') !== -1 && seat.type.toLowerCase().indexOf('semi') === -1;
+                        if (isSleeper) {
+                            cell.css({
+                                'grid-row': (r + 1) + ' / span 2',
+                                'height': '130px'
+                            });
+                        }
+                        var sleeperClass = isSleeper ? ' sleeper-berth' : '';
+                        var seatElement = $('<div class="builder-seat' + activeClass + typeClass + sleeperClass + '" draggable="true">' +
+                            '<span>' + seat.number + '</span>' +
+                            '<span class="seat-type-badge">' + seat.type + '</span>' +
+                            '</div>');
+
+                        seatElement.on('dragstart', handleDragStart(r, c, getUpper));
+                        cell.append(seatElement);
+                    } else {
+                        cell.on('click', handleCellClick(r, c, getUpper));
                     }
-                    if (shadowed[(row + 1) + ',' + col]) {
-                        alert('<?= __('sleeper_below_occupied_shadow', "A sleeper berth needs 2 free consecutive vertical cells. The cell below is occupied by another sleeper\'s shadow.") ?>');
-                        dragSrcRow = null;
-                        dragSrcCol = null;
-                        return;
+
+                    cell.on('dragover', function(e) {
+                        e.preventDefault();
+                    });
+                    cell.on('drop', handleDrop(r, c, getUpper));
+
+                    canvas.append(cell);
+                }
+            }
+        }
+
+        function findSeat(row, col, getUpper) {
+            if (typeof getUpper === 'undefined') {
+                getUpper = $('#builder-up-deck-pane').hasClass('active');
+            }
+            return seats.find(s => {
+                var isUpper = s.type.toLowerCase().includes('upper');
+                return s.row === row && s.col === col && (getUpper ? isUpper : !isUpper);
+            });
+        }
+
+        // Add new seat on click
+        function handleCellClick(row, col, getUpper) {
+            return function() {
+                var rowLetter = String.fromCharCode(65 + row);
+
+                // Determine column sequence position within the row for this deck
+                var colCountInRow = 1;
+                for (var c = 0; c < col; c++) {
+                    if (findSeat(row, c, getUpper)) {
+                        colCountInRow++;
                     }
                 }
 
-                var newNumber = incrementSeatNumber(srcSeat.number);
-                while (seats.find(function(s) { return s.number === newNumber; })) {
-                    newNumber = incrementSeatNumber(newNumber);
+                var prefix = getUpper ? 'U' : 'L';
+                var seatNum = prefix + rowLetter + colCountInRow;
+
+                if (seats.find(s => s.number === seatNum)) {
+                    seatNum = prefix + rowLetter + (col + 1);
+                }
+
+                var defaultType = getUpper ? 'Upper Sleeper' : 'Normal';
+                var layoutType = $('#layout_type').val();
+                if (layoutType === 'Sleeper' && !getUpper) {
+                    defaultType = 'Lower Sleeper';
                 }
 
                 seats.push({
-                    number: newNumber,
+                    number: seatNum,
                     row: row,
                     col: col,
-                    type: srcSeat.type,
-                    active: srcSeat.active,
-                    price: srcSeat.price
+                    type: defaultType,
+                    active: 1,
+                    price: 500.00
                 });
-            }
+                renderGrid();
+            };
+        }
 
-            dragSrcRow = null;
-            dragSrcCol = null;
+        // Configure details modal trigger
+        $(document).on('click', '.builder-seat', function(e) {
+            e.stopPropagation();
+            var cell = $(this).parent();
+            var row = parseInt(cell.data('row'));
+            var col = parseInt(cell.data('col'));
+            var getUpper = cell.closest('.tab-pane').attr('id') === 'builder-up-deck-pane';
+            var seat = findSeat(row, col, getUpper);
+
+            if (seat) {
+                $('#modal_seat_row').val(row);
+                $('#modal_seat_col').val(col);
+                $('#modal_seat_is_upper').val(getUpper ? '1' : '0');
+                $('#modal_seat_number').val(seat.number);
+                $('#modal_seat_type').val(seat.type);
+                $('#modal_seat_price').val(seat.price);
+                $('#modal_seat_active').val(seat.active);
+                $('#seatConfigModal').modal('show');
+            }
+        });
+
+        // Apply config changes
+        $('#btnApplySeat').click(function() {
+            var row = parseInt($('#modal_seat_row').val());
+            var col = parseInt($('#modal_seat_col').val());
+            var isUpper = $('#modal_seat_is_upper').val() === '1';
+            var seat = findSeat(row, col, isUpper);
+
+            if (seat) {
+                seat.number = $('#modal_seat_number').val();
+                seat.type = $('#modal_seat_type').val();
+                seat.price = parseFloat($('#modal_seat_price').val());
+                seat.active = parseInt($('#modal_seat_active').val());
+                $('#seatConfigModal').modal('hide');
+                renderGrid();
+            }
+        });
+
+        // Remove seat
+        $('#btnRemoveSeat').click(function() {
+            var row = parseInt($('#modal_seat_row').val());
+            var col = parseInt($('#modal_seat_col').val());
+            var isUpper = $('#modal_seat_is_upper').val() === '1';
+            seats = seats.filter(s => {
+                var isUpperSeat = s.type.toLowerCase().includes('upper');
+                return !(s.row === row && s.col === col && (isUpper ? isUpperSeat : !isUpperSeat));
+            });
+            $('#seatConfigModal').modal('hide');
             renderGrid();
-        };
-    }
+        });
 
-    function updateDropdownOptions(type, current_row, current_col) {
-        var maxRows = (type === 'Sleeper' || type === 'Mixed') ? 14 : 7;
-        var maxCols = 5;
+        // Drag-and-drop properties
+        var dragSrcRow = null;
+        var dragSrcCol = null;
+        var dragSrcIsUpper = null;
 
-        // Populate rows
-        var rowSelect = $('#grid_rows');
-        rowSelect.empty();
-        for (var i = 1; i <= maxRows; i++) {
-            var selected = i === current_row ? ' selected' : '';
-            rowSelect.append('<option value="' + i + '"' + selected + '>' + i + ' Rows</option>');
+        function isSleeper(type) {
+            if (!type) return false;
+            var t = type.toLowerCase();
+            return t.indexOf('sleeper') !== -1 && t.indexOf('semi') === -1;
         }
 
-        // Populate columns
-        var colSelect = $('#grid_cols');
-        colSelect.empty();
-        for (var j = 1; j <= maxCols; j++) {
-            var selected = j === current_col ? ' selected' : '';
-            colSelect.append('<option value="' + j + '"' + selected + '>' + j + ' Columns</option>');
+        // Returns shadowed (row,col) keys
+        function getShadowedCells(getUpper) {
+            var shadowed = {};
+            seats.forEach(function(s) {
+                var isUpper = s.type.toLowerCase().includes('upper');
+                if ((getUpper ? isUpper : !isUpper) && isSleeper(s.type)) {
+                    shadowed[(s.row + 1) + ',' + s.col] = true;
+                }
+            });
+            return shadowed;
         }
-    }
 
-    // Grid resize update on input change at runtime instantly
-    function updateGridDimensions() {
-        var rVal = parseInt($('#grid_rows').val());
-        var cVal = parseInt($('#grid_cols').val());
-        if (isNaN(rVal) || rVal < 1) rVal = 1;
-        if (isNaN(cVal) || cVal < 1) cVal = 1;
-        rows = rVal;
-        cols = cVal;
-        // Clean seats outside the new range
-        seats = seats.filter(s => s.row < rows && s.col < cols);
-        renderGrid();
-    }
+        function handleDragStart(row, col, getUpper) {
+            return function(e) {
+                dragSrcRow = row;
+                dragSrcCol = col;
+                dragSrcIsUpper = getUpper;
+                e.originalEvent.dataTransfer.setData('text/plain', '');
+            };
+        }
 
-    // Trigger update immediately when select dropdown changes
-    $('#grid_rows, #grid_cols').on('change', updateGridDimensions);
-
-    // Apply pre-configured layout presets dynamically based on class selection
-    function applyLayoutPreset(type) {
-        seats = []; // Clear existing seats
-        
-        if (type === 'Sleeper') {
-            updateDropdownOptions('Sleeper', 14, 4);
-            rows = 14;
-            cols = 4;
-            
-            for (var r = 0; r < rows; r += 2) {
-                var index = (r / 2) + 1;
-                // Left side: Column 0 (Lower Sleeper and Upper Sleeper occupy same column 0)
-                seats.push({ number: 'L' + index, row: r, col: 0, type: 'Lower Sleeper', active: 1, price: 700.00 });
-                seats.push({ number: 'U' + index, row: r, col: 0, type: 'Upper Sleeper', active: 1, price: 800.00 });
-                // Col 1 is walkway
-                // Right side: Column 2 and Column 3 (Double Sleeper Lower on Lower Deck, Double Sleeper Upper on Upper Deck)
-                seats.push({ number: 'DL' + (index * 2 - 1), row: r, col: 2, type: 'Double Sleeper Lower', active: 1, price: 1000.00 });
-                seats.push({ number: 'DL' + (index * 2), row: r, col: 3, type: 'Double Sleeper Lower', active: 1, price: 1000.00 });
-                seats.push({ number: 'DU' + (index * 2 - 1), row: r, col: 2, type: 'Double Sleeper Upper', active: 1, price: 1100.00 });
-                seats.push({ number: 'DU' + (index * 2), row: r, col: 3, type: 'Double Sleeper Upper', active: 1, price: 1100.00 });
+        function incrementSeatNumber(numStr) {
+            var match = numStr.match(/^([A-Za-z\-]+)?(\d+)$/);
+            if (match) {
+                var prefix = match[1] || '';
+                var num = parseInt(match[2]);
+                return prefix + (num + 1);
             }
-            
-        } else if (type === 'Seater') {
-            updateDropdownOptions('Seater', 7, 5);
-            rows = 7;
-            cols = 5;
-            
-            for (var r = 0; r < rows; r++) {
-                var letter = String.fromCharCode(65 + r); // A, B, C...
-                if (r === 6) { // Last row has all 5 seats, no walkway
-                    seats.push({ number: letter + '1', row: r, col: 0, type: 'Normal', active: 1, price: 500.00 });
-                    seats.push({ number: letter + '2', row: r, col: 1, type: 'Normal', active: 1, price: 500.00 });
-                    seats.push({ number: letter + '3', row: r, col: 2, type: 'Normal', active: 1, price: 500.00 });
-                    seats.push({ number: letter + '4', row: r, col: 3, type: 'Normal', active: 1, price: 500.00 });
-                    seats.push({ number: letter + '5', row: r, col: 4, type: 'Normal', active: 1, price: 500.00 });
-                } else {
-                    seats.push({ number: letter + '1', row: r, col: 0, type: 'Normal', active: 1, price: 500.00 });
-                    seats.push({ number: letter + '2', row: r, col: 1, type: 'Normal', active: 1, price: 500.00 });
-                    // Col 2 is walkway
-                    seats.push({ number: letter + '3', row: r, col: 3, type: 'Normal', active: 1, price: 500.00 });
-                    seats.push({ number: letter + '4', row: r, col: 4, type: 'Normal', active: 1, price: 500.00 });
+            return numStr + '2';
+        }
+
+        function handleDrop(row, col, getUpper) {
+            return function(e) {
+                e.preventDefault();
+                if (dragSrcRow === null || dragSrcCol === null) return;
+
+                var srcSeat = findSeat(dragSrcRow, dragSrcCol, dragSrcIsUpper);
+                var destSeat = findSeat(row, col, getUpper);
+
+                // Cannot drag between different decks
+                if (dragSrcIsUpper !== getUpper) {
+                    alert(<?= json_encode(__('cannot_drag_between_decks', "You cannot drag seats between the Lower and Upper decks.")) ?>);
+                    dragSrcRow = null;
+                    dragSrcCol = null;
+                    return;
+                }
+
+                // Check if drop target is shadowed by another sleeper
+                var shadowed = getShadowedCells(getUpper);
+                if (shadowed[row + ',' + col]) {
+                    alert(<?= json_encode(__('cell_occupied_sleeper_shadow', "This cell is occupied by the lower half of a sleeper above it. Choose a different cell.")) ?>);
+                    dragSrcRow = null;
+                    dragSrcCol = null;
+                    return;
+                }
+
+                if (srcSeat && !destSeat) {
+                    var sleeperSeat = isSleeper(srcSeat.type);
+
+                    // Sleeper needs 2 rows
+                    if (sleeperSeat) {
+                        if (row + 1 >= rows) {
+                            alert(<?= json_encode(__('sleeper_needs_two_rows', "A sleeper berth needs 2 row-heights. This is the last row — not enough space.")) ?>);
+                            dragSrcRow = null;
+                            dragSrcCol = null;
+                            return;
+                        }
+                        if (findSeat(row + 1, col, getUpper)) {
+                            alert(<?= json_encode(__('sleeper_needs_free_cells', "A sleeper berth needs 2 free consecutive vertical cells. The cell below is occupied.")) ?>);
+                            dragSrcRow = null;
+                            dragSrcCol = null;
+                            return;
+                        }
+                        if (shadowed[(row + 1) + ',' + col]) {
+                            alert(<?= json_encode(__('sleeper_below_occupied_shadow', "A sleeper berth needs 2 free consecutive vertical cells. The cell below is occupied by another sleeper's shadow.")) ?>);
+                            dragSrcRow = null;
+                            dragSrcCol = null;
+                            return;
+                        }
+                    }
+
+                    var newNumber = incrementSeatNumber(srcSeat.number);
+                    while (seats.find(function(s) {
+                            return s.number === newNumber;
+                        })) {
+                        newNumber = incrementSeatNumber(newNumber);
+                    }
+
+                    seats.push({
+                        number: newNumber,
+                        row: row,
+                        col: col,
+                        type: srcSeat.type,
+                        active: srcSeat.active,
+                        price: srcSeat.price
+                    });
+                }
+
+                dragSrcRow = null;
+                dragSrcCol = null;
+                renderGrid();
+            };
+        }
+
+        function updateDropdownOptions(type, current_row, current_col) {
+            var maxRows = (type === 'Sleeper' || type === 'Mixed') ? 14 : 7;
+            var maxCols = 5;
+
+            // Populate rows
+            var rowSelect = $('#grid_rows');
+            rowSelect.empty();
+            for (var i = 1; i <= maxRows; i++) {
+                var selected = i === current_row ? ' selected' : '';
+                rowSelect.append('<option value="' + i + '"' + selected + '>' + i + ' Rows</option>');
+            }
+
+            // Populate columns
+            var colSelect = $('#grid_cols');
+            colSelect.empty();
+            for (var j = 1; j <= maxCols; j++) {
+                var selected = j === current_col ? ' selected' : '';
+                colSelect.append('<option value="' + j + '"' + selected + '>' + j + ' Columns</option>');
+            }
+        }
+
+        // Grid resize update on input change at runtime instantly
+        function updateGridDimensions() {
+            var rVal = parseInt($('#grid_rows').val());
+            var cVal = parseInt($('#grid_cols').val());
+            if (isNaN(rVal) || rVal < 1) rVal = 1;
+            if (isNaN(cVal) || cVal < 1) cVal = 1;
+            rows = rVal;
+            cols = cVal;
+            // Clean seats outside the new range
+            seats = seats.filter(s => s.row < rows && s.col < cols);
+            renderGrid();
+        }
+
+        // Trigger update immediately when select dropdown changes
+        $('#grid_rows, #grid_cols').on('change', updateGridDimensions);
+
+        // Apply pre-configured layout presets dynamically based on class selection
+        function applyLayoutPreset(type) {
+            seats = []; // Clear existing seats
+
+            if (type === 'Sleeper') {
+                updateDropdownOptions('Sleeper', 14, 4);
+                rows = 14;
+                cols = 4;
+
+                for (var r = 0; r < rows; r += 2) {
+                    var index = (r / 2) + 1;
+                    // Left side: Column 0 (Lower Sleeper and Upper Sleeper occupy same column 0)
+                    seats.push({
+                        number: 'L' + index,
+                        row: r,
+                        col: 0,
+                        type: 'Lower Sleeper',
+                        active: 1,
+                        price: 700.00
+                    });
+                    seats.push({
+                        number: 'U' + index,
+                        row: r,
+                        col: 0,
+                        type: 'Upper Sleeper',
+                        active: 1,
+                        price: 800.00
+                    });
+                    // Col 1 is walkway
+                    // Right side: Column 2 and Column 3 (Double Sleeper Lower on Lower Deck, Double Sleeper Upper on Upper Deck)
+                    seats.push({
+                        number: 'DL' + (index * 2 - 1),
+                        row: r,
+                        col: 2,
+                        type: 'Double Sleeper Lower',
+                        active: 1,
+                        price: 1000.00
+                    });
+                    seats.push({
+                        number: 'DL' + (index * 2),
+                        row: r,
+                        col: 3,
+                        type: 'Double Sleeper Lower',
+                        active: 1,
+                        price: 1000.00
+                    });
+                    seats.push({
+                        number: 'DU' + (index * 2 - 1),
+                        row: r,
+                        col: 2,
+                        type: 'Double Sleeper Upper',
+                        active: 1,
+                        price: 1100.00
+                    });
+                    seats.push({
+                        number: 'DU' + (index * 2),
+                        row: r,
+                        col: 3,
+                        type: 'Double Sleeper Upper',
+                        active: 1,
+                        price: 1100.00
+                    });
+                }
+
+            } else if (type === 'Seater') {
+                updateDropdownOptions('Seater', 7, 5);
+                rows = 7;
+                cols = 5;
+
+                for (var r = 0; r < rows; r++) {
+                    var letter = String.fromCharCode(65 + r); // A, B, C...
+                    if (r === 6) { // Last row has all 5 seats, no walkway
+                        seats.push({
+                            number: letter + '1',
+                            row: r,
+                            col: 0,
+                            type: 'Normal',
+                            active: 1,
+                            price: 500.00
+                        });
+                        seats.push({
+                            number: letter + '2',
+                            row: r,
+                            col: 1,
+                            type: 'Normal',
+                            active: 1,
+                            price: 500.00
+                        });
+                        seats.push({
+                            number: letter + '3',
+                            row: r,
+                            col: 2,
+                            type: 'Normal',
+                            active: 1,
+                            price: 500.00
+                        });
+                        seats.push({
+                            number: letter + '4',
+                            row: r,
+                            col: 3,
+                            type: 'Normal',
+                            active: 1,
+                            price: 500.00
+                        });
+                        seats.push({
+                            number: letter + '5',
+                            row: r,
+                            col: 4,
+                            type: 'Normal',
+                            active: 1,
+                            price: 500.00
+                        });
+                    } else {
+                        seats.push({
+                            number: letter + '1',
+                            row: r,
+                            col: 0,
+                            type: 'Normal',
+                            active: 1,
+                            price: 500.00
+                        });
+                        seats.push({
+                            number: letter + '2',
+                            row: r,
+                            col: 1,
+                            type: 'Normal',
+                            active: 1,
+                            price: 500.00
+                        });
+                        // Col 2 is walkway
+                        seats.push({
+                            number: letter + '3',
+                            row: r,
+                            col: 3,
+                            type: 'Normal',
+                            active: 1,
+                            price: 500.00
+                        });
+                        seats.push({
+                            number: letter + '4',
+                            row: r,
+                            col: 4,
+                            type: 'Normal',
+                            active: 1,
+                            price: 500.00
+                        });
+                    }
+                }
+            } else if (type === 'Mixed') {
+                updateDropdownOptions('Mixed', 14, 4);
+                rows = 14;
+                cols = 4;
+
+                for (var r = 0; r < rows; r += 2) {
+                    var index = (r / 2) + 1;
+                    // Left side: Column 0 (Lower Sleeper and Upper Sleeper occupy same column 0)
+                    seats.push({
+                        number: 'L' + index,
+                        row: r,
+                        col: 0,
+                        type: 'Lower Sleeper',
+                        active: 1,
+                        price: 700.00
+                    });
+                    seats.push({
+                        number: 'U' + index,
+                        row: r,
+                        col: 0,
+                        type: 'Upper Sleeper',
+                        active: 1,
+                        price: 800.00
+                    });
+                    // Col 1 is walkway
+                    // Right side:
+                    // Lower Deck: normal seats in Column 2 and Column 3
+                    seats.push({
+                        number: 'S' + (index * 4 - 3),
+                        row: r,
+                        col: 2,
+                        type: 'Normal',
+                        active: 1,
+                        price: 500.00
+                    });
+                    seats.push({
+                        number: 'S' + (index * 4 - 2),
+                        row: r + 1,
+                        col: 2,
+                        type: 'Normal',
+                        active: 1,
+                        price: 500.00
+                    });
+                    seats.push({
+                        number: 'S' + (index * 4 - 1),
+                        row: r,
+                        col: 3,
+                        type: 'Normal',
+                        active: 1,
+                        price: 500.00
+                    });
+                    seats.push({
+                        number: 'S' + (index * 4),
+                        row: r + 1,
+                        col: 3,
+                        type: 'Normal',
+                        active: 1,
+                        price: 500.00
+                    });
+                    // Upper Deck: Double Sleeper Upper in Column 2 and Column 3
+                    seats.push({
+                        number: 'DU' + (index * 2 - 1),
+                        row: r,
+                        col: 2,
+                        type: 'Double Sleeper Upper',
+                        active: 1,
+                        price: 1100.00
+                    });
+                    seats.push({
+                        number: 'DU' + (index * 2),
+                        row: r,
+                        col: 3,
+                        type: 'Double Sleeper Upper',
+                        active: 1,
+                        price: 1100.00
+                    });
                 }
             }
-        } else if (type === 'Mixed') {
-            updateDropdownOptions('Mixed', 14, 4);
-            rows = 14;
-            cols = 4;
-            
-            for (var r = 0; r < rows; r += 2) {
-                var index = (r / 2) + 1;
-                // Left side: Column 0 (Lower Sleeper and Upper Sleeper occupy same column 0)
-                seats.push({ number: 'L' + index, row: r, col: 0, type: 'Lower Sleeper', active: 1, price: 700.00 });
-                seats.push({ number: 'U' + index, row: r, col: 0, type: 'Upper Sleeper', active: 1, price: 800.00 });
-                // Col 1 is walkway
-                // Right side:
-                // Lower Deck: normal seats in Column 2 and Column 3
-                seats.push({ number: 'S' + (index * 4 - 3), row: r, col: 2, type: 'Normal', active: 1, price: 500.00 });
-                seats.push({ number: 'S' + (index * 4 - 2), row: r + 1, col: 2, type: 'Normal', active: 1, price: 500.00 });
-                seats.push({ number: 'S' + (index * 4 - 1), row: r, col: 3, type: 'Normal', active: 1, price: 500.00 });
-                seats.push({ number: 'S' + (index * 4), row: r + 1, col: 3, type: 'Normal', active: 1, price: 500.00 });
-                // Upper Deck: Double Sleeper Upper in Column 2 and Column 3
-                seats.push({ number: 'DU' + (index * 2 - 1), row: r, col: 2, type: 'Double Sleeper Upper', active: 1, price: 1100.00 });
-                seats.push({ number: 'DU' + (index * 2), row: r, col: 3, type: 'Double Sleeper Upper', active: 1, price: 1100.00 });
-            }
+
+            renderGrid();
         }
-        
-        renderGrid();
-    }
 
-    // Trigger preset layout when changing Class Classification dropdown
-    $('#layout_type').change(function() {
-        applyLayoutPreset($(this).val());
+        // Trigger preset layout when changing Class Classification dropdown
+        $('#layout_type').change(function() {
+            applyLayoutPreset($(this).val());
+        });
+
+        // Submit Layout Form
+        $('#layoutForm').submit(function() {
+            $('#form_rows').val(rows);
+            $('#form_cols').val(cols);
+            $('#form_layout_type').val($('#layout_type').val());
+            $('#form_seats_data').val(JSON.stringify(seats));
+        });
+
+        // Submit Template Save Form
+        $('#templateSaveForm').submit(function() {
+            $('#tpl_rows').val(rows);
+            $('#tpl_cols').val(cols);
+            $('#tpl_layout_type').val($('#layout_type').val());
+            $('#tpl_seats_data').val(JSON.stringify(seats));
+        });
+
+        // Load dynamic defaults on new setups
+        updateDropdownOptions($('#layout_type').val(), rows, cols);
+
+        if (seats.length === 0) {
+            applyLayoutPreset($('#layout_type').val());
+        } else {
+            renderGrid();
+        }
     });
-
-    // Submit Layout Form
-    $('#layoutForm').submit(function() {
-        $('#form_rows').val(rows);
-        $('#form_cols').val(cols);
-        $('#form_layout_type').val($('#layout_type').val());
-        $('#form_seats_data').val(JSON.stringify(seats));
-    });
-
-    // Submit Template Save Form
-    $('#templateSaveForm').submit(function() {
-        $('#tpl_rows').val(rows);
-        $('#tpl_cols').val(cols);
-        $('#tpl_layout_type').val($('#layout_type').val());
-        $('#tpl_seats_data').val(JSON.stringify(seats));
-    });
-
-    // Load dynamic defaults on new setups
-    updateDropdownOptions($('#layout_type').val(), rows, cols);
-
-    if (seats.length === 0) {
-        applyLayoutPreset($('#layout_type').val());
-    } else {
-        renderGrid();
-    }
-});
 </script>
 
 <?php
