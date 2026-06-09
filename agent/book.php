@@ -49,6 +49,8 @@ try {
         die(__('trip_unauthorized', 'Trip not found or unauthorized.'));
     }
     
+    $gst_rate = get_gst_rate();
+    
     // Fetch Boarding and Dropping points
     $boarding_stations = $pdo->prepare("SELECT point_name AS name, departure_time AS time FROM boarding_points WHERE route_id = ?");
     $boarding_stations->execute([$trip['route_id']]);
@@ -325,10 +327,13 @@ try {
                 <div class="p-3 mb-4 rounded-4 bg-dark bg-opacity-20 border border-secondary border-opacity-15" id="agent_seats_preview" style="display: none;">
                     <div class="d-flex justify-content-between text-secondary small mb-2"><span><?= __('seats_selected', 'Seats Selected') ?></span><span class="text-white fw-bold font-monospace" id="lblSeatsList">--</span></div>
                     <div class="d-flex justify-content-between text-secondary small mb-2"><span><?= __('base_ticket_fare', 'Base Ticket Fare') ?></span><span class="text-white" id="lblGrossFare">₹0.00</span></div>
-                    <div class="d-flex justify-content-between text-secondary small mb-2" style="display: none !important;"><span><?= __('agent_discount', 'Agent Discount') ?></span><span class="text-warning fw-bold" id="lblDiscount">₹0.00</span></div>
+                    <div class="d-flex justify-content-between text-secondary small mb-2"><span><?= __('gst', 'GST') ?> (<?= $gst_rate ?>%)</span><span class="text-white" id="lblGstAmount">₹0.00</span></div>
                     <div class="d-flex justify-content-between text-white fw-bold fs-5 pt-3 border-top border-secondary border-opacity-20">
-                        <span><?= __('total_amount', 'Total Amount') ?></span>
+                        <span><?= __('grand_total', 'Grand Total') ?></span>
                         <span class="text-success" id="lblFinalFare">₹0.00</span>
+                    </div>
+                    <div class="mt-2 text-secondary small text-center opacity-75">
+                        <i class="fa-solid fa-circle-info text-info me-1"></i> GST included as per government regulations.
                     </div>
                 </div>
 
@@ -499,6 +504,8 @@ $(document).ready(function() {
         };
     }
 
+    var gstRate = <?= $gst_rate ?>;
+
     function updateFareComputation() {
         if (selectedSeats.length === 0) {
             $('#agent_seats_preview').hide();
@@ -520,16 +527,25 @@ $(document).ready(function() {
             }
         });
 
+        var publicGst = gross * (gstRate / 100);
+        var publicTotal = gross + publicGst;
+
         $('#lblSeatsList').text(selectedSeats.join(', '));
         $('#lblGrossFare').text('₹' + gross.toFixed(2));
-        $('#lblDiscount').text('₹' + discount.toFixed(2));
-        $('#lblFinalFare').text('₹' + gross.toFixed(2));
+        $('#lblGstAmount').text('₹' + publicGst.toFixed(2));
+        $('#lblFinalFare').text('₹' + publicTotal.toFixed(2));
 
         // Update Agent Info Modal
+        var taxable = finalFare;
+        var gstAmount = taxable * (gstRate / 100);
+        var grandTotal = taxable + gstAmount;
+
         $('#modalSeats').text(selectedSeats.join(', '));
         $('#modalGross').text('₹' + gross.toFixed(2));
         $('#modalDiscount').text('₹' + discount.toFixed(2));
-        $('#modalNet').text('₹' + finalFare.toFixed(2));
+        $('#modalTaxable').text('₹' + taxable.toFixed(2));
+        $('#modalGst').text('₹' + gstAmount.toFixed(2));
+        $('#modalNet').text('₹' + grandTotal.toFixed(2));
 
         $('#post_seats_value').val(selectedSeats.join(','));
         $('#agent_seats_preview').show();
@@ -568,6 +584,14 @@ $(document).ready(function() {
                 <div class="d-flex justify-content-between mb-2 text-warning small">
                     <span><?= __('agent_discount_colon', 'Agent Discount:') ?></span>
                     <span class="fw-bold" id="modalDiscount">₹0.00</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2 text-secondary small">
+                    <span><?= __('taxable_fare', 'Taxable Fare:') ?></span>
+                    <span class="text-white" id="modalTaxable">₹0.00</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2 text-secondary small">
+                    <span><?= __('gst', 'GST') ?> (<?= $gst_rate ?>%):</span>
+                    <span class="text-white" id="modalGst">₹0.00</span>
                 </div>
                 <hr class="border-secondary border-opacity-30 my-3">
                 <div class="d-flex justify-content-between align-items-center text-white fw-bold fs-5">

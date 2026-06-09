@@ -26,11 +26,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $confirm_password = $_POST['confirm_password'] ?? '';
         $agency_name = trim($_POST['agency_name'] ?? '');
         $phone = trim($_POST['phone'] ?? '');
+        $agency_address = trim($_POST['agency_address'] ?? '');
         $operator_code = strtoupper(trim($_POST['operator_code'] ?? ''));
         $role = 'agent';
 
-        if (empty($username) || empty($email) || empty($password) || empty($confirm_password) || empty($agency_name) || empty($phone) || empty($operator_code)) {
-            $error = __('fill_all_fields_agency', "Please fill in all fields including agency credentials and Operator Code.");
+        if (empty($username) || empty($email) || empty($password) || empty($confirm_password) || empty($agency_name) || empty($phone) || empty($agency_address) || empty($operator_code)) {
+            $error = __('fill_all_fields_agency_addr', "Please fill in all fields including agency credentials, address, and Operator Code.");
         } elseif ($password !== $confirm_password) {
             $error = __('password_mismatch', "Passwords do not match.");
         } elseif (strlen($password) < 6) {
@@ -60,8 +61,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $insertUser->execute([$username, $email, $hashed_pass, $role, $status]);
                         $new_user_id = $pdo->lastInsertId();
 
-                        $insertProfile = $pdo->prepare("INSERT INTO agent_profiles (user_id, agency_name, phone, admin_id) VALUES (?, ?, ?, ?)");
-                        $insertProfile->execute([$new_user_id, $agency_name, $phone, $admin_id]);
+                        $insertProfile = $pdo->prepare("INSERT INTO agent_profiles (user_id, agency_name, phone, agency_address, admin_id) VALUES (?, ?, ?, ?, ?)");
+                        $insertProfile->execute([$new_user_id, $agency_name, $phone, $agency_address, $admin_id]);
 
                         $success = __('agency_pending_operator_approval', "Registration successful! Your agency account is pending approval by the Bus Operator.");
                         log_activity($pdo, $new_user_id, 'AGENT_REGISTER', "Agent signed up: $agency_name under Admin ID: $admin_id");
@@ -143,6 +144,10 @@ require_once __DIR__ . '/../includes/header.php';
                             <label for="phone" class="form-label text-secondary small fw-semibold"><?= __('contact_mobile', 'Contact Mobile') ?></label>
                             <input type="text" name="phone" id="phone" class="form-control form-control-swift" placeholder="Phone Number" required>
                         </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="agency_address" class="form-label text-secondary small fw-semibold"><?= __('agency_address', 'Agency Address') ?></label>
+                        <textarea name="agency_address" id="agency_address" class="form-control form-control-swift" placeholder="Enter complete agency address" rows="2" required></textarea>
                     </div>
                     <div class="mb-3 mt-3">
                         <label for="operator_code" class="form-label text-secondary small fw-semibold"><?= __('enter_bus_operator_code', 'Enter Bus Operator Code') ?></label>

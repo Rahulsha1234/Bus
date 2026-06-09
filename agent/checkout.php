@@ -65,6 +65,17 @@ foreach ($seats as $seat) {
 $total_discount = round($total_discount, 2);
 $final_fare = max(0, $total_fare - $total_discount);
 
+$base_fare_taxable = $final_fare;
+$gst_info = calculate_gst($base_fare_taxable);
+$gst_rate = $gst_info['rate'];
+$gst_amount = $gst_info['amount'];
+$total_after_tax = $gst_info['total'];
+$convenience_fee = 0.00;
+$grand_total = $total_after_tax + $convenience_fee;
+
+$public_gst_amount = ($total_fare * $gst_rate) / 100.00;
+$public_grand_total = $total_fare + $public_gst_amount;
+
 // Fetch current agent's wallet status and balance
 $wallet_stmt = $pdo->prepare("SELECT balance, status FROM agent_wallets WHERE agent_id = ?");
 $wallet_stmt->execute([$_SESSION['user_id']]);
@@ -240,18 +251,16 @@ foreach ($seats as $seat) {
                     <span class="text-white fw-semibold"><?= htmlspecialchars($selected_seats) ?></span>
                 </div>
                 <div class="d-flex justify-content-between text-secondary small mb-2">
-                    <span><?= __('base_ticket_fare', 'Base Ticket Fare') ?></span>
+                    <span><?= __('base_ticket_fare', 'Ticket Fare') ?></span>
                     <span>₹<?= number_format($total_fare, 2) ?></span>
                 </div>
-                <?php if ($total_discount > 0): ?>
-                    <div class="d-flex justify-content-between text-secondary small mb-2 text-warning">
-                        <span>Agent Partner Discount</span>
-                        <span>-₹<?= number_format($total_discount, 2) ?></span>
-                    </div>
-                <?php endif; ?>
+                <div class="d-flex justify-content-between text-secondary small mb-2">
+                    <span><?= __('gst', 'GST') ?> (<?= $gst_rate ?>%)</span>
+                    <span>₹<?= number_format($public_gst_amount, 2) ?></span>
+                </div>
                 <div class="d-flex justify-content-between text-white fw-bold fs-5 pt-3 border-top border-secondary border-opacity-30 mb-3">
                     <span>Net Payable</span>
-                    <span class="text-indigo">₹<?= number_format($final_fare, 2) ?></span>
+                    <span class="text-indigo">₹<?= number_format($public_grand_total, 2) ?></span>
                 </div>
                 <div class="d-flex justify-content-between text-secondary small mb-2">
                     <span>Wallet Balance</span>
@@ -490,17 +499,21 @@ $(document).ready(function() {
                     <span class="text-white fw-bold font-monospace"><?= htmlspecialchars($selected_seats) ?></span>
                 </div>
                 <div class="d-flex justify-content-between mb-2 text-secondary small">
-                    <span><?= __('public_gross_fare', 'Public Gross Fare:') ?></span>
+                    <span><?= __('public_gross_fare', 'Ticket Fare:') ?></span>
                     <span class="text-white">₹<?= number_format($total_fare, 2) ?></span>
                 </div>
                 <div class="d-flex justify-content-between mb-2 text-warning small">
                     <span><?= __('agent_discount_colon', 'Agent Discount:') ?></span>
                     <span class="fw-bold">₹<?= number_format($total_discount, 2) ?></span>
                 </div>
+                <div class="d-flex justify-content-between mb-2 text-secondary small">
+                    <span><?= __('gst', 'GST') ?> (<?= $gst_rate ?>%):</span>
+                    <span class="text-white">₹<?= number_format($gst_amount, 2) ?></span>
+                </div>
                 <hr class="border-secondary border-opacity-30 my-3">
                 <div class="d-flex justify-content-between align-items-center text-white fw-bold fs-5">
                     <span><?= __('net_payable_agent', 'Net Payable (Agent):') ?></span>
-                    <span class="text-success">₹<?= number_format($final_fare, 2) ?></span>
+                    <span class="text-success">₹<?= number_format($grand_total, 2) ?></span>
                 </div>
             </div>
             <div class="modal-footer border-0 p-3 bg-dark bg-opacity-20 text-center text-secondary small" style="border-radius: 0 0 20px 20px; justify-content: center;">

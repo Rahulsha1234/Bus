@@ -134,7 +134,11 @@ try {
 
         <!-- Destination dropdown -->
         <div class="col-md-3">
-            <label for="destination_search" class="form-label text-secondary small fw-semibold"><?= __('going_to', 'Going To') ?></label>
+            <div class="d-flex justify-content-between align-items-center mb-1" style="min-height: 21px;">
+                <label for="destination_search" class="form-label text-secondary small fw-semibold mb-0"><?= __('going_to', 'Going To') ?></label>
+                <div id="dest-empty" class="small text-warning" style="display:none; font-weight: 500;"><i class="fa-solid fa-triangle-exclamation me-1"></i><?= __('no_routes', 'No routes.') ?></div>
+                <div id="dest-loading" class="small text-muted" style="display:none; font-weight: 500;"><i class="fa-solid fa-spinner fa-spin me-1"></i><?= __('loading', 'Loading...') ?></div>
+            </div>
             <div class="input-group">
                 <span class="input-group-text bg-dark border-secondary border-end-0 text-secondary" style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-location-crosshairs"></i></span>
                 <div class="autocomplete-wrapper">
@@ -142,7 +146,6 @@ try {
                     <input type="hidden" name="destination" id="destination" value="<?= htmlspecialchars($destination) ?>">
                 </div>
             </div>
-            <div id="dest-loading" class="small text-muted mt-1" style="display:none;"><i class="fa-solid fa-spinner fa-spin me-1"></i><?= __('loading', 'Loading...') ?></div>
         </div>
 
         <!-- Date Picker -->
@@ -267,20 +270,59 @@ try {
 
                             <!-- Price & Seats Display -->
                             <div class="col-md-3 text-center text-md-end">
+                                <?php 
+                                    $cust_gst = calculate_gst($original);
+                                    $agent_gst = calculate_gst($final);
+                                    
+                                    $pct_label = '';
+                                    if ($trip['discount_type'] === 'percentage' && floatval($trip['percentage']) > 0) {
+                                        $pct_label = floatval($trip['percentage']) . '% Comm';
+                                    } elseif ($trip['discount_type'] === 'fixed' && floatval($trip['fixed']) > 0 && $original > 0) {
+                                        $pct_label = round((floatval($trip['fixed']) / $original) * 100, 0) . '% Comm';
+                                    }
+                                ?>
                                 <div class="mb-2">
-                                    <span class="text-secondary small"><?= __('fare', 'Fare') ?>: </span>
-                                    <span class="fs-4 fw-bold text-success">₹<?= number_format($original, 2) ?></span>
-                                    <?php 
-                                        $pct_label = '';
-                                        if ($trip['discount_type'] === 'percentage' && floatval($trip['percentage']) > 0) {
-                                            $pct_label = floatval($trip['percentage']) . '% Comm';
-                                        } elseif ($trip['discount_type'] === 'fixed' && floatval($trip['fixed']) > 0 && $original > 0) {
-                                            $pct_label = round((floatval($trip['fixed']) / $original) * 100, 0) . '% Comm';
-                                        }
-                                    ?>
+                                    <span class="text-secondary small"><?= __('fare', 'Starting From') ?>: </span>
+                                    <span class="fs-4 fw-bold text-success">₹<?= number_format($cust_gst['total'], 2) ?></span>
                                     <?php if (!empty($pct_label)): ?>
                                         <span class="badge bg-warning text-dark ms-1 small" style="font-size:0.7rem; font-weight:600;"><?= $pct_label ?></span>
                                     <?php endif; ?>
+                                    <div class="mt-1">
+                                        <a href="#fare-details-<?= $trip['trip_id'] ?>" data-bs-toggle="collapse" class="text-secondary small text-decoration-none" style="font-size: 0.8rem; font-weight: 500;">
+                                            <i class="fa-solid fa-circle-info me-1"></i><?= __('fare_details', 'Fare Details') ?> <i class="fa-solid fa-chevron-down ms-1" style="font-size: 0.7rem;"></i>
+                                        </a>
+                                    </div>
+                                    <div class="collapse mt-2 text-start" id="fare-details-<?= $trip['trip_id'] ?>">
+                                        <div class="p-3 rounded border text-start" style="font-size: 0.8rem; background: var(--bg-secondary) !important; border-color: var(--border-color) !important; color: var(--text-secondary) !important;">
+                                            <div class="fw-bold text-white mb-2" style="font-size: 0.85rem;">Customer Ticket Fare</div>
+                                            <div class="d-flex justify-content-between mb-1">
+                                                <span>Base Fare:</span>
+                                                <span class="fw-semibold text-white">₹<?= number_format($original, 2) ?></span>
+                                            </div>
+                                            <div class="d-flex justify-content-between mb-1">
+                                                <span>GST (<?= $cust_gst['rate'] ?>%):</span>
+                                                <span class="fw-semibold text-white">₹<?= number_format($cust_gst['amount'], 2) ?></span>
+                                            </div>
+                                            <div class="d-flex justify-content-between fw-bold text-success border-top border-secondary border-opacity-20 pt-1">
+                                                <span>Total Fare:</span>
+                                                <span>₹<?= number_format($cust_gst['total'], 2) ?></span>
+                                            </div>
+                                            
+                                            <div class="fw-bold text-white mt-3 mb-2" style="font-size: 0.85rem;">Agent Net Fare</div>
+                                            <div class="d-flex justify-content-between mb-1">
+                                                <span>Net Base:</span>
+                                                <span class="fw-semibold text-white">₹<?= number_format($final, 2) ?></span>
+                                            </div>
+                                            <div class="d-flex justify-content-between mb-1">
+                                                <span>GST (<?= $agent_gst['rate'] ?>%):</span>
+                                                <span class="fw-semibold text-white">₹<?= number_format($agent_gst['amount'], 2) ?></span>
+                                            </div>
+                                            <div class="d-flex justify-content-between fw-bold text-indigo border-top border-secondary border-opacity-20 pt-1">
+                                                <span>Total Debit:</span>
+                                                <span>₹<?= number_format($agent_gst['total'], 2) ?></span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 
                                 <div class="mb-3">
@@ -368,11 +410,13 @@ $(document).ready(function() {
         var $destInput = $('#destination_search');
         var $destHidden = $('#destination');
         var $loading = $('#dest-loading');
+        var $empty = $('#dest-empty');
 
         // Reset
         $destInput.prop('disabled', true);
         destinationsList = [];
         $loading.hide();
+        $empty.hide();
 
         if (!source) {
             return;
@@ -382,6 +426,12 @@ $(document).ready(function() {
 
         $.getJSON('<?= BASE_URL ?>/ajax/get_destinations.php', { source: source, admin_id: <?= $parent_admin_id ?> }, function(data) {
             $loading.hide();
+            
+            if (data.length === 0) {
+                $empty.show();
+                return;
+            }
+
             destinationsList = data;
             $destInput.prop('disabled', false);
             

@@ -249,8 +249,14 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
             }
         }
 
-        $calculated_discount = round($calculated_discount, 2);
         $final_total = max(0.00, $total_amount - $calculated_discount);
+        $base_fare_taxable = $final_total;
+        $gst_info = calculate_gst($base_fare_taxable);
+        $gst_rate = $gst_info['rate'];
+        $gst_amount = $gst_info['amount'];
+        $total_after_tax = $gst_info['total'];
+        $convenience_fee = ($current_role === 'agent') ? 0.00 : 20.00;
+        $grand_total = $total_after_tax + $convenience_fee;
 
         // --- NEW AGENT WALLET CHECK START ---
         if ($current_role === 'agent') {
@@ -271,8 +277,8 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
             }
 
             $wallet_balance = floatval($wallet['balance']);
-            if ($wallet_balance < $final_total) {
-                $shortfall = $final_total - $wallet_balance;
+            if ($wallet_balance < $grand_total) {
+                $shortfall = $grand_total - $wallet_balance;
                 
                 // Extend the hold expiration to 10 minutes (600 seconds) from now!
                 $expire_time_10m = date('Y-m-d H:i:s', strtotime('+10 minutes'));
@@ -289,7 +295,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
                     'success' => false,
                     'insufficient_wallet' => true,
                     'shortfall' => $shortfall,
-                    'total_fare' => $final_total,
+                    'total_fare' => $grand_total,
                     'wallet_balance' => $wallet_balance
                 ]);
                 exit();
@@ -299,8 +305,8 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
 
         // 4. Commission Calculations
         $commission_rate = 2.00; // 2%
-        $admin_commission = ($final_total * $commission_rate) / 100;
-        $agent_net_earning = $final_total - $admin_commission;
+        $admin_commission = ($base_fare_taxable * $commission_rate) / 100;
+        $agent_net_earning = $base_fare_taxable - $admin_commission;
 
         // 5. Create Booking Entry
         $booking_ref = 'SB' . strtoupper(substr(uniqid(), 7)) . rand(10, 99);
@@ -311,8 +317,8 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
                 booking_reference, trip_id, customer_id, admin_id, agent_id, customer_name, customer_email, customer_phone, 
                 total_amount, admin_commission, agent_net_earning, payment_status, payment_gateway, transaction_id,
                 boarding_point, dropping_point, status, discount_amount, promo_code, booking_source, original_fare, discount_applied, final_fare,
-                dynamic_occupancy_adjustment, dynamic_time_adjustment
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'paid', 'Razorpay', ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?)
+                dynamic_occupancy_adjustment, dynamic_time_adjustment, base_fare, gst_rate, gst_amount, total_fare_after_tax
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'paid', 'Razorpay', ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
 
         $mock_tx_id = 'pay_mock_' . bin2hex(random_bytes(8));
@@ -327,7 +333,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
             $cust_name,
             $cust_email,
             $cust_phone,
-            $final_total,
+            $grand_total,
             $admin_commission,
             $agent_net_earning,
             $mock_tx_id,
@@ -338,15 +344,19 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
             $booking_source,
             $total_amount,
             $calculated_discount,
-            $final_total,
+            $grand_total,
             $total_occupancy_adjustment,
-            $total_time_adjustment
+            $total_time_adjustment,
+            $base_fare_taxable,
+            $gst_rate,
+            $gst_amount,
+            $total_after_tax
         ]);
         $booking_id = $pdo->lastInsertId();
 
         // --- NEW AGENT WALLET DEDUCT & LEDGER START ---
         if ($current_role === 'agent') {
-            $new_balance = $wallet_balance - $final_total;
+            $new_balance = $wallet_balance - $grand_total;
             $update_wallet = $pdo->prepare("UPDATE agent_wallets SET balance = ? WHERE id = ?");
             $update_wallet->execute([$new_balance, $wallet['id']]);
 
@@ -356,10 +366,10 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_payment') {
                     reference_type, reference_id, remarks, created_by
                 ) VALUES (?, 'debit', ?, ?, ?, 'booking', ?, ?, ?)
             ");
-            $remarks = "Ticket Booking ref: $booking_ref";
+            $remarks = "Ticket Booking ref: $booking_ref. Ticket Fare: ₹" . number_format($base_fare_taxable, 2) . ", GST: ₹" . number_format($gst_amount, 2) . ", Total: ₹" . number_format($grand_total, 2);
             $ledger_stmt->execute([
                 $wallet['id'],
-                $final_total,
+                $grand_total,
                 $wallet_balance,
                 $new_balance,
                 $booking_id,
@@ -555,6 +565,15 @@ if (!empty($applied_promo)) {
 }
 $final_fare = $total_fare - $discount_amount;
 
+$base_fare_taxable = $final_fare;
+$gst_info = calculate_gst($base_fare_taxable);
+$gst_rate = $gst_info['rate'];
+$gst_amount = $gst_info['amount'];
+$total_after_tax = $gst_info['total'];
+$current_role = $_SESSION['user_role'] ?? 'customer';
+$convenience_fee = ($current_role === 'agent') ? 0.00 : 20.00;
+$grand_total = $total_after_tax + $convenience_fee;
+
 // Do not auto-fill customer variables
 $default_name = '';
 $default_email = '';
@@ -719,7 +738,7 @@ require_once __DIR__ . '/includes/header.php';
                     <span class="text-white fw-semibold"><?= htmlspecialchars($selected_seats) ?></span>
                 </div>
                 <div class="d-flex justify-content-between text-secondary small mb-3">
-                    <span><?= __('base_ticket_fare', 'Base Ticket Fare') ?></span>
+                    <span><?= __('base_ticket_fare', 'Ticket Fare') ?></span>
                     <span>₹<?= number_format($total_fare, 2) ?></span>
                 </div>
                 <?php if ($discount_amount > 0): ?>
@@ -728,9 +747,20 @@ require_once __DIR__ . '/includes/header.php';
                         <span class="text-success">-₹<?= number_format($discount_amount, 2) ?></span>
                     </div>
                 <?php endif; ?>
-                <div class="d-flex justify-content-between text-white fw-bold fs-5 pt-3 border-top border-secondary border-opacity-30">
-                    <span><?= __('total_amount', 'Total Price') ?></span>
-                    <span class="text-indigo">₹<?= number_format($final_fare, 2) ?></span>
+                <div class="d-flex justify-content-between text-secondary small mb-3">
+                    <span><?= __('gst', 'GST') ?> (<?= $gst_rate ?>%)</span>
+                    <span>₹<?= number_format($gst_amount, 2) ?></span>
+                </div>
+                <div class="d-flex justify-content-between text-secondary small mb-3">
+                    <span><?= __('convenience_fee', 'Convenience Fee') ?></span>
+                    <span>₹<?= number_format($convenience_fee, 2) ?></span>
+                </div>
+                <div class="d-flex justify-content-between text-white fw-bold fs-5 pt-3 border-top border-secondary border-opacity-30 mb-2">
+                    <span><?= __('grand_total', 'Grand Total') ?></span>
+                    <span class="text-indigo">₹<?= number_format($grand_total, 2) ?></span>
+                </div>
+                <div class="text-secondary small mt-3 border-top border-secondary border-opacity-10 pt-2" style="font-size: 0.75rem; font-style: italic;">
+                    <i class="fa-solid fa-scale-balanced me-1"></i><?= __('gst_included_disclaimer', 'GST included as per applicable government regulations.') ?>
                 </div>
             </div>
         </div>
@@ -757,7 +787,7 @@ require_once __DIR__ . '/includes/header.php';
             <div class="modal-body p-4">
                 <div class="text-center mb-4">
                     <span class="text-secondary small d-block">AMOUNT TO PAY</span>
-                    <h2 class="fw-bold text-indigo" style="font-size: 2.5rem; color:#818cf8;">₹<?= number_format($final_fare, 2) ?></h2>
+                    <h2 class="fw-bold text-indigo" style="font-size: 2.5rem; color:#818cf8;">₹<?= number_format($grand_total, 2) ?></h2>
                 </div>
 
                 <div class="p-3 rounded-4 bg-dark bg-opacity-30 border border-secondary border-opacity-20 mb-4 small text-secondary">

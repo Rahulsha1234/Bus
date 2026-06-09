@@ -44,6 +44,11 @@ try {
             b.created_at,
             b.boarding_point,
             b.dropping_point,
+            b.booking_source,
+            b.base_fare,
+            b.gst_rate,
+            b.gst_amount,
+            b.total_fare_after_tax,
             t.departure_time,
             t.arrival_time,
             bs.id AS bus_id,
@@ -233,28 +238,58 @@ render_pdf_toolbar("ticket.php?ref=" . urlencode($booking['booking_reference']),
         </div>
         <!-- 5. Summary Component -->
         <div class="col-md-6 text-md-end">
+            <?php
+                $show_discount = true;
+                $base_fare_disp = floatval($booking['base_fare']);
+                $gst_amount_disp = floatval($booking['gst_amount']);
+                $total_paid_disp = floatval($booking['total_amount']);
+
+                if ($is_customer_copy && $booking['booking_source'] === 'agent') {
+                    $show_discount = false;
+                    $base_fare_disp = floatval($booking['base_fare']) + floatval($booking['discount_amount']);
+                    $gst_amount_disp = ($base_fare_disp * floatval($booking['gst_rate'])) / 100.00;
+                    $total_paid_disp = $base_fare_disp + $gst_amount_disp;
+                }
+            ?>
             <div class="pdf-summary-box d-block ms-md-auto">
                 <h6 class="info-label text-start border-bottom pb-2 mb-3">Fare Breakdown</h6>
-                <?php
-                $orig_fare = floatval($booking['original_fare']) > 0 ? floatval($booking['original_fare']) : floatval($booking['total_amount']) + floatval($booking['discount_amount']);
-                $total_paid = $is_customer_copy ? $orig_fare : floatval($booking['total_amount']);
-                $discount = $is_customer_copy ? 0.00 : floatval($booking['discount_amount']);
-                ?>
                 <div class="pdf-summary-item">
                     <span>Base Fare:</span>
-                    <strong>₹<?= number_format($orig_fare, 2) ?></strong>
+                    <strong>₹<?= number_format($base_fare_disp, 2) ?></strong>
                 </div>
-                <?php if ($discount > 0): ?>
+                <?php if ($show_discount && $booking['discount_amount'] > 0): ?>
                     <div class="pdf-summary-item text-success">
-                        <span>Promo Code Applied:</span>
-                        <strong>-₹<?= number_format($discount, 2) ?></strong>
+                        <span>Discount Applied:</span>
+                        <strong>-₹<?= number_format($booking['discount_amount'], 2) ?></strong>
+                    </div>
+                <?php endif; ?>
+                <div class="pdf-summary-item">
+                    <span>GST (<?= number_format($booking['gst_rate'], 1) ?>%):</span>
+                    <strong>₹<?= number_format($gst_amount_disp, 2) ?></strong>
+                </div>
+                <!-- SGST & CGST Split -->
+                <div class="pdf-summary-item text-muted" style="font-size: 0.75rem; padding-left: 15px;">
+                    <span>CGST (<?= number_format($booking['gst_rate']/2, 2) ?>%):</span>
+                    <strong>₹<?= number_format($gst_amount_disp/2, 2) ?></strong>
+                </div>
+                <div class="pdf-summary-item text-muted" style="font-size: 0.75rem; padding-left: 15px;">
+                    <span>SGST (<?= number_format($booking['gst_rate']/2, 2) ?>%):</span>
+                    <strong>₹<?= number_format($gst_amount_disp/2, 2) ?></strong>
+                </div>
+                <?php 
+                $invoice_convenience = floatval($total_paid_disp) - (floatval($base_fare_disp) + floatval($gst_amount_disp));
+                if ($invoice_convenience > 0.01):
+                ?>
+                    <div class="pdf-summary-item">
+                        <span>Convenience Fee:</span>
+                        <strong>₹<?= number_format($invoice_convenience, 2) ?></strong>
                     </div>
                 <?php endif; ?>
                 <div class="pdf-summary-total">
                     <span>Total Paid:</span>
-                    <span>₹<?= number_format($total_paid, 2) ?></span>
+                    <span>₹<?= number_format($total_paid_disp, 2) ?></span>
                 </div>
-                <div class="small text-muted text-start mt-2" style="font-size: 0.7rem;">*Inclusive of processing fees & booking taxes.</div>
+                <div class="small text-muted text-start mt-2" style="font-size: 0.7rem;">*GST included as per applicable government regulations.</div>
             </div>
         </div>
     </div>

@@ -89,7 +89,8 @@ try {
             u.status,
             u.created_at,
             ap.agency_name,
-            ap.phone
+            ap.phone,
+            ap.agency_address
         FROM users u
         INNER JOIN agent_profiles ap ON u.id = ap.user_id
         WHERE u.role = 'agent' AND ap.admin_id = ?
@@ -142,7 +143,13 @@ try {
                 <tbody>
                     <?php foreach ($agents as $agent): ?>
                         <tr>
-                            <td><span class="fw-semibold text-white fs-6"><?= htmlspecialchars($agent['agency_name'] ?? 'N/A') ?></span></td>
+                            <td>
+                                <span class="fw-semibold text-white fs-6"><?= htmlspecialchars($agent['agency_name'] ?? 'N/A') ?></span>
+                                <div class="small text-secondary mt-1 d-flex align-items-center gap-1" style="font-size:0.75rem;">
+                                    <i class="fa-solid fa-location-dot"></i>
+                                    <span><?= htmlspecialchars($agent['agency_address'] ?: 'Address: N/A') ?></span>
+                                </div>
+                            </td>
                             <td><span class="small text-secondary"><i class="fa-solid fa-user me-2"></i><?= htmlspecialchars($agent['username']) ?></span></td>
                             <td><?= htmlspecialchars($agent['email']) ?></td>
                             <td><?= htmlspecialchars($agent['phone'] ?? 'N/A') ?></td>

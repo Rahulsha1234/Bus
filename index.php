@@ -124,7 +124,13 @@ require_once __DIR__ . '/includes/header.php';
 
                 <!-- Destination dropdown -->
                 <div class="col-md-3">
-                    <label for="destination_search" class="form-label text-secondary small fw-bold"><?= __('going_to', 'Going To') ?></label>
+                    <div class="d-flex justify-content-between align-items-center mb-1" style="min-height: 21px;">
+                        <label for="destination_search" class="form-label text-secondary small fw-bold mb-0"><?= __('going_to', 'Going To') ?></label>
+                        <div id="dest-empty" class="small text-warning" style="display:none; font-weight: 500;"><i
+                                class="fa-solid fa-triangle-exclamation me-1"></i><?= __('no_routes', 'No routes.') ?></div>
+                        <div id="dest-loading" class="small text-muted" style="display:none; font-weight: 500;"><i
+                                class="fa-solid fa-spinner fa-spin me-1"></i><?= __('loading', 'Loading...') ?></div>
+                    </div>
                     <div class="input-group">
                         <span class="input-group-text bg-light border-end-0 text-secondary"
                             style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-location-crosshairs"></i></span>
@@ -134,10 +140,6 @@ require_once __DIR__ . '/includes/header.php';
                             <input type="hidden" name="destination" id="destination" value="">
                         </div>
                     </div>
-                    <div id="dest-loading" class="small text-muted mt-1" style="display:none;"><i
-                            class="fa-solid fa-spinner fa-spin me-1"></i><?= __('loading', 'Loading...') ?></div>
-                    <div id="dest-empty" class="small text-warning mt-1" style="display:none;"><i
-                            class="fa-solid fa-triangle-exclamation me-1"></i><?= __('no_routes', 'No routes.') ?></div>
                 </div>
 
                 <!-- Date Picker -->
@@ -362,7 +364,7 @@ require_once __DIR__ . '/includes/header.php';
 
 
 <!-- Popular Routes, Testimonials, and FAQs Container with Doodle Background -->
-<div class="position-relative overflow-hidden bg-doodles-wrapper" style="background: rgba(25, 135, 84, 0.02);">
+<div class="position-relative overflow-hidden bg-doodles-wrapper" style="background: var(--bg-primary);">
     <!-- Dotted Grid & Curvy Route Paths Background -->
     <div class="position-absolute start-0 w-100 h-100 top-0 overflow-hidden pointer-events-none z-0"
         style="opacity: 0.35;">
@@ -582,20 +584,32 @@ require_once __DIR__ . '/includes/header.php';
 </div> <!-- Close inner background doodles wrapper -->
 
 <!-- Fleet Gallery Section -->
-<div class="py-5 my-5 reveal-on-scroll">
-    <div class="container">
+<div class="position-relative overflow-hidden py-5 reveal-on-scroll" style="background: var(--bg-primary);">
+    <!-- Dot Pattern Background -->
+    <div class="position-absolute start-0 w-100 h-100 top-0 overflow-hidden pointer-events-none z-0" style="opacity: 0.35;">
+        <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <pattern id="fleetDotPattern" width="30" height="30" patternUnits="userSpaceOnUse">
+                    <circle cx="15" cy="15" r="1.5" fill="var(--accent-primary)" opacity="0.7" />
+                </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#fleetDotPattern)" />
+        </svg>
+    </div>
+
+    <div class="container position-relative z-1">
         <div class="text-center mb-5">
             <span
                 class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill uppercase tracking-wider mb-2"
-                style="font-size: 0.8rem; font-weight: 700;"><?= __('premium_fleet', 'Our Premium Fleet') ?></span>
-            <h2 class="fw-bold display-6" style="font-family: 'Plus Jakarta Sans', sans-serif;"><?= __('fleet_title', 'Travel In Redefined Comfort') ?></h2>
-            <p class="text-secondary mx-auto" style="max-width: 600px;"><?= __('fleet_subtitle', 'Explore the state-of-the-art features of our premium, safe, and highly maintained bus fleet.') ?></p>
+                style="font-size: 0.8rem; font-weight: 700; border: 1px solid rgba(25, 135, 84, 0.2);"><?= __('premium_fleet', 'Our Premium Fleet') ?></span>
+            <h2 class="fw-bold display-6" style="font-family: 'Plus Jakarta Sans', sans-serif; color: var(--text-primary);"><?= __('fleet_title', 'Travel In Redefined Comfort') ?></h2>
+            <p class="text-secondary mx-auto" style="max-width: 600px; color: var(--text-secondary) !important;"><?= __('fleet_subtitle', 'Explore the state-of-the-art features of our premium, safe, and highly maintained bus fleet.') ?></p>
         </div>
         <div class="row g-4">
             <!-- Card 1 -->
             <div class="col-md-4">
                 <div class="card border-0 shadow-sm overflow-hidden hover-card-premium h-100 rounded-4"
-                    style="background: var(--bg-card);">
+                    style="background: var(--bg-card); border: 1px solid var(--border-color) !important;">
                     <div class="position-relative overflow-hidden" style="height: 240px;">
                         <img src="https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=600&q=80"
                             class="w-100 h-100 object-fit-cover hover-zoom" alt="Scania Multi-Axle">
@@ -604,10 +618,10 @@ require_once __DIR__ . '/includes/header.php';
                             style="border-bottom-left-radius: 12px; border-top-right-radius: 4px; z-index: 1;"><?= __('sleeper_seater', 'Sleeper & Seater') ?></span>
                     </div>
                     <div class="card-body p-4">
-                        <h4 class="fw-bold mb-2"><?= __('fleet_1_name', 'Scania Multi-Axle Premium') ?></h4>
-                        <p class="text-secondary small"><?= __('fleet_1_desc', 'Equipped with luxury reclining seats, USB ports at every seat, ambient lighting, and GPS tracking.') ?></p>
+                        <h4 class="fw-bold mb-2" style="color: var(--text-primary);"><?= __('fleet_1_name', 'Scania Multi-Axle Premium') ?></h4>
+                        <p class="text-secondary small" style="color: var(--text-secondary) !important;"><?= __('fleet_1_desc', 'Equipped with luxury reclining seats, USB ports at every seat, ambient lighting, and GPS tracking.') ?></p>
                         <hr class="border-light opacity-50">
-                        <div class="d-flex justify-content-between text-secondary small">
+                        <div class="d-flex justify-content-between text-secondary small" style="color: var(--text-secondary) !important;">
                             <span><i class="fa-solid fa-snowflake text-info me-1"></i> <?= __('full_ac', 'Full AC') ?></span>
                             <span><i class="fa-solid fa-wifi text-warning me-1"></i> <?= __('free_wifi', 'Free Wi-Fi') ?></span>
                         </div>
@@ -617,19 +631,19 @@ require_once __DIR__ . '/includes/header.php';
             <!-- Card 2 -->
             <div class="col-md-4">
                 <div class="card border-0 shadow-sm overflow-hidden hover-card-premium h-100 rounded-4"
-                    style="background: var(--bg-card);">
+                    style="background: var(--bg-card); border: 1px solid var(--border-color) !important;">
                     <div class="position-relative overflow-hidden" style="height: 240px;">
-                        <img src="https://images.unsplash.com/photo-1570129476815-ba368ac77013?auto=format&fit=crop&w=600&q=80"
+                        <img src="<?= BASE_URL ?>/assets/sleeper_interior.png"
                             class="w-100 h-100 object-fit-cover hover-zoom" alt="Volvo AC Sleeper">
                         <span
                             class="position-absolute top-0 end-0 bg-success text-white px-3 py-1 rounded-bottom-start small m-3 fw-bold"
                             style="border-bottom-left-radius: 12px; border-top-right-radius: 4px; z-index: 1;"><?= __('premium_bunks', 'Premium Bunks') ?></span>
                     </div>
                     <div class="card-body p-4">
-                        <h4 class="fw-bold mb-2"><?= __('fleet_2_name', 'Volvo AC Luxury Sleeper') ?></h4>
-                        <p class="text-secondary small"><?= __('fleet_2_desc', 'Spacious individual sleeper berths with clean blankets, reading lights, and privacy curtains.') ?></p>
+                        <h4 class="fw-bold mb-2" style="color: var(--text-primary);"><?= __('fleet_2_name', 'Volvo AC Luxury Sleeper') ?></h4>
+                        <p class="text-secondary small" style="color: var(--text-secondary) !important;"><?= __('fleet_2_desc', 'Spacious individual sleeper berths with clean blankets, reading lights, and privacy curtains.') ?></p>
                         <hr class="border-light opacity-50">
-                        <div class="d-flex justify-content-between text-secondary small">
+                        <div class="d-flex justify-content-between text-secondary small" style="color: var(--text-secondary) !important;">
                             <span><i class="fa-solid fa-plug text-info me-1"></i> <?= __('charging_slot', 'Charging Slot') ?></span>
                             <span><i class="fa-solid fa-pillow text-warning me-1"></i> <?= __('pillow_blanket', 'Pillow & Blanket') ?></span>
                         </div>
@@ -639,19 +653,19 @@ require_once __DIR__ . '/includes/header.php';
             <!-- Card 3 -->
             <div class="col-md-4">
                 <div class="card border-0 shadow-sm overflow-hidden hover-card-premium h-100 rounded-4"
-                    style="background: var(--bg-card);">
+                    style="background: var(--bg-card); border: 1px solid var(--border-color) !important;">
                     <div class="position-relative overflow-hidden" style="height: 240px;">
-                        <img src="https://images.unsplash.com/photo-1562620669-9783f982136e?auto=format&fit=crop&w=600&q=80"
+                        <img src="<?= BASE_URL ?>/assets/electric_coach.png"
                             class="w-100 h-100 object-fit-cover hover-zoom" alt="Eco Electric Coach">
                         <span
                             class="position-absolute top-0 end-0 bg-success text-white px-3 py-1 rounded-bottom-start small m-3 fw-bold"
                             style="border-bottom-left-radius: 12px; border-top-right-radius: 4px; z-index: 1;"><?= __('eco_friendly', 'Eco-Friendly') ?></span>
                     </div>
                     <div class="card-body p-4">
-                        <h4 class="fw-bold mb-2"><?= __('fleet_3_name', 'Electric Intercity Coach') ?></h4>
-                        <p class="text-secondary small"><?= __('fleet_3_desc', 'Eco-friendly electric motor providing silent rides, regenerative braking, and zero direct emissions.') ?></p>
+                        <h4 class="fw-bold mb-2" style="color: var(--text-primary);"><?= __('fleet_3_name', 'Electric Intercity Coach') ?></h4>
+                        <p class="text-secondary small" style="color: var(--text-secondary) !important;"><?= __('fleet_3_desc', 'Eco-friendly electric motor providing silent rides, regenerative braking, and zero direct emissions.') ?></p>
                         <hr class="border-light opacity-50">
-                        <div class="d-flex justify-content-between text-secondary small">
+                        <div class="d-flex justify-content-between text-secondary small" style="color: var(--text-secondary) !important;">
                             <span><i class="fa-solid fa-leaf text-success me-1"></i> <?= __('green_travel', 'Green Travel') ?></span>
                             <span><i class="fa-solid fa-volume-mute text-info me-1"></i> <?= __('ultra_quiet', 'Ultra Quiet') ?></span>
                         </div>
@@ -661,218 +675,194 @@ require_once __DIR__ . '/includes/header.php';
         </div>
     </div>
 </div>
-
-<!-- Interactive Route Map Section (Full Width) -->
-<div class="position-relative overflow-hidden py-5 reveal-on-scroll"
-    style="background: radial-gradient(circle at top right, #0e3b24, #081a11 90%); min-height: 550px; border-top: 1px solid rgba(46, 204, 113, 0.15); border-bottom: 1px solid rgba(46, 204, 113, 0.15);">
-    <!-- Dotted Grid overlay -->
-    <div class="position-absolute start-0 w-100 h-100 top-0 overflow-hidden pointer-events-none z-0"
-        style="opacity: 0.05;">
+<!-- Interactive Route Map Section (Clean Light-Mode Transit Network) -->
+<div id="radar-control-section" class="position-relative overflow-hidden py-5 reveal-on-scroll"
+    style="background: var(--bg-primary); min-height: 550px; color: var(--text-primary); font-family: 'Plus Jakarta Sans', sans-serif;">
+    
+    <!-- Dot Pattern Background -->
+    <div class="position-absolute start-0 w-100 h-100 top-0 overflow-hidden pointer-events-none z-0" style="opacity: 0.35;">
         <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
             <defs>
-                <pattern id="mapDots" width="30" height="30" patternUnits="userSpaceOnUse">
-                    <circle cx="15" cy="15" r="1" fill="#ffffff" />
+                <pattern id="radarDotPattern" width="30" height="30" patternUnits="userSpaceOnUse">
+                    <circle cx="15" cy="15" r="1.5" fill="var(--accent-primary)" opacity="0.7" />
                 </pattern>
             </defs>
-            <rect width="100%" height="100%" fill="url(#mapDots)" />
+            <rect width="100%" height="100%" fill="url(#radarDotPattern)" />
         </svg>
     </div>
 
-    <div class="container position-relative z-1 py-3">
+    <!-- Moving Road Path Background Doodle -->
+    <div class="position-absolute start-0 w-100 h-100 top-0 overflow-hidden pointer-events-none z-0" style="opacity: 0.18;">
+        <svg width="100%" height="100%" viewBox="0 0 1440 600" fill="none" xmlns="http://www.w3.org/2000/svg" style="stroke: var(--accent-primary); stroke-width: 2.5;">
+            <path d="M-100 200 C 300 50, 500 550, 900 300 C 1300 50, 1200 450, 1600 250"
+                style="stroke-dasharray: 12 12; animation: moveRoute 30s linear infinite; will-change: stroke-dashoffset;" />
+            <path d="M1600 400 C 1200 150, 1000 550, 600 200 C 200 50, 200 450, -100 350" opacity="0.6"
+                style="stroke-dasharray: 12 12; animation: moveRoute 25s linear infinite reverse; will-change: stroke-dashoffset;" />
+            <circle cx="300" cy="100" r="6" fill="var(--accent-primary)" opacity="0.3" />
+            <circle cx="900" cy="300" r="8" fill="var(--accent-primary)" opacity="0.3" />
+            <circle cx="1300" cy="150" r="5" fill="var(--accent-primary)" opacity="0.3" />
+        </svg>
+    </div>
+
+    <div class="container position-relative z-1 py-4">
         <div class="row align-items-center g-5">
-            <!-- Map Info -->
-            <div class="col-lg-5 text-white">
-                <span
-                    class="badge bg-success bg-opacity-20 text-success px-3 py-2 rounded-pill uppercase tracking-wider mb-2"
-                    style="font-size: 0.8rem; font-weight: 700; color: #2ecc71 !important; background: rgba(46,204,113,0.15) !important;"><?= __('ops_console', 'Operations Console') ?></span>
-                <h2 class="fw-bold mb-3"
-                    style="font-family: 'Plus Jakarta Sans', sans-serif; color: #ffffff !important; letter-spacing: -0.5px;">
-                    <?= __('ops_network', 'Our Operations Network') ?></h2>
-                <p class="text-secondary mb-4" style="color: rgba(255,255,255,0.65) !important; font-size: 0.95rem;">
-                    <?= __('ops_subtitle', 'Hover over or tap any city hub card to highlight its active intercity highway connections on the radar console.') ?></p>
+            <!-- Left Side Content (40% Desktop / 50% Tablet / Stacked Mobile) -->
+            <div class="col-lg-5 col-md-6 text-start">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <span class="pulse-indicator"></span>
+                    <span class="text-uppercase fw-bold tracking-wider" style="color: var(--accent-primary); font-size: 0.75rem; letter-spacing: 2px;">🟢 Live Network Status</span>
+                </div>
+                
+                <h2 class="fw-bold mb-3 display-6" style="color: var(--text-primary); letter-spacing: -1px; font-weight: 800;">
+                    Nationwide Bus Network Coverage
+                </h2>
+                
+                <p class="mb-4" style="color: var(--text-secondary); font-size: 0.95rem; line-height: 1.6;">
+                    Connecting major cities across India and Nepal with real-time route monitoring and seamless travel experiences. All major routes operational.
+                </p>
 
-                <div class="d-flex flex-column gap-3">
-                    <!-- Delhi Card -->
-                    <div class="interactive-city-card p-3 rounded-4 d-flex align-items-center justify-content-between"
-                        data-city="delhi"
-                        style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255,255,255,0.06); transition: all 0.3s ease; cursor: pointer;">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="rounded-circle d-flex align-items-center justify-content-center"
-                                style="width: 44px; height: 44px; background: rgba(46,204,113,0.1); border: 1px solid rgba(46,204,113,0.25);">
-                                <i class="fa-solid fa-location-crosshairs text-success"></i>
-                            </div>
-                            <div>
-                                <h6 class="mb-0 fw-bold" style="color: #ffffff !important;">Delhi Hub (NCR)</h6>
-                                <small class="text-secondary"
-                                    style="color: rgba(255,255,255,0.45) !important;">Connected to Jaipur</small>
-                            </div>
+                <!-- Statistics Grid in Premium Light Cards -->
+                <div class="row g-3 mb-4">
+                    <div class="col-6">
+                        <div class="light-stat-card p-3 h-100">
+                            <div class="stat-val" style="color: var(--accent-primary); font-size: 1.5rem; font-weight: 800;">500+</div>
+                            <div class="stat-lbl" style="color: var(--text-secondary); font-size: 0.75rem; font-weight: 500;">Active Routes</div>
                         </div>
-                        <i class="fa-solid fa-chevron-right text-secondary small opacity-50"></i>
                     </div>
+                    <div class="col-6">
+                        <div class="light-stat-card p-3 h-100">
+                            <div class="stat-val" style="color: var(--accent-primary); font-size: 1.5rem; font-weight: 800;">1500+</div>
+                            <div class="stat-lbl" style="color: var(--text-secondary); font-size: 0.75rem; font-weight: 500;">Daily Trips</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="light-stat-card p-3 h-100">
+                            <div class="stat-val" style="color: var(--accent-primary); font-size: 1.5rem; font-weight: 800;">100+</div>
+                            <div class="stat-lbl" style="color: var(--text-secondary); font-size: 0.75rem; font-weight: 500;">Cities Connected</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="light-stat-card p-3 h-100">
+                            <div class="stat-val" style="color: var(--accent-primary); font-size: 1.5rem; font-weight: 800;">99.8%</div>
+                            <div class="stat-lbl" style="color: var(--text-secondary); font-size: 0.75rem; font-weight: 500;">Service Uptime</div>
+                        </div>
+                    </div>
+                </div>
 
-                    <!-- Jaipur Card -->
-                    <div class="interactive-city-card p-3 rounded-4 d-flex align-items-center justify-content-between"
-                        data-city="jaipur"
-                        style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255,255,255,0.06); transition: all 0.3s ease; cursor: pointer;">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="rounded-circle d-flex align-items-center justify-content-center"
-                                style="width: 44px; height: 44px; background: rgba(46,204,113,0.1); border: 1px solid rgba(46,204,113,0.25);">
-                                <i class="fa-solid fa-location-crosshairs text-success"></i>
-                            </div>
-                            <div>
-                                <h6 class="mb-0 fw-bold" style="color: #ffffff !important;">Jaipur Hub</h6>
-                                <small class="text-secondary"
-                                    style="color: rgba(255,255,255,0.45) !important;">Connected to Delhi &
-                                    Mumbai</small>
-                            </div>
-                        </div>
-                        <i class="fa-solid fa-chevron-right text-secondary small opacity-50"></i>
-                    </div>
-
-                    <!-- Mumbai & Pune Card -->
-                    <div class="interactive-city-card p-3 rounded-4 d-flex align-items-center justify-content-between"
-                        data-city="mumbai"
-                        style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255,255,255,0.06); transition: all 0.3s ease; cursor: pointer;">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="rounded-circle d-flex align-items-center justify-content-center"
-                                style="width: 44px; height: 44px; background: rgba(46,204,113,0.1); border: 1px solid rgba(46,204,113,0.25);">
-                                <i class="fa-solid fa-location-crosshairs text-success"></i>
-                            </div>
-                            <div>
-                                <h6 class="mb-0 fw-bold" style="color: #ffffff !important;">Mumbai & Pune Hubs</h6>
-                                <small class="text-secondary"
-                                    style="color: rgba(255,255,255,0.45) !important;">Connected to Bangalore &
-                                    Jaipur</small>
-                            </div>
-                        </div>
-                        <i class="fa-solid fa-chevron-right text-secondary small opacity-50"></i>
-                    </div>
-
-                    <!-- Bangalore & Chennai Card -->
-                    <div class="interactive-city-card p-3 rounded-4 d-flex align-items-center justify-content-between"
-                        data-city="bangalore"
-                        style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255,255,255,0.06); transition: all 0.3s ease; cursor: pointer;">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="rounded-circle d-flex align-items-center justify-content-center"
-                                style="width: 44px; height: 44px; background: rgba(46,204,113,0.1); border: 1px solid rgba(46,204,113,0.25);">
-                                <i class="fa-solid fa-location-crosshairs text-success"></i>
-                            </div>
-                            <div>
-                                <h6 class="mb-0 fw-bold" style="color: #ffffff !important;">Southern Hubs (BLR & MAA)
-                                </h6>
-                                <small class="text-secondary"
-                                    style="color: rgba(255,255,255,0.45) !important;">Connected to Mumbai &
-                                    Chennai</small>
-                            </div>
-                        </div>
-                        <i class="fa-solid fa-chevron-right text-secondary small opacity-50"></i>
-                    </div>
+                <!-- CTA Action -->
+                <div>
+                    <a href="#search-panel" class="btn btn-network-cta py-3 px-4 fw-bold text-uppercase d-inline-flex align-items-center gap-2">
+                        <span>Book Your Route</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </a>
                 </div>
             </div>
 
-            <!-- Map Visualization -->
-            <div class="col-lg-7 text-center">
-                <div class="position-relative p-3 rounded-4 shadow-lg"
-                    style="background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.05); max-width: 600px; margin: 0 auto; box-shadow: 0 40px 80px rgba(0,0,0,0.4) !important;">
-                    <!-- Top radar graphic detail -->
-                    <div class="d-flex justify-content-between align-items-center mb-3 px-2 text-secondary small"
-                        style="opacity: 0.6; font-size: 0.75rem;">
-                        <span><i class="fa-solid fa-circle text-danger me-1 blink"></i> RADAR FEED LIVE</span>
-                        <span>GRID REF: 28.61 N / 77.20 E</span>
+            <!-- Right Side Route Timeline Visualization (60% Desktop / 50% Tablet / Stacked Mobile) -->
+            <div class="col-lg-7 col-md-6 text-start">
+                <div class="p-4 rounded-4" style="background: var(--card-bg); border: 1px solid var(--border-color); box-shadow: var(--shadow-diffusion); max-width: 600px; margin: 0 auto;">
+                    <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3" style="border-color: var(--border-color) !important;">
+                        <h6 class="fw-bold mb-0" style="color: var(--text-primary);"><i class="fa-solid fa-route me-2" style="color: var(--accent-primary);"></i>Primary Transit Network Corridor</h6>
+                        <span class="badge px-2.5 py-1 small fw-semibold" style="background: rgba(25, 135, 84, 0.08); color: var(--accent-primary);">6 Core Hubs</span>
                     </div>
 
-                    <!-- Map SVG -->
-                    <svg viewBox="0 0 600 500" class="w-100 h-auto" style="max-height: 450px;">
-                        <!-- Geographically Accurate India SVG Outline -->
-                        <path
-                            d="M300,30 L310,40 L308,60 L320,70 L340,70 L330,90 L345,100 L350,115 L385,130 L430,135 L435,150 L450,150 L455,165 L480,160 L510,170 L535,165 L545,185 L525,205 L500,205 L490,225 L470,225 L455,235 L445,260 L438,290 L408,310 L388,360 L358,420 L318,475 L300,480 L290,460 L270,410 L245,370 L220,345 L195,325 L180,320 L160,320 L145,295 L125,295 L135,270 L160,255 L185,250 L205,215 L220,185 L225,145 L250,115 L265,90 L275,65 Z"
-                            fill="rgba(46, 204, 113, 0.05)" stroke="rgba(46, 204, 113, 0.35)" stroke-width="1.8"
-                            stroke-linejoin="round" />
+                    <!-- Vertical Timeline Corridor -->
+                    <div class="position-relative ps-4 ms-2">
+                        <!-- Connecting Line -->
+                        <div class="position-absolute start-0 top-0 h-100" style="width: 2px; background: var(--border-color);">
+                            <div class="animated-progress-bar h-50 position-absolute start-0 top-0 w-100" style="background: var(--accent-primary); transition: height 0.6s cubic-bezier(0.16, 1, 0.3, 1); will-change: height;"></div>
+                        </div>
 
-                        <!-- Connection Tracks (Beats/Waves) -->
-                        <g class="map-routes-group"
-                            style="stroke: #2ecc71; stroke-width: 2.5; fill: none; opacity: 0.65; transition: opacity 0.3s ease;">
-                            <!-- Delhi <-> Jaipur -->
-                            <path class="route-line path-delhi path-jaipur" d="M300 120 Q270 140 240 160"
-                                style="stroke-dasharray: 6 6; animation: moveRoute 12s linear infinite;" />
-                            <!-- Jaipur <-> Mumbai -->
-                            <path class="route-line path-jaipur path-mumbai" d="M240 160 Q200 240 190 320"
-                                style="stroke-dasharray: 8 8; animation: moveRoute 14s linear infinite;" />
-                            <!-- Mumbai <-> Pune -->
-                            <path class="route-line path-mumbai path-pune" d="M190 320 Q205 330 220 340"
-                                style="stroke-dasharray: 4 4; animation: moveRoute 8s linear infinite;" />
-                            <!-- Mumbai <-> Bangalore -->
-                            <path class="route-line path-mumbai path-bangalore" d="M190 320 Q240 370 290 410"
-                                style="stroke-dasharray: 8 8; animation: moveRoute 18s linear infinite;" />
-                            <!-- Bangalore <-> Chennai -->
-                            <path class="route-line path-bangalore path-chennai" d="M290 410 Q320 415 350 420"
-                                style="stroke-dasharray: 5 5; animation: moveRoute 10s linear infinite;" />
-                            <!-- Chennai <-> Mumbai -->
-                            <path class="route-line path-chennai path-mumbai" d="M350 420 Q270 380 190 320"
-                                style="stroke-dasharray: 10 10; animation: moveRoute 20s linear infinite reverse;" />
-                        </g>
+                        <!-- Hub Delhi -->
+                        <div class="transit-hub-item position-relative mb-4 pb-2" data-progress="20">
+                            <div class="transit-node-dot position-absolute"></div>
+                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 p-3 rounded-3 border transition-all hover-shadow-sm" style="background: var(--bg-secondary); border-color: var(--border-color) !important;">
+                                <div>
+                                    <h6 class="fw-bold mb-1" style="font-size: 0.95rem;">Delhi Hub <span class="badge rounded-pill bg-light border text-secondary ms-1 small" style="font-size: 0.65rem;">NCR</span></h6>
+                                    <span class="text-secondary small d-block" style="font-size: 0.75rem;"><i class="fa-solid fa-link me-1"></i>Next Stop: Jaipur</span>
+                                </div>
+                                <div class="text-end">
+                                    <div class="fw-bold" style="font-size: 0.85rem; color: var(--accent-primary);">45 Active Routes</div>
+                                    <div class="text-muted small" style="font-size: 0.7rem;">320 Departures / Day</div>
+                                </div>
+                            </div>
+                        </div>
 
-                        <!-- Glow Elements for Cities -->
-                        <g style="fill: #2ecc71;">
-                            <circle id="glow-delhi" cx="300" cy="120" r="12" class="city-glow"
-                                style="transform-origin: 300px 120px;" />
-                            <circle id="glow-jaipur" cx="240" cy="160" r="12" class="city-glow"
-                                style="transform-origin: 240px 160px;" />
-                            <circle id="glow-mumbai" cx="190" cy="320" r="12" class="city-glow"
-                                style="transform-origin: 190px 320px;" />
-                            <circle id="glow-pune" cx="220" cy="340" r="12" class="city-glow"
-                                style="transform-origin: 220px 340px;" />
-                            <circle id="glow-bangalore" cx="290" cy="410" r="12" class="city-glow"
-                                style="transform-origin: 290px 410px;" />
-                            <circle id="glow-chennai" cx="350" cy="420" r="12" class="city-glow"
-                                style="transform-origin: 350px 420px;" />
-                        </g>
+                        <!-- Hub Jaipur -->
+                        <div class="transit-hub-item position-relative mb-4 pb-2" data-progress="40">
+                            <div class="transit-node-dot position-absolute"></div>
+                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 p-3 rounded-3 border transition-all hover-shadow-sm" style="background: var(--bg-secondary); border-color: var(--border-color) !important;">
+                                <div>
+                                    <h6 class="fw-bold mb-1" style="font-size: 0.95rem;">Jaipur Stop</h6>
+                                    <span class="text-secondary small d-block" style="font-size: 0.75rem;"><i class="fa-solid fa-link me-1"></i>Next Stop: Mumbai</span>
+                                </div>
+                                <div class="text-end">
+                                    <div class="fw-bold" style="font-size: 0.85rem; color: var(--accent-primary);">28 Active Routes</div>
+                                    <div class="text-muted small" style="font-size: 0.7rem;">140 Departures / Day</div>
+                                </div>
+                            </div>
+                        </div>
 
-                        <!-- Solid City Points & Text labels -->
-                        <g style="fill: #ffffff;">
-                            <!-- Delhi -->
-                            <circle id="dot-delhi" cx="300" cy="120" r="5px" class="city-dot"
-                                style="fill: #2ecc71; stroke: #ffffff; stroke-width: 2; transition: all 0.3s ease; transform-origin: 300px 120px;" />
-                            <text x="312" y="124" font-size="12" font-family="'Plus Jakarta Sans', sans-serif"
-                                font-weight="bold" fill="#ffffff"
-                                style="text-shadow: 0 2px 4px rgba(0,0,0,0.8);">Delhi</text>
+                        <!-- Hub Mumbai -->
+                        <div class="transit-hub-item position-relative mb-4 pb-2" data-progress="60">
+                            <div class="transit-node-dot position-absolute"></div>
+                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 p-3 rounded-3 border transition-all hover-shadow-sm" style="background: var(--bg-secondary); border-color: var(--border-color) !important;">
+                                <div>
+                                    <h6 class="fw-bold mb-1" style="font-size: 0.95rem;">Mumbai Hub</h6>
+                                    <span class="text-secondary small d-block" style="font-size: 0.75rem;"><i class="fa-solid fa-link me-1"></i>Next Stop: Pune</span>
+                                </div>
+                                <div class="text-end">
+                                    <div class="fw-bold" style="font-size: 0.85rem; color: var(--accent-primary);">52 Active Routes</div>
+                                    <div class="text-muted small" style="font-size: 0.7rem;">410 Departures / Day</div>
+                                </div>
+                            </div>
+                        </div>
 
-                            <!-- Jaipur -->
-                            <circle id="dot-jaipur" cx="240" cy="160" r="5px" class="city-dot"
-                                style="fill: #2ecc71; stroke: #ffffff; stroke-width: 2; transition: all 0.3s ease; transform-origin: 240px 160px;" />
-                            <text x="252" y="164" font-size="12" font-family="'Plus Jakarta Sans', sans-serif"
-                                font-weight="bold" fill="#ffffff"
-                                style="text-shadow: 0 2px 4px rgba(0,0,0,0.8);">Jaipur</text>
+                        <!-- Hub Pune -->
+                        <div class="transit-hub-item position-relative mb-4 pb-2" data-progress="80">
+                            <div class="transit-node-dot position-absolute"></div>
+                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 p-3 rounded-3 border transition-all hover-shadow-sm" style="background: var(--bg-secondary); border-color: var(--border-color) !important;">
+                                <div>
+                                    <h6 class="fw-bold mb-1" style="font-size: 0.95rem;">Pune Stop</h6>
+                                    <span class="text-secondary small d-block" style="font-size: 0.75rem;"><i class="fa-solid fa-link me-1"></i>Next Stop: Bangalore</span>
+                                </div>
+                                <div class="text-end">
+                                    <div class="fw-bold" style="font-size: 0.85rem; color: var(--accent-primary);">34 Active Routes</div>
+                                    <div class="text-muted small" style="font-size: 0.7rem;">220 Departures / Day</div>
+                                </div>
+                            </div>
+                        </div>
 
-                            <!-- Mumbai -->
-                            <circle id="dot-mumbai" cx="190" cy="320" r="5px" class="city-dot"
-                                style="fill: #2ecc71; stroke: #ffffff; stroke-width: 2; transition: all 0.3s ease; transform-origin: 190px 320px;" />
-                            <text x="130" y="324" font-size="12" font-family="'Plus Jakarta Sans', sans-serif"
-                                font-weight="bold" fill="#ffffff"
-                                style="text-shadow: 0 2px 4px rgba(0,0,0,0.8);">Mumbai</text>
+                        <!-- Hub Bangalore -->
+                        <div class="transit-hub-item position-relative mb-4 pb-2" data-progress="90">
+                            <div class="transit-node-dot position-absolute"></div>
+                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 p-3 rounded-3 border transition-all hover-shadow-sm" style="background: var(--bg-secondary); border-color: var(--border-color) !important;">
+                                <div>
+                                    <h6 class="fw-bold mb-1" style="font-size: 0.95rem;">Bangalore Hub</h6>
+                                    <span class="text-secondary small d-block" style="font-size: 0.75rem;"><i class="fa-solid fa-link me-1"></i>Next Stop: Chennai</span>
+                                </div>
+                                <div class="text-end">
+                                    <div class="fw-bold" style="font-size: 0.85rem; color: var(--accent-primary);">48 Active Routes</div>
+                                    <div class="text-muted small" style="font-size: 0.7rem;">350 Departures / Day</div>
+                                </div>
+                            </div>
+                        </div>
 
-                            <!-- Pune -->
-                            <circle id="dot-pune" cx="220" cy="340" r="5px" class="city-dot"
-                                style="fill: #2ecc71; stroke: #ffffff; stroke-width: 2; transition: all 0.3s ease; transform-origin: 220px 340px;" />
-                            <text x="232" y="344" font-size="12" font-family="'Plus Jakarta Sans', sans-serif"
-                                font-weight="bold" fill="#ffffff"
-                                style="text-shadow: 0 2px 4px rgba(0,0,0,0.8);">Pune</text>
-
-                            <!-- Bangalore -->
-                            <circle id="dot-bangalore" cx="290" cy="410" r="5px" class="city-dot"
-                                style="fill: #2ecc71; stroke: #ffffff; stroke-width: 2; transition: all 0.3s ease; transform-origin: 290px 410px;" />
-                            <text x="302" y="414" font-size="12" font-family="'Plus Jakarta Sans', sans-serif"
-                                font-weight="bold" fill="#ffffff"
-                                style="text-shadow: 0 2px 4px rgba(0,0,0,0.8);">Bangalore</text>
-
-                            <!-- Chennai -->
-                            <circle id="dot-chennai" cx="350" cy="420" r="5px" class="city-dot"
-                                style="fill: #2ecc71; stroke: #ffffff; stroke-width: 2; transition: all 0.3s ease; transform-origin: 350px 420px;" />
-                            <text x="362" y="424" font-size="12" font-family="'Plus Jakarta Sans', sans-serif"
-                                font-weight="bold" fill="#ffffff"
-                                style="text-shadow: 0 2px 4px rgba(0,0,0,0.8);">Chennai</text>
-                        </g>
-                    </svg>
+                        <!-- Hub Chennai -->
+                        <div class="transit-hub-item position-relative" data-progress="100">
+                            <div class="transit-node-dot position-absolute"></div>
+                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 p-3 rounded-3 border transition-all hover-shadow-sm" style="background: var(--bg-secondary); border-color: var(--border-color) !important;">
+                                <div>
+                                    <h6 class="fw-bold mb-1" style="font-size: 0.95rem;">Chennai Terminus</h6>
+                                    <span class="text-secondary small d-block" style="font-size: 0.75rem;"><i class="fa-solid fa-circle-check me-1" style="color: var(--accent-primary);"></i>Corridor Terminus</span>
+                                </div>
+                                <div class="text-end">
+                                    <div class="fw-bold" style="font-size: 0.85rem; color: var(--accent-primary);">39 Active Routes</div>
+                                    <div class="text-muted small" style="font-size: 0.7rem;">280 Departures / Day</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -881,60 +871,112 @@ require_once __DIR__ . '/includes/header.php';
 
 <div class="container"> <!-- Reopen container for remaining content / footer compatibility -->
 
+<style>
+    #radar-control-section {
+        position: relative;
+    }
+    
+    .pulse-indicator {
+        width: 8px;
+        height: 8px;
+        background-color: var(--accent-primary);
+        border-radius: 50%;
+        display: inline-block;
+        box-shadow: 0 0 8px rgba(25, 135, 84, 0.6);
+        animation: pulseBlue 1.8s infinite ease-in-out;
+    }
+
+    .light-stat-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+    }
+
+    .light-stat-card:hover {
+        border-color: var(--accent-primary);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 15px rgba(25, 135, 84, 0.08);
+    }
+
+    .btn-network-cta {
+        background: var(--accent-gold-gradient);
+        border: none;
+        color: #FFFFFF !important;
+        border-radius: 10px;
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        font-size: 0.85rem;
+        letter-spacing: 0.5px;
+    }
+
+    .btn-network-cta:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(25, 135, 84, 0.3);
+    }
+
+    /* Vertical Timeline nodes styling */
+    .transit-node-dot {
+        width: 12px;
+        height: 12px;
+        background: var(--card-bg);
+        border: 3px solid var(--border-color);
+        border-radius: 50%;
+        left: -5px;
+        top: 24px;
+        z-index: 2;
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        will-change: transform, background, border-color;
+    }
+
+    .transit-hub-item:hover .transit-node-dot {
+        border-color: var(--accent-primary);
+        background: var(--accent-primary);
+        transform: scale(1.35);
+    }
+
+    .transit-hub-item:hover .hover-shadow-sm {
+        border-color: var(--accent-primary) !important;
+        background: var(--card-bg) !important;
+        box-shadow: 0 8px 20px rgba(25, 135, 84, 0.08);
+        transform: translateX(6px);
+    }
+
+    .transit-hub-item, .transit-hub-item .hover-shadow-sm {
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        will-change: transform, box-shadow, background-color, border-color;
+    }
+
+    @keyframes pulseBlue {
+        0%, 100% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.4); opacity: 0.5; }
+    }
+</style>
+
+<script>
+    $(document).ready(function() {
+        // Timeline hover progress indicator line animation
+        $('.transit-hub-item').on('mouseenter', function() {
+            const progress = $(this).data('progress');
+            $('.animated-progress-bar').css('height', progress + '%');
+        });
+
+        // Intersection Observer scroll animation triggers
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, {
+            threshold: 0.1
+        });
+        document.querySelectorAll('.reveal-on-scroll').forEach((el) => observer.observe(el));
+    });
+</script>
+
     <script>
         $(document).ready(function() {
-            // Interactive City Card Hover Effects on Route Map
-            $('.interactive-city-card').on('mouseenter', function() {
-                const city = $(this).data('city');
-
-                // Highlight the card
-                $(this).css({
-                    'background': 'rgba(46, 204, 113, 0.1)',
-                    'border-color': 'rgba(46, 204, 113, 0.4)',
-                    'transform': 'translateX(6px)'
-                });
-
-                // Dim unrelated lines, highlight related ones
-                $('.route-line').css('opacity', '0.12');
-                $(`.path-${city}`).css({
-                    'opacity': '1',
-                    'stroke-width': '3.5px'
-                });
-
-                // Reset and trigger faster pulses for connected hubs
-                $('.city-glow').css('animation-duration', '5s');
-                $('.city-dot').css('transform', 'scale(1)');
-
-                if (city === 'delhi') {
-                    $('#glow-delhi, #glow-jaipur').css('animation-duration', '1s');
-                    $('#dot-delhi, #dot-jaipur').css('transform', 'scale(1.5)');
-                } else if (city === 'jaipur') {
-                    $('#glow-jaipur, #glow-delhi, #glow-mumbai').css('animation-duration', '1s');
-                    $('#dot-jaipur, #dot-delhi, #dot-mumbai').css('transform', 'scale(1.5)');
-                } else if (city === 'mumbai') {
-                    $('#glow-mumbai, #glow-jaipur, #glow-pune, #glow-bangalore, #glow-chennai').css('animation-duration', '1s');
-                    $('#dot-mumbai, #dot-jaipur, #dot-pune, #dot-bangalore, #dot-chennai').css('transform', 'scale(1.5)');
-                } else if (city === 'bangalore') {
-                    $('#glow-bangalore, #glow-mumbai, #glow-chennai').css('animation-duration', '1s');
-                    $('#dot-bangalore, #dot-mumbai, #dot-chennai').css('transform', 'scale(1.5)');
-                }
-            }).on('mouseleave', function() {
-                // Restore initial states
-                $(this).css({
-                    'background': 'rgba(255, 255, 255, 0.02)',
-                    'border-color': 'rgba(255, 255, 255, 0.06)',
-                    'transform': 'none'
-                });
-
-                $('.route-line').css({
-                    'opacity': '',
-                    'stroke-width': ''
-                });
-
-                $('.city-glow').css('animation-duration', '');
-                $('.city-dot').css('transform', '');
-            });
-
             // Intersection Observer for Scroll Animation
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {

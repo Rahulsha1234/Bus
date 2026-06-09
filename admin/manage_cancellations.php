@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             // Validate request belongs to this admin's buses
             $chk_stmt = $pdo->prepare("
                 SELECT cr.id, cr.booking_id, cr.request_number, cr.cancelled_seats, cr.refund_type,
-                       b.booking_reference, b.trip_id, b.total_amount, b.booking_source, b.agent_id, cr.status
+                       b.booking_reference, b.trip_id, b.total_amount, b.booking_source, b.agent_id, b.gst_rate, cr.status
                 FROM cancellation_requests cr
                 JOIN bookings b ON cr.booking_id = b.id
                 JOIN trips t ON b.trip_id = t.id
@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     }
 
                     $seat_refunds = $_POST['seat_refund'] ?? [];
-                    $total_refund = 0;
+                    $approved_base_refund = 0;
 
                     // Validate refund amount limits for each seat
                     foreach ($selected_seats as $seat) {
@@ -64,16 +64,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         if ($refund < 0 || $refund > $seat_price) {
                             throw new Exception("Refund for seat $seat (₹$refund) cannot exceed the seat price of ₹$seat_price.");
                         }
-                        $total_refund += $refund;
+                        $approved_base_refund += $refund;
                     }
+
+                    $gst_rate = floatval($request['gst_rate'] ?? 5.00);
+                    $approved_gst_refund = $approved_base_refund * ($gst_rate / 100);
+                    $total_refund = $approved_base_refund + $approved_gst_refund; // Grand total refund inclusive of GST
 
                     // 1. Update cancellation request
                     $up_stmt = $pdo->prepare("
                         UPDATE cancellation_requests 
-                        SET status = 'approved', refund_amount = ?, processed_at = NOW(), processed_by = ? 
+                        SET status = 'approved', refund_amount = ?, refund_base_fare = ?, refund_gst = ?, total_refund = ?, processed_at = NOW(), processed_by = ? 
                         WHERE id = ?
                     ");
-                    $up_stmt->execute([$total_refund, $admin_id, $request_id]);
+                    $up_stmt->execute([$total_refund, $approved_base_refund, $approved_gst_refund, $total_refund, $admin_id, $request_id]);
 
                     // 2. Set individual booking_seats to cancelled and trip_seats to available
                     $update_bs_status = $pdo->prepare("UPDATE booking_seats SET status = 'cancelled' WHERE booking_id = ? AND seat_number = ?");

@@ -592,15 +592,23 @@ require_once __DIR__ . '/includes/header.php';
 
                 <div class="p-3 rounded-4 bg-dark bg-opacity-30 border border-secondary border-opacity-20 mb-4" id="invoice-block" style="display: none;">
                     <div class="d-flex justify-content-between small text-secondary mb-2">
-                        <span><?= __('base_ticket_fare', 'Base Ticket Fare') ?></span>
+                        <span><?= __('base_ticket_fare', 'Ticket Fare') ?></span>
                         <span id="invoice-base-fare">₹0.00</span>
                     </div>
                     <div class="d-flex justify-content-between small text-secondary mb-2" id="invoice-discount-row" style="display: none !important;">
                         <span><?= __('discount_applied', 'Discount Applied') ?></span>
                         <span class="text-success" id="invoice-discount-val">-₹0.00</span>
                     </div>
+                    <div class="d-flex justify-content-between small text-secondary mb-2">
+                        <span><?= __('gst', 'GST') ?> (<span id="invoice-gst-rate">0</span>%)</span>
+                        <span id="invoice-gst-amount">₹0.00</span>
+                    </div>
+                    <div class="d-flex justify-content-between small text-secondary mb-2" id="invoice-convenience-row">
+                        <span><?= __('convenience_fee', 'Convenience Fee') ?></span>
+                        <span id="invoice-convenience-fee">₹0.00</span>
+                    </div>
                     <div class="d-flex justify-content-between text-white fw-bold fs-5 pt-2 border-top border-secondary border-opacity-40">
-                        <span><?= __('total_amount', 'Total Amount') ?></span>
+                        <span><?= __('grand_total', 'Grand Total') ?></span>
                         <span class="text-indigo" id="invoice-total">₹0.00</span>
                     </div>
                 </div>
@@ -619,6 +627,8 @@ $(document).ready(function() {
     var maxSeats = 6;
     var csrfToken = '<?= get_csrf_token() ?>';
     var tripId = <?= $trip_id ?>;
+    var gstRate = <?= get_gst_rate() ?>;
+    var convenienceFee = <?= (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'agent') ? 0 : 20 ?>;
 
     // Load initial selection from backend if page was reloaded
     $('.seat.selected').each(function() {
@@ -696,7 +706,7 @@ $(document).ready(function() {
         
         if (code === '') {
             resetPromo();
-            $('#invoice-total').text('₹' + subtotal.toFixed(2));
+            updateInvoice();
             return;
         }
 
@@ -713,13 +723,13 @@ $(document).ready(function() {
                     
                     $('#invoice-discount-row').removeAttr('style');
                     $('#invoice-discount-val').text('-₹' + res.discount.toFixed(2));
-                    $('#invoice-total').text('₹' + res.final_fare.toFixed(2));
+                    updateInvoice();
                 } else {
                     $('#promo-message').show().removeClass('text-success').addClass('text-danger').text(res.message);
                     $('#hidden_promo_code').val('');
                     $('#hidden_discount_amount').val('0.00');
                     $('#invoice-discount-row').attr('style', 'display: none !important;');
-                    $('#invoice-total').text('₹' + subtotal.toFixed(2));
+                    updateInvoice();
                 }
             },
             error: function() {
@@ -764,13 +774,16 @@ $(document).ready(function() {
         $('#invoice-base-fare').text('₹' + totalFare.toFixed(2));
         $('#hidden_selected_seats').val(nums.join(','));
 
-        // If promo is already active, trigger re-evaluation, otherwise set standard total
-        var appliedPromo = $('#hidden_promo_code').val();
-        if (appliedPromo !== '') {
-            $('#btnApplyPromo').click();
-        } else {
-            $('#invoice-total').text('₹' + totalFare.toFixed(2));
-        }
+        var discount = parseFloat($('#hidden_discount_amount').val()) || 0;
+        var taxableBase = totalFare - discount;
+        if (taxableBase < 0) taxableBase = 0;
+        var gstAmount = taxableBase * (gstRate / 100);
+        var grandTotal = taxableBase + gstAmount + convenienceFee;
+
+        $('#invoice-gst-rate').text(gstRate);
+        $('#invoice-gst-amount').text('₹' + gstAmount.toFixed(2));
+        $('#invoice-convenience-fee').text('₹' + convenienceFee.toFixed(2));
+        $('#invoice-total').text('₹' + grandTotal.toFixed(2));
     }
 });
 </script>

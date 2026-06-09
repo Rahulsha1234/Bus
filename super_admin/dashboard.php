@@ -45,7 +45,8 @@ try {
         SELECT 
             DATE(created_at) AS booking_date,
             SUM(total_amount) AS total_sales,
-            SUM(admin_commission) AS total_comm
+            SUM(admin_commission) AS total_comm,
+            SUM(gst_amount) AS total_gst
         FROM bookings
         WHERE DATE(created_at) >= ? 
           AND DATE(created_at) <= ?
@@ -55,6 +56,7 @@ try {
     $stmt->execute([$start_date, $end_date]);
     $results = $stmt->fetchAll(PDO::FETCH_UNIQUE | PDO::FETCH_ASSOC);
 
+    $chart_gst = [];
     for ($i = 6; $i >= 0; $i--) {
         $date_label = date('Y-m-d', strtotime("-$i days"));
         $display_label = date('D, d M', strtotime($date_label));
@@ -62,9 +64,11 @@ try {
 
         $sales_val = isset($results[$date_label]) ? floatval($results[$date_label]['total_sales']) : 0.00;
         $comm_val = isset($results[$date_label]) ? floatval($results[$date_label]['total_comm']) : 0.00;
+        $gst_val = isset($results[$date_label]) ? floatval($results[$date_label]['total_gst']) : 0.00;
 
         $chart_sales[] = $sales_val;
         $chart_comm[] = $comm_val;
+        $chart_gst[] = $gst_val;
     }
 
     // 3. Chart 2: Admin/Operator-wise Performance (Gross sales comparison)
@@ -107,6 +111,11 @@ try {
         ORDER BY b.created_at DESC
         LIMIT 5
     ")->fetchAll();
+
+    // GST Stats
+    $today_gst = floatval($pdo->query("SELECT SUM(gst_amount) FROM bookings WHERE DATE(created_at) = CURDATE() AND status != 'cancelled'")->fetchColumn() ?: 0.00);
+    $month_gst = floatval($pdo->query("SELECT SUM(gst_amount) FROM bookings WHERE DATE(created_at) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND status != 'cancelled'")->fetchColumn() ?: 0.00);
+    $year_gst = floatval($pdo->query("SELECT SUM(gst_amount) FROM bookings WHERE DATE(created_at) >= DATE_SUB(CURDATE(), INTERVAL 365 DAY) AND status != 'cancelled'")->fetchColumn() ?: 0.00);
 
 } catch (PDOException $e) {
     die(__('admin_dashboard_stat_load_failed', "Admin dashboard statistics loading failed: ") . $e->getMessage());
@@ -164,6 +173,43 @@ try {
     </div>
 </div>
 
+<!-- GST Analytics Cards -->
+<div class="row g-4 mb-4">
+    <!-- Today GST -->
+    <div class="col-md-4">
+        <div class="glass-card p-4 metric-card h-100" style="border-left: 4px solid var(--accent-primary) !important;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <span class="text-secondary small fw-semibold text-uppercase">Total GST Collected Today</span>
+                <span class="metric-icon"><i class="fa-solid fa-calculator"></i></span>
+            </div>
+            <h3 class="fw-bold text-white mb-1">₹<?= number_format($today_gst, 2) ?></h3>
+            <span class="text-secondary small">Collected from today's bookings</span>
+        </div>
+    </div>
+    <!-- This Month GST -->
+    <div class="col-md-4">
+        <div class="glass-card p-4 metric-card h-100" style="border-left: 4px solid var(--accent-secondary) !important;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <span class="text-secondary small fw-semibold text-uppercase">Total GST Collected This Month</span>
+                <span class="metric-icon" style="color: #ec4899; border-color: rgba(236,72,153,0.2); background: rgba(236,72,153,0.1);"><i class="fa-solid fa-scale-balanced"></i></span>
+            </div>
+            <h3 class="fw-bold text-white mb-1">₹<?= number_format($month_gst, 2) ?></h3>
+            <span class="text-secondary small">Collected in past 30 days</span>
+        </div>
+    </div>
+    <!-- This Year GST -->
+    <div class="col-md-4">
+        <div class="glass-card p-4 metric-card h-100" style="border-left: 4px solid #fbbf24 !important;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <span class="text-secondary small fw-semibold text-uppercase">Total GST Collected This Year</span>
+                <span class="metric-icon" style="color: #fbbf24; border-color: rgba(251,191,36,0.2); background: rgba(251,191,36,0.1);"><i class="fa-solid fa-chart-line"></i></span>
+            </div>
+            <h3 class="fw-bold text-white mb-1">₹<?= number_format($year_gst, 2) ?></h3>
+            <span class="text-secondary small">Collected in past 365 days</span>
+        </div>
+    </div>
+</div>
+
 <!-- Metrics row 2 -->
 <div class="row g-4 mb-5">
     <div class="col-md-4">
@@ -213,6 +259,18 @@ try {
             <h5 class="fw-bold text-white mb-4"><i class="fa-solid fa-chart-bar text-pink me-2"></i><?= __('operator_performance_gross_sold', 'Operator Performance (Gross Sold)') ?></h5>
             <div style="height: 300px; position: relative;">
                 <canvas id="agentPerformanceChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- GST Charts Grid -->
+<div class="row g-4 mb-5">
+    <div class="col-lg-12">
+        <div class="glass-card p-4">
+            <h5 class="fw-bold text-white mb-4"><i class="fa-solid fa-chart-line text-indigo me-2"></i>GST Collection Trend & Tax vs Revenue</h5>
+            <div style="height: 300px; position: relative;">
+                <canvas id="gstCollectionChart"></canvas>
             </div>
         </div>
     </div>
@@ -318,6 +376,43 @@ $(document).ready(function() {
             scales: {
                 x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8' } },
                 y: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+            }
+        }
+    });
+
+    // 3. GST Collection Chart
+    var gstCtx = document.getElementById('gstCollectionChart').getContext('2d');
+    var gstChart = new Chart(gstCtx, {
+        type: 'line',
+        data: {
+            labels: <?= json_encode($chart_days) ?>,
+            datasets: [
+                {
+                    label: 'GST Collected (₹)',
+                    data: <?= json_encode($chart_gst) ?>,
+                    borderColor: '#10b981',
+                    borderWidth: 3,
+                    tension: 0.3,
+                    fill: false,
+                    pointBackgroundColor: '#10b981'
+                },
+                {
+                    label: 'Gross Revenue (₹)',
+                    data: <?= json_encode($chart_sales) ?>,
+                    borderColor: '#6366f1',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    fill: false,
+                    pointBackgroundColor: '#6366f1'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8' } },
+                x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
             }
         }
     });

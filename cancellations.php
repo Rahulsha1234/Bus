@@ -40,6 +40,10 @@ try {
             b.total_amount,
             b.status AS booking_status,
             b.booking_source,
+            b.base_fare,
+            b.gst_rate,
+            b.gst_amount,
+            b.total_fare_after_tax,
             t.departure_time,
             t.id AS trip_id,
             bs.id AS bus_id,
@@ -145,13 +149,17 @@ try {
     // Process new cancellation request submission
     $request_number = 'CAN' . time() . rand(100, 999);
     
-    // Sum total price of selected seats
-    $refund_amount = 0;
+    // Sum total base price of selected seats
+    $refund_base_fare = 0;
     foreach ($all_seats as $s) {
         if (in_array($s['seat_number'], $selected_seats)) {
-            $refund_amount += floatval($s['price']);
+            $refund_base_fare += floatval($s['price']);
         }
     }
+
+    // Calculate proportional GST
+    $refund_gst = $refund_base_fare * ($booking['gst_rate'] / 100);
+    $total_refund = $refund_base_fare + $refund_gst;
 
     $pdo->beginTransaction();
 
@@ -160,15 +168,18 @@ try {
 
     // Insert cancellation request record
     $ins_stmt = $pdo->prepare("
-        INSERT INTO cancellation_requests (booking_id, request_number, refund_amount, status, cancelled_seats, refund_type)
-        VALUES (?, ?, ?, 'pending', ?, ?)
+        INSERT INTO cancellation_requests (booking_id, request_number, refund_amount, status, cancelled_seats, refund_type, refund_base_fare, refund_gst, total_refund)
+        VALUES (?, ?, ?, 'pending', ?, ?, ?, ?, ?)
     ");
     $ins_stmt->execute([
         $booking_id,
         $request_number,
-        $refund_amount,
+        $total_refund,
         json_encode($selected_seats),
-        $refund_type
+        $refund_type,
+        $refund_base_fare,
+        $refund_gst,
+        $total_refund
     ]);
 
     // Mark selected seats status to 'cancel_requested' in booking_seats
@@ -251,8 +262,16 @@ require_once __DIR__ . '/includes/header.php';
                     <span class="text-danger fw-bold font-monospace"><?= htmlspecialchars(implode(', ', $selected_seats)) ?></span>
                 </div>
                 <div class="d-flex justify-content-between mb-2">
-                    <span class="text-secondary">Estimated Refund Limit:</span>
-                    <span class="text-success fw-bold">₹<?= number_format($refund_amount, 2) ?></span>
+                    <span class="text-secondary">Refund Base Fare:</span>
+                    <span class="text-white fw-bold">₹<?= number_format($refund_base_fare, 2) ?></span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-secondary">Refund GST (<?= number_format($booking['gst_rate'], 1) ?>%):</span>
+                    <span class="text-white fw-bold">₹<?= number_format($refund_gst, 2) ?></span>
+                </div>
+                <div class="d-flex justify-content-between mb-2 border-top border-secondary border-opacity-20 pt-2">
+                    <span class="text-secondary">Estimated Total Refund:</span>
+                    <span class="text-success fw-bold fs-6">₹<?= number_format($total_refund, 2) ?></span>
                 </div>
                 <div class="d-flex justify-content-between mb-2">
                     <span class="text-secondary">Voyage:</span>

@@ -105,12 +105,15 @@ try {
         }
         $data = $stmt->fetchAll();
         
-        $headers = ['Date', 'Booking Reference', 'Route Voyage', 'Total Paid', 'Commission'];
+        $headers = ['Date', 'Booking Reference', 'Route Voyage', 'Base Fare', 'GST Rate', 'GST Amount', 'Total Paid', 'Commission'];
         
         foreach ($data as $row) {
             $date = date('d M Y, H:i', strtotime($row['created_at']));
             $ref = $row['booking_reference'];
             $voyage = htmlspecialchars($row['source']) . ' ➔ ' . htmlspecialchars($row['destination']);
+            $base_fare = floatval($row['base_fare']) > 0 ? floatval($row['base_fare']) : floatval($row['total_amount']);
+            $gst_rate = floatval($row['gst_amount']) > 0 ? floatval($row['gst_rate']) : 0;
+            $gst_amount = floatval($row['gst_amount']);
             $paid = '₹' . number_format($row['total_amount'], 2);
             $comm = '₹' . number_format($row['admin_commission'], 2);
             
@@ -118,7 +121,16 @@ try {
             $summary_revenue += floatval($row['total_amount']);
             $summary_commission += floatval($row['admin_commission']);
             
-            $rows[] = [$date, $ref, $voyage, $paid, $comm];
+            $rows[] = [
+                $date, 
+                $ref, 
+                $voyage, 
+                '₹' . number_format($base_fare, 2), 
+                $gst_rate . '%', 
+                '₹' . number_format($gst_amount, 2), 
+                $paid, 
+                $comm
+            ];
         }
     }
     

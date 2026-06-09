@@ -43,14 +43,17 @@ try {
             b.agent_net_earning,
             b.payment_status,
             b.created_at,
+            b.booking_source,
             bs.bus_name,
             bs.bus_number,
             r.source,
-            r.destination
+            r.destination,
+            u.username AS agent_username
         FROM bookings b
         JOIN trips t ON b.trip_id = t.id
         JOIN buses bs ON t.bus_id = bs.id
         JOIN routes r ON t.route_id = r.id
+        LEFT JOIN users u ON b.agent_id = u.id
         WHERE bs.admin_id = :admin_id
     ";
 
@@ -112,12 +115,24 @@ try {
                         <th><?= __('net_yield_col', 'Net Yield') ?></th>
                         <th><?= __('payment_status_col', 'Payment Status') ?></th>
                         <th><?= __('date_time_col', 'Date & Time') ?></th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php foreach ($bookings as $b): ?>
                         <tr>
-                            <td class="font-monospace fw-bold text-indigo"><?= htmlspecialchars($b['booking_reference']) ?></td>
+                            <td>
+                                <span class="font-monospace fw-bold text-indigo d-block"><?= htmlspecialchars($b['booking_reference']) ?></span>
+                                <?php if ($b['booking_source'] === 'agent' && !empty($b['agent_username'])): ?>
+                                    <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-2 py-0.5 small mt-1 font-sans" style="font-size:0.7rem; font-family:var(--bs-font-sans-serif);">
+                                        <i class="fa-solid fa-user-tie me-1"></i>Agent: <?= htmlspecialchars($b['agent_username']) ?>
+                                    </span>
+                                <?php else: ?>
+                                    <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-2 py-0.5 small mt-1 font-sans" style="font-size:0.7rem; font-family:var(--bs-font-sans-serif);">
+                                        <i class="fa-solid fa-user me-1"></i>Direct
+                                    </span>
+                                <?php endif; ?>
+                            </td>
                             <td>
                                 <span class="d-block fw-semibold text-white"><?= htmlspecialchars($b['bus_name']) ?></span>
                                 <span class="text-secondary small"><?= htmlspecialchars($b['source']) ?> <?= __('to_label', 'to') ?> <?= htmlspecialchars($b['destination']) ?></span>
@@ -137,6 +152,11 @@ try {
                                 <?php endif; ?>
                             </td>
                             <td class="text-secondary small"><?= date('d M Y H:i', strtotime($b['created_at'])) ?></td>
+                            <td>
+                                <a href="<?= BASE_URL ?>/ticket_pdf.php?ref=<?= urlencode($b['booking_reference']) ?>&view=customer" target="_blank" class="btn btn-secondary-glass btn-sm py-1 px-2 rounded-3 text-indigo" title="Preview PDF E-Ticket">
+                                    <i class="fa-solid fa-file-pdf me-1"></i>Preview
+                                </a>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>

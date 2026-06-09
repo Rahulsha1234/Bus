@@ -972,6 +972,21 @@ return [
     'gross_ticket_sales_chart_lbl' => 'सकल टिकट बिक्री (₹)',
     'admin_commission_chart_lbl' => 'एडमिन कमीशन (₹)',
     'gross_sold_chart_lbl' => 'सकल बिक्री (₹)',
+    
+    // GST System Keys
+    'gst' => 'जीएसटी',
+    'goods_services_tax' => 'वस्तु एवं सेवा कर',
+    'base_fare' => 'मूल किराया',
+    'gst_amount' => 'जीएसटी राशि',
+    'total_fare' => 'कुल किराया',
+    'convenience_fee' => 'सुविधा शुल्क',
+    'grand_total' => 'कुल योग',
+    'gst_included_disclaimer' => 'लागू सरकारी नियमों के अनुसार जीएसटी शामिल है।',
+    'cgst' => 'सीजीएसटी',
+    'sgst' => 'एसजीएसटी',
+    'total_paid' => 'कुल भुगतान किया गया',
+    'tax_summary' => 'कर विवरण',
+    'gst_rate_label' => 'जीएसटी दर',
 ];
 
 

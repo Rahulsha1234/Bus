@@ -98,3 +98,25 @@ if ($suspend_agent_panel === '1' && isset($_SESSION['user_role']) && $_SESSION['
     header("Location: " . BASE_URL . "/login.php");
     exit();
 }
+
+/**
+ * GST Centralized Calculator functions
+ */
+function get_gst_rate() {
+    global $settings;
+    if (($settings['gst_status'] ?? '1') === '1') {
+        return floatval($settings['gst_rate'] ?? 5.00);
+    }
+    return 0.00;
+}
+
+function calculate_gst($base_fare) {
+    $rate = get_gst_rate();
+    $gst_amount = ($base_fare * $rate) / 100.00;
+    return [
+        'rate' => $rate,
+        'amount' => $gst_amount,
+        'total' => $base_fare + $gst_amount
+    ];
+}
+

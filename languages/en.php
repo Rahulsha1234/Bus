@@ -972,6 +972,21 @@ return [
     'gross_ticket_sales_chart_lbl' => 'Gross Ticket Sales (₹)',
     'admin_commission_chart_lbl' => 'Admin Commission (₹)',
     'gross_sold_chart_lbl' => 'Gross Sold (₹)',
+    
+    // GST System Keys
+    'gst' => 'GST',
+    'goods_services_tax' => 'Goods & Services Tax',
+    'base_fare' => 'Base Fare',
+    'gst_amount' => 'GST Amount',
+    'total_fare' => 'Total Fare',
+    'convenience_fee' => 'Convenience Fee',
+    'grand_total' => 'Grand Total',
+    'gst_included_disclaimer' => 'GST included as per applicable government regulations.',
+    'cgst' => 'CGST',
+    'sgst' => 'SGST',
+    'total_paid' => 'Total Paid',
+    'tax_summary' => 'Tax Summary',
+    'gst_rate_label' => 'GST Rate',
 ];
 
 

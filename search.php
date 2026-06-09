@@ -106,7 +106,11 @@ require_once __DIR__ . '/includes/header.php';
 
             <!-- Destination dropdown -->
             <div class="col-md-3">
-                <label for="destination_search" class="form-label text-secondary small fw-semibold"><?= __('going_to', 'Going To') ?></label>
+                <div class="d-flex justify-content-between align-items-center mb-1" style="min-height: 21px;">
+                    <label for="destination_search" class="form-label text-secondary small fw-semibold mb-0"><?= __('going_to', 'Going To') ?></label>
+                    <div id="dest-empty" class="small text-warning" style="display:none; font-weight: 500;"><i class="fa-solid fa-triangle-exclamation me-1"></i><?= __('no_routes', 'No routes.') ?></div>
+                    <div id="dest-loading" class="small text-muted" style="display:none; font-weight: 500;"><i class="fa-solid fa-spinner fa-spin me-1"></i><?= __('loading', 'Loading...') ?></div>
+                </div>
                 <div class="input-group">
                     <span class="input-group-text bg-dark border-secondary border-end-0 text-secondary" style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-location-crosshairs"></i></span>
                     <div class="autocomplete-wrapper">
@@ -114,7 +118,6 @@ require_once __DIR__ . '/includes/header.php';
                         <input type="hidden" name="destination" id="destination" value="<?= htmlspecialchars($destination) ?>">
                     </div>
                 </div>
-                <div id="dest-loading" class="small text-muted mt-1" style="display:none;"><i class="fa-solid fa-spinner fa-spin me-1"></i><?= __('loading', 'Loading...') ?></div>
             </div>
 
             <!-- Date Picker -->
@@ -233,9 +236,37 @@ require_once __DIR__ . '/includes/header.php';
 
                         <!-- Price & Seats Display -->
                         <div class="col-md-3 text-center text-md-end">
+                            <?php 
+                            $gst_info = calculate_gst($trip['base_fare']);
+                            $total_fare = $gst_info['total'];
+                            $gst_amt = $gst_info['amount'];
+                            $gst_rate = $gst_info['rate'];
+                            ?>
                             <div class="mb-2">
-                                <span class="text-secondary small"><?= __('starting_at', 'Starting at') ?> </span>
-                                <span class="fs-4 fw-bold text-success" style="color: var(--accent-primary) !important;"><?= CURRENCY ?><?= number_format($trip['base_fare'], 2) ?></span>
+                                <span class="text-secondary small"><?= __('starting_from', 'Starting From') ?> </span>
+                                <span class="fs-4 fw-bold text-success" style="color: var(--accent-primary) !important;"><?= CURRENCY ?><?= number_format($total_fare, 2) ?></span>
+                                <div class="mt-1">
+                                    <a href="#fare-details-<?= $trip['trip_id'] ?>" data-bs-toggle="collapse" class="text-secondary small text-decoration-none" style="font-size: 0.8rem; font-weight: 500;">
+                                        <i class="fa-solid fa-circle-info me-1"></i><?= __('fare_details', 'Fare Details') ?> <i class="fa-solid fa-chevron-down ms-1" style="font-size: 0.7rem;"></i>
+                                    </a>
+                                </div>
+                                <div class="collapse mt-2 text-start" id="fare-details-<?= $trip['trip_id'] ?>">
+                                    <div class="p-2 rounded text-start border" style="font-size: 0.8rem; background: var(--bg-secondary) !important; border-color: var(--border-color) !important; color: var(--text-secondary) !important;">
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <span><?= __('base_fare', 'Base Fare') ?>:</span>
+                                            <span class="fw-semibold text-dark" style="color: var(--text-primary) !important;"><?= CURRENCY ?><?= number_format($trip['base_fare'], 2) ?></span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <span><?= __('gst', 'GST') ?> (<?= $gst_rate ?>%):</span>
+                                            <span class="fw-semibold text-dark" style="color: var(--text-primary) !important;"><?= CURRENCY ?><?= number_format($gst_amt, 2) ?></span>
+                                        </div>
+                                        <div class="border-top my-1 border-secondary border-opacity-20"></div>
+                                        <div class="d-flex justify-content-between fw-bold text-dark" style="color: var(--text-primary) !important;">
+                                            <span><?= __('total_fare', 'Total Fare') ?>:</span>
+                                            <span><?= CURRENCY ?><?= number_format($total_fare, 2) ?></span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- Seat badge indicator -->
@@ -323,11 +354,13 @@ require_once __DIR__ . '/includes/header.php';
             var $destInput = $('#destination_search');
             var $destHidden = $('#destination');
             var $loading = $('#dest-loading');
+            var $empty = $('#dest-empty');
 
             // Reset
             $destInput.prop('disabled', true);
             destinationsList = [];
             $loading.hide();
+            $empty.hide();
 
             if (!source) {
                 return;
@@ -339,6 +372,12 @@ require_once __DIR__ . '/includes/header.php';
                 source: source
             }, function(data) {
                 $loading.hide();
+                
+                if (data.length === 0) {
+                    $empty.show();
+                    return;
+                }
+
                 destinationsList = data;
                 $destInput.prop('disabled', false);
                 

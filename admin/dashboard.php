@@ -220,29 +220,7 @@ try {
     </div>
 </div>
 
-<!-- Admin Wallet Liability & Activity Tally Row -->
-<div class="row g-4 mb-5">
-    <div class="col-md-6">
-        <div class="glass-card p-4 d-flex align-items-center justify-content-between border border-info border-opacity-20" style="border-radius: 16px;">
-            <div>
-                <span class="text-secondary small fw-semibold text-uppercase d-block mb-1">Partner Agents Wallet Balance</span>
-                <h4 class="fw-bold text-white mb-0">₹<?= number_format($total_wallet_balance, 2) ?></h4>
-                <span class="text-secondary small">Total liability held across agent desks &middot; <a href="wallets.php" class="text-indigo small text-decoration-none">Manage &rarr;</a></span>
-            </div>
-            <span class="metric-icon fs-3" style="color: #0dcaf0; border-color: rgba(13,202,240,0.2); background: rgba(13,202,240,0.1); width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; border-radius: 12px;"><i class="fa-solid fa-wallet"></i></span>
-        </div>
-    </div>
-    <div class="col-md-6">
-        <div class="glass-card p-4 d-flex align-items-center justify-content-between border border-danger border-opacity-20" style="border-radius: 16px;">
-            <div>
-                <span class="text-secondary small fw-semibold text-uppercase d-block mb-1">Frozen Wallets</span>
-                <h4 class="fw-bold text-danger mb-0"><?= $frozen_wallet_count ?></h4>
-                <span class="text-secondary small">Partner accounts currently locked &middot; <a href="wallets.php" class="text-indigo small text-decoration-none">Manage &rarr;</a></span>
-            </div>
-            <span class="metric-icon fs-3" style="color: #dc3545; border-color: rgba(220,53,69,0.2); background: rgba(220,53,69,0.1); width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; border-radius: 12px;"><i class="fa-solid fa-snowflake"></i></span>
-        </div>
-    </div>
-</div>
+
 
 <div class="row g-4 mb-5">
     <!-- Chart Column -->
@@ -272,7 +250,7 @@ try {
             <div class="p-3 rounded-4 bg-dark bg-opacity-20 border border-secondary border-opacity-25 mb-4">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <span class="text-secondary small"><?= __('connection_code_agents', 'Connection Code for Agents') ?></span>
-                    <span class="badge bg-success font-monospace fs-6 px-3 py-1.5" style="letter-spacing:1px; cursor:pointer;" onclick="navigator.clipboard.writeText('<?= htmlspecialchars($operator_code) ?>'); alert('<?= __('copied_clipboard_alert', 'Copied to clipboard!') ?>');" title="<?= __('click_to_copy', 'Click to Copy') ?>">
+                    <span class="badge bg-success font-monospace fs-6 px-3 py-1.5" style="letter-spacing:1px; cursor:pointer;" onclick="navigator.clipboard.writeText('<?= htmlspecialchars($operator_code) ?>'); const b=this; const orig=b.innerHTML; b.innerHTML='Copied! &lt;i class=\'fa-solid fa-check ms-1\'&gt;&lt;/i&gt;'; setTimeout(() => { b.innerHTML=orig; }, 1500);" title="<?= __('click_to_copy', 'Click to Copy') ?>">
                         <?= htmlspecialchars($operator_code) ?> <i class="fa-regular fa-copy ms-1" style="font-size:0.8rem;"></i>
                     </span>
                 </div>
