@@ -5,7 +5,7 @@
 require_once __DIR__ . '/../config/config.php';
 
 try {
-    $dsn = "mysql:host=127.0.0.1;port=3306;dbname=bus_booking;charset=utf8mb4";
+    $dsn = "mysql:host=" . DB_HOST . ";port=3306;dbname=" . DB_NAME . ";charset=utf8mb4";
     $pdo = new PDO($dsn, DB_USER, DB_PASS, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
     ]);
