@@ -11,7 +11,7 @@ $success_msg = $_SESSION['success_msg'] ?? '';
 $error_msg = $_SESSION['error_msg'] ?? '';
 unset($_SESSION['success_msg'], $_SESSION['error_msg']);
 
-// Handle Freeze / Unfreeze actions
+// Handle Freeze / Unfreeze / Credit / Debit actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $csrf = $_POST['csrf_token'] ?? '';
     if (!verify_csrf_token($csrf)) {
@@ -35,6 +35,73 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 
                 log_activity($pdo, $super_admin_id, 'SUPER_ADMIN_WALLET_UNFREEZE', "Super Admin unfroze wallet ID $wallet_id");
                 $_SESSION['success_msg'] = "Successfully unfroze agent wallet.";
+            } elseif ($action === 'credit') {
+                $amount = floatval($_POST['amount'] ?? 0.00);
+                $remarks = trim($_POST['remarks'] ?? '');
+                if ($amount <= 0) {
+                    throw new Exception("Credit amount must be greater than zero.");
+                }
+                
+                $wallet_stmt = $pdo->prepare("SELECT balance FROM agent_wallets WHERE id = ?");
+                $wallet_stmt->execute([$wallet_id]);
+                $wallet = $wallet_stmt->fetch();
+                if (!$wallet) {
+                    throw new Exception("Wallet not found.");
+                }
+                
+                $balance_before = floatval($wallet['balance']);
+                $balance_after = $balance_before + $amount;
+                
+                // Update balance
+                $up_stmt = $pdo->prepare("UPDATE agent_wallets SET balance = ? WHERE id = ?");
+                $up_stmt->execute([$balance_after, $wallet_id]);
+
+                // Write to ledger
+                $ledger_stmt = $pdo->prepare("
+                    INSERT INTO wallet_transactions (
+                        wallet_id, transaction_type, amount, balance_before, balance_after, 
+                        reference_type, reference_id, remarks, created_by
+                    ) VALUES (?, 'admin_credit', ?, ?, ?, 'admin', NULL, ?, ?)
+                ");
+                $ledger_stmt->execute([$wallet_id, $amount, $balance_before, $balance_after, $remarks ?: "Manual Super Admin Credit", $super_admin_id]);
+                
+                log_activity($pdo, $super_admin_id, 'SUPER_ADMIN_WALLET_CREDIT', "Super Admin credited ₹$amount to wallet ID $wallet_id. Remarks: $remarks");
+                $_SESSION['success_msg'] = "Successfully credited ₹" . number_format($amount, 2) . " to Agent wallet.";
+            } elseif ($action === 'debit') {
+                $amount = floatval($_POST['amount'] ?? 0.00);
+                $remarks = trim($_POST['remarks'] ?? '');
+                if ($amount <= 0) {
+                    throw new Exception("Debit amount must be greater than zero.");
+                }
+                
+                $wallet_stmt = $pdo->prepare("SELECT balance FROM agent_wallets WHERE id = ?");
+                $wallet_stmt->execute([$wallet_id]);
+                $wallet = $wallet_stmt->fetch();
+                if (!$wallet) {
+                    throw new Exception("Wallet not found.");
+                }
+                
+                $balance_before = floatval($wallet['balance']);
+                if ($balance_before < $amount) {
+                    throw new Exception("Insufficient balance. Cannot debit ₹$amount from balance of ₹$balance_before.");
+                }
+                $balance_after = $balance_before - $amount;
+                
+                // Update balance
+                $up_stmt = $pdo->prepare("UPDATE agent_wallets SET balance = ? WHERE id = ?");
+                $up_stmt->execute([$balance_after, $wallet_id]);
+
+                // Write to ledger
+                $ledger_stmt = $pdo->prepare("
+                    INSERT INTO wallet_transactions (
+                        wallet_id, transaction_type, amount, balance_before, balance_after, 
+                        reference_type, reference_id, remarks, created_by
+                    ) VALUES (?, 'admin_debit', ?, ?, ?, 'admin', NULL, ?, ?)
+                ");
+                $ledger_stmt->execute([$wallet_id, $amount, $balance_before, $balance_after, $remarks ?: "Manual Super Admin Debit", $super_admin_id]);
+                
+                log_activity($pdo, $super_admin_id, 'SUPER_ADMIN_WALLET_DEBIT', "Super Admin debited ₹$amount from wallet ID $wallet_id. Remarks: $remarks");
+                $_SESSION['success_msg'] = "Successfully debited ₹" . number_format($amount, 2) . " from Agent wallet.";
             }
 
             $pdo->commit();
@@ -216,21 +283,89 @@ require_once __DIR__ . '/header.php';
                                     <?php endif; ?>
                                 </td>
                                 <td class="text-end">
-                                    <?php if ($w['status'] === 'frozen'): ?>
-                                        <form method="POST" onsubmit="return confirm('Unfreeze this wallet?');" style="display:inline-block;">
-                                            <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
-                                            <input type="hidden" name="wallet_id" value="<?= $w['id'] ?>">
-                                            <input type="hidden" name="action" value="unfreeze">
-                                            <button type="submit" class="btn btn-outline-success btn-sm rounded-2">Unfreeze</button>
-                                        </form>
-                                    <?php else: ?>
-                                        <form method="POST" onsubmit="return confirm('Freeze this wallet?');" style="display:inline-block;">
-                                            <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
-                                            <input type="hidden" name="wallet_id" value="<?= $w['id'] ?>">
-                                            <input type="hidden" name="action" value="freeze">
-                                            <button type="submit" class="btn btn-outline-danger btn-sm rounded-2">Freeze</button>
-                                        </form>
-                                    <?php endif; ?>
+                                    <div class="d-flex justify-content-end gap-2 align-items-center">
+                                        <button type="button" class="btn btn-sm rounded-2" style="background: rgba(25, 135, 84, 0.12); color: #198754; border: 1px solid rgba(25, 135, 84, 0.25); font-weight: 600;" data-bs-toggle="modal" data-bs-target="#creditModal<?= $w['id'] ?>">Credit</button>
+                                        <button type="button" class="btn btn-sm rounded-2" style="background: rgba(212, 175, 55, 0.12); color: #b59210; border: 1px solid rgba(212, 175, 55, 0.25); font-weight: 600;" data-bs-toggle="modal" data-bs-target="#debitModal<?= $w['id'] ?>">Debit</button>
+                                        
+                                        <?php if ($w['status'] === 'frozen'): ?>
+                                            <form method="POST" class="d-inline" onsubmit="return confirm('Unfreeze this wallet?');">
+                                                <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
+                                                <input type="hidden" name="wallet_id" value="<?= $w['id'] ?>">
+                                                <input type="hidden" name="action" value="unfreeze">
+                                                <button type="submit" class="btn btn-outline-success btn-sm rounded-2">Unfreeze</button>
+                                            </form>
+                                        <?php else: ?>
+                                            <form method="POST" class="d-inline" onsubmit="return confirm('Freeze this wallet?');">
+                                                <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
+                                                <input type="hidden" name="wallet_id" value="<?= $w['id'] ?>">
+                                                <input type="hidden" name="action" value="freeze">
+                                                <button type="submit" class="btn btn-outline-danger btn-sm rounded-2">Freeze</button>
+                                            </form>
+                                        <?php endif; ?>
+                                    </div>
+
+                                    <!-- Credit Modal -->
+                                    <div class="modal fade text-start" id="creditModal<?= $w['id'] ?>" tabindex="-1" aria-hidden="true">
+                                        <div class="modal-dialog modal-dialog-centered">
+                                            <div class="modal-content glass-card text-white border-secondary border-opacity-20 p-3" style="background:#111111; border-radius: 20px;">
+                                                <form method="POST">
+                                                    <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
+                                                    <input type="hidden" name="wallet_id" value="<?= $w['id'] ?>">
+                                                    <input type="hidden" name="action" value="credit">
+                                                    <div class="modal-header border-0 pb-0">
+                                                        <h5 class="modal-title fw-bold">Manual Credit: <?= htmlspecialchars($w['agency_name']) ?></h5>
+                                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body py-4">
+                                                        <div class="mb-3">
+                                                            <label class="form-label text-secondary small fw-semibold">Amount to Add (₹)</label>
+                                                            <input type="number" name="amount" class="form-control form-control-swift" min="1" step="0.01" required>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label class="form-label text-secondary small fw-semibold">Remarks / Reason</label>
+                                                            <textarea name="remarks" class="form-control form-control-swift" rows="2" placeholder="e.g. Received offline payment, promo credit..." required></textarea>
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer border-0 pt-0 d-flex justify-content-between">
+                                                        <button type="button" class="btn btn-secondary-glass rounded-3" data-bs-dismiss="modal">Cancel</button>
+                                                        <button type="submit" class="btn btn-success px-4 rounded-3">Confirm Credit</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Debit Modal -->
+                                    <div class="modal fade text-start" id="debitModal<?= $w['id'] ?>" tabindex="-1" aria-hidden="true">
+                                        <div class="modal-dialog modal-dialog-centered">
+                                            <div class="modal-content glass-card text-white border-secondary border-opacity-20 p-3" style="background:#111111; border-radius: 20px;">
+                                                <form method="POST">
+                                                    <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
+                                                    <input type="hidden" name="wallet_id" value="<?= $w['id'] ?>">
+                                                    <input type="hidden" name="action" value="debit">
+                                                    <div class="modal-header border-0 pb-0">
+                                                        <h5 class="modal-title fw-bold">Manual Debit: <?= htmlspecialchars($w['agency_name']) ?></h5>
+                                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body py-4">
+                                                        <div class="mb-3">
+                                                            <label class="form-label text-secondary small fw-semibold">Amount to Deduct (₹)</label>
+                                                            <input type="number" name="amount" class="form-control form-control-swift" min="1" max="<?= htmlspecialchars($w['balance']) ?>" step="0.01" required>
+                                                            <div class="form-text text-secondary" style="font-size:0.75rem;">Max limit: ₹<?= number_format($w['balance'], 2) ?></div>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label class="form-label text-secondary small fw-semibold">Remarks / Reason</label>
+                                                            <textarea name="remarks" class="form-control form-control-swift" rows="2" placeholder="e.g. Correction debit, charge adjustment..." required></textarea>
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer border-0 pt-0 d-flex justify-content-between">
+                                                        <button type="button" class="btn btn-secondary-glass rounded-3" data-bs-dismiss="modal">Cancel</button>
+                                                        <button type="submit" class="btn btn-warning px-4 rounded-3 text-dark">Confirm Debit</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

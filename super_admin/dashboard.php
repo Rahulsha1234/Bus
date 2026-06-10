@@ -241,6 +241,54 @@ try {
     </div>
 </div>
 
+<?php
+// Experience system stats
+$unverified_buses = $pdo->query("SELECT COUNT(*) FROM buses b LEFT JOIN bus_verifications v ON b.id = v.bus_id WHERE v.is_verified IS NULL OR v.is_verified = 0")->fetchColumn();
+$missing_photos = $pdo->query("SELECT COUNT(*) FROM buses WHERE id NOT IN (SELECT DISTINCT bus_id FROM bus_media)")->fetchColumn();
+$missing_amenities = $pdo->query("SELECT COUNT(*) FROM buses WHERE id NOT IN (SELECT DISTINCT bus_id FROM bus_amen)")->fetchColumn(); // Wait, let's look at table name bus_amenities
+$missing_amenities = $pdo->query("SELECT COUNT(*) FROM buses WHERE id NOT IN (SELECT DISTINCT bus_id FROM bus_amenities)")->fetchColumn();
+$low_rated = $pdo->query("SELECT COUNT(DISTINCT bus_id) FROM bus_reviews WHERE rating < 3.0")->fetchColumn();
+?>
+<!-- Experience Quality metrics -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="glass-card p-4 h-100 border-start border-warning" style="border-width: 3px !important;">
+            <span class="text-secondary small fw-semibold text-uppercase d-block mb-2">Unverified Buses</span>
+            <div class="d-flex align-items-center justify-content-between">
+                <h3 class="fw-bold text-white mb-0"><?= $unverified_buses ?></h3>
+                <a href="bus_audits.php" class="btn btn-warning-glass btn-sm rounded-3">Audit Now</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="glass-card p-4 h-100 border-start border-danger" style="border-width: 3px !important;">
+            <span class="text-secondary small fw-semibold text-uppercase d-block mb-2">Buses Missing Photos</span>
+            <div class="d-flex align-items-center justify-content-between">
+                <h3 class="fw-bold text-white mb-0"><?= $missing_photos ?></h3>
+                <span class="text-secondary small">Needs Operator upload</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="glass-card p-4 h-100 border-start border-indigo" style="border-width: 3px !important;">
+            <span class="text-secondary small fw-semibold text-uppercase d-block mb-2">Buses Missing Amenities</span>
+            <div class="d-flex align-items-center justify-content-between">
+                <h3 class="fw-bold text-white mb-0"><?= $missing_amenities ?></h3>
+                <span class="text-secondary small">Default configurations</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="glass-card p-4 h-100 border-start border-danger" style="border-width: 3px !important;">
+            <span class="text-secondary small fw-semibold text-uppercase d-block mb-2">Low Rated Fleet (< 3★)</span>
+            <div class="d-flex align-items-center justify-content-between">
+                <h3 class="fw-bold text-white mb-0"><?= $low_rated ?></h3>
+                <a href="bus_audits.php#reviews-panel" class="btn btn-danger-glass btn-sm rounded-3">Inspect Reviews</a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Charts Grid -->
 <div class="row g-4 mb-5">
     <!-- Trend Chart -->

@@ -232,7 +232,62 @@ try {
 require_once __DIR__ . '/includes/header.php';
 ?>
 
+<!-- Premium experience header card -->
+<?php
+$exp_stmt = $pdo->prepare("
+    SELECT 
+        COALESCE((SELECT is_verified FROM bus_verifications WHERE bus_id = b.id), 0) AS is_verified,
+        COALESCE((SELECT AVG(rating) FROM bus_reviews WHERE bus_id = b.id AND status = 'approved'), 0.00) AS avg_rating,
+        COALESCE((SELECT COUNT(*) FROM bus_reviews WHERE bus_id = b.id AND status = 'approved'), 0) AS total_reviews,
+        (SELECT file_path FROM bus_media WHERE bus_id = b.id AND media_type = 'image' ORDER BY sort_order ASC LIMIT 1) AS thumbnail
+    FROM buses b
+    WHERE b.id = ?
+    LIMIT 1
+");
+$exp_stmt->execute([$trip['bus_id']]);
+$exp_info = $exp_stmt->fetch() ?: [];
+?>
+
 <div class="row g-4">
+    <div class="col-12">
+        <div class="glass-card p-4 d-flex flex-wrap align-items-center gap-4 text-white mb-2" style="border-radius: 20px;">
+            <div class="position-relative overflow-hidden rounded-3 bg-dark" style="width: 140px; height: 90px; flex-shrink: 0;">
+                <?php if (!empty($exp_info['thumbnail'])): ?>
+                    <img src="<?= BASE_URL ?>/<?= htmlspecialchars($exp_info['thumbnail']) ?>" class="w-100 h-100 object-fit-cover" alt="Bus Image">
+                <?php else: ?>
+                    <div class="w-100 h-100 d-flex flex-column justify-content-center align-items-center text-center p-2 text-secondary bg-black bg-opacity-25" style="font-size:0.75rem; color:var(--text-secondary) !important;">
+                        <i class="fa-solid fa-bus-simple mb-1 fs-5 text-secondary"></i>
+                        <span>No photos</span>
+                    </div>
+                <?php endif; ?>
+            </div>
+
+            <div class="flex-grow-1">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <h4 class="fw-bold text-white mb-0"><?= htmlspecialchars($trip['bus_name']) ?></h4>
+                    <?php if (!empty($exp_info['is_verified'])): ?>
+                        <span class="text-success small fw-semibold badge bg-success bg-opacity-10 border border-success border-opacity-20 rounded-pill px-2 py-1"><i class="fa-solid fa-circle-check me-1"></i>Verified</span>
+                    <?php endif; ?>
+                </div>
+                
+                <div class="d-flex flex-wrap gap-3 align-items-center mb-2">
+                    <span class="badge bg-secondary text-uppercase" style="font-size:0.75rem;"><?= htmlspecialchars($trip['bus_type']) ?></span>
+                    <?php if (!empty($exp_info['total_reviews'])): ?>
+                        <span class="text-warning fw-semibold small"><i class="fa-solid fa-star me-1 text-warning"></i><?= number_format($exp_info['avg_rating'], 1) ?> (<?= $exp_info['total_reviews'] ?> reviews)</span>
+                    <?php endif; ?>
+                </div>
+
+                <div class="text-secondary small font-monospace"><i class="fa-solid fa-route me-1"></i><?= htmlspecialchars($trip['source']) ?> to <?= htmlspecialchars($trip['destination']) ?> | <?= date('d M Y, H:i', strtotime($trip['departure_time'])) ?></div>
+            </div>
+
+            <div class="d-flex flex-column gap-2">
+                <button type="button" class="btn btn-secondary-glass btn-sm text-white border-0" onclick="openBusDetails(<?= $trip['bus_id'] ?>, 'photos')"><i class="fa-solid fa-images me-2 text-warning"></i>View Photos</button>
+                <button type="button" class="btn btn-secondary-glass btn-sm text-white border-0" onclick="openBusDetails(<?= $trip['bus_id'] ?>, 'amenities')"><i class="fa-solid fa-gift me-2 text-indigo"></i>View Amenities</button>
+                <button type="button" class="btn btn-secondary-glass btn-sm text-white border-0" onclick="openBusDetails(<?= $trip['bus_id'] ?>, 'policies')"><i class="fa-solid fa-shield-halved me-2 text-danger"></i>View Policies</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Seating layout selection -->
     <div class="col-lg-7">
         <div class="glass-card p-4">
@@ -786,6 +841,332 @@ $(document).ready(function() {
         $('#invoice-total').text('₹' + grandTotal.toFixed(2));
     }
 });
+</script>
+
+<!-- Bus Experience Details Modal -->
+<div class="modal fade" id="busDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content glass-card text-white border-secondary border-opacity-30 p-3" style="background:#111111; border-radius: 20px; border: 1px solid rgba(255,255,255,0.08) !important;">
+            <div class="modal-header border-0 pb-0">
+                <div>
+                    <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2">
+                        <span id="modal_bus_name">Bus Details</span>
+                        <span id="modal_bus_verified" class="text-success small" style="display:none;"><i class="fa-solid fa-circle-check"></i> Verified</span>
+                    </h5>
+                    <span id="modal_bus_type" class="text-secondary small">AC Sleeper</span>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <div class="modal-body py-3">
+                <!-- Tabs Navigation -->
+                <ul class="nav nav-pills mb-3 gap-2" id="modalBusTab" role="tablist">
+                    <li class="nav-item">
+                        <button class="nav-link btn btn-secondary-glass active px-3 py-1 border-0 text-white" id="m-photos-tab" data-bs-toggle="pill" data-bs-target="#m-photos-pane" type="button" role="tab"><i class="fa-solid fa-images me-2"></i>Photos</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link btn btn-secondary-glass px-3 py-1 border-0 text-white" id="m-amenities-tab" data-bs-toggle="pill" data-bs-target="#m-amenities-pane" type="button" role="tab"><i class="fa-solid fa-gift me-2"></i>Amenities</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link btn btn-secondary-glass px-3 py-1 border-0 text-white" id="m-specs-tab" data-bs-toggle="pill" data-bs-target="#m-specs-pane" type="button" role="tab"><i class="fa-solid fa-gears me-2"></i>Specifications</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link btn btn-secondary-glass px-3 py-1 border-0 text-white" id="m-policies-tab" data-bs-toggle="pill" data-bs-target="#m-policies-pane" type="button" role="tab"><i class="fa-solid fa-shield-halved me-2"></i>Policies</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link btn btn-secondary-glass px-3 py-1 border-0 text-white" id="m-reviews-tab" data-bs-toggle="pill" data-bs-target="#m-reviews-pane" type="button" role="tab"><i class="fa-solid fa-star me-2 text-warning"></i>Reviews</button>
+                    </li>
+                    <li class="nav-item" id="m-tracking-tab-li" style="display:none;">
+                        <button class="nav-link btn btn-secondary-glass px-3 py-1 border-0 text-white" id="m-tracking-tab" data-bs-toggle="pill" data-bs-target="#m-tracking-pane" type="button" role="tab"><i class="fa-solid fa-map-location-dot me-2 text-info"></i>Tracking</button>
+                    </li>
+                </ul>
+
+                <!-- Tabs Content -->
+                <div class="tab-content text-white" id="modalBusTabContent">
+                    <!-- Photos Tab -->
+                    <div class="tab-pane fade show active" id="m-photos-pane" role="tabpanel">
+                        <div id="modal_gallery_container" class="row g-2">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Amenities Tab -->
+                    <div class="tab-pane fade" id="m-amenities-pane" role="tabpanel">
+                        <div id="modal_amenities_container" class="row g-2">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Specifications Tab -->
+                    <div class="tab-pane fade" id="m-specs-pane" role="tabpanel">
+                        <div class="row g-3" id="modal_specs_container">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Policies Tab -->
+                    <div class="tab-pane fade" id="m-policies-pane" role="tabpanel">
+                        <div class="d-flex flex-column gap-3" id="modal_policies_container">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Reviews Tab -->
+                    <div class="tab-pane fade" id="m-reviews-pane" role="tabpanel">
+                        <div class="row g-3 mb-4" id="modal_reviews_summary_container">
+                            <!-- Populated by JS -->
+                        </div>
+                        <div class="d-flex flex-column gap-2" id="modal_reviews_list_container">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Live Tracking Tab -->
+                    <div class="tab-pane fade" id="m-tracking-pane" role="tabpanel">
+                        <div class="card bg-black bg-opacity-50 border-0 p-3 mb-3">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="small text-secondary mb-1">Current Location</div>
+                                    <h6 class="fw-bold text-white" id="track_curr_loc">N/A</h6>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="small text-secondary mb-1">Estimated Arrival Time (ETA)</div>
+                                    <h6 class="fw-bold text-success" id="track_eta">N/A</h6>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="modal_map" style="height: 300px; border-radius: 12px; background: #222;" class="position-relative"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+<script>
+var leafletMap = null;
+var leafletMarker = null;
+
+function openBusDetails(busId, activeTab) {
+    // Show modal first
+    var myModalEl = document.getElementById('busDetailsModal');
+    var modal = bootstrap.Modal.getInstance(myModalEl) || new bootstrap.Modal(myModalEl);
+    modal.show();
+
+    // Reset tabs
+    document.querySelectorAll('#modalBusTab .nav-link').forEach(function(btn) {
+        btn.classList.remove('active');
+    });
+    document.querySelectorAll('#modalBusTabContent .tab-pane').forEach(function(pane) {
+        pane.classList.remove('show', 'active');
+    });
+
+    var targetTabBtn = document.getElementById('m-' + activeTab + '-tab');
+    var targetPane = document.getElementById('m-' + activeTab + '-pane');
+    if (targetTabBtn && targetPane) {
+        targetTabBtn.classList.add('active');
+        targetPane.classList.add('show', 'active');
+    }
+
+    // Load details via AJAX
+    $.getJSON('<?= BASE_URL ?>/ajax/get_bus_details_ajax.php', { bus_id: busId }, function(res) {
+        if (!res.success) {
+            alert(res.message);
+            return;
+        }
+
+        // Main Title
+        document.getElementById('modal_bus_name').innerText = res.bus.bus_name + " (" + res.bus.bus_number + ")";
+        document.getElementById('modal_bus_type').innerText = res.bus.bus_type;
+        document.getElementById('modal_bus_verified').style.display = res.bus.is_verified ? 'inline' : 'none';
+
+        // Photos Tab
+        var pContainer = document.getElementById('modal_gallery_container');
+        pContainer.innerHTML = '';
+        if (res.media.length === 0) {
+            pContainer.innerHTML = '<div class="col-12 text-center text-secondary py-4"><i class="fa-solid fa-images mb-2 d-block fs-3"></i>Operator has not uploaded bus photos yet</div>';
+        } else {
+            res.media.forEach(function(m) {
+                var col = document.createElement('div');
+                col.className = 'col-md-4 col-sm-6';
+                if (m.media_type === 'video') {
+                    col.innerHTML = `
+                        <div class="position-relative overflow-hidden rounded-3 bg-black" style="height: 150px;">
+                            <video class="w-100 h-100 object-fit-cover" controls>
+                                <source src="<?= BASE_URL ?>/${m.file_path}" type="video/mp4">
+                            </video>
+                        </div>
+                    `;
+                } else {
+                    col.innerHTML = `
+                        <div class="position-relative overflow-hidden rounded-3 bg-dark" style="height: 150px;">
+                            <a href="<?= BASE_URL ?>/${m.file_path}" target="_blank">
+                                <img src="<?= BASE_URL ?>/${m.file_path}" class="w-100 h-100 object-fit-cover" alt="">
+                            </a>
+                            <span class="position-absolute bottom-0 start-0 w-100 bg-black bg-opacity-70 p-1 text-center text-indigo text-uppercase small" style="font-size:0.6rem;">${m.category.replace('_', ' ')}</span>
+                        </div>
+                    `;
+                }
+                pContainer.appendChild(col);
+            });
+        }
+
+        // Amenities Tab
+        var aContainer = document.getElementById('modal_amenities_container');
+        aContainer.innerHTML = '';
+        if (res.amenities.length === 0) {
+            aContainer.innerHTML = '<div class="col-12 text-center text-secondary py-4">No amenities specified</div>';
+        } else {
+            res.amenities.forEach(function(am) {
+                var col = document.createElement('div');
+                col.className = 'col-md-4 col-sm-6';
+                var icon = '<i class="fa-solid fa-circle-check text-success me-2"></i>';
+                if (am.is_custom && am.icon_path) {
+                    icon = `<img src="<?= BASE_URL ?>/${am.icon_path}" class="me-2" style="width:20px; height:20px;">`;
+                }
+                col.innerHTML = `
+                    <div class="p-2 rounded bg-dark border border-secondary border-opacity-15 d-flex align-items-center">
+                        ${icon}
+                        <span class="small text-white">${am.amenity_name}</span>
+                    </div>
+                `;
+                aContainer.appendChild(col);
+            });
+        }
+
+        // Specifications Tab
+        var sContainer = document.getElementById('modal_specs_container');
+        sContainer.innerHTML = `
+            <div class="col-md-6">
+                <div class="text-secondary small">Manufacturer</div>
+                <div class="fw-semibold text-white">${res.specifications.manufacturer || 'N/A'}</div>
+            </div>
+            <div class="col-md-6">
+                <div class="text-secondary small">Model</div>
+                <div class="fw-semibold text-white">${res.specifications.model || 'N/A'}</div>
+            </div>
+            <div class="col-md-4">
+                <div class="text-secondary small">Year of Manufacture</div>
+                <div class="fw-semibold text-white">${res.specifications.year || 'N/A'}</div>
+            </div>
+            <div class="col-md-4">
+                <div class="text-secondary small">Fuel Type</div>
+                <div class="fw-semibold text-white">${res.specifications.fuel_type || 'N/A'}</div>
+            </div>
+            <div class="col-md-4">
+                <div class="text-secondary small">AC Type</div>
+                <div class="fw-semibold text-white">${res.specifications.ac_type || 'N/A'}</div>
+            </div>
+            <div class="col-md-6">
+                <div class="text-secondary small">Berth Layout</div>
+                <div class="fw-semibold text-white">${res.specifications.sleeper_layout || 'N/A'}</div>
+            </div>
+            <div class="col-12">
+                <div class="text-secondary small">Description</div>
+                <div class="text-white-50 small">${res.specifications.description || 'No description provided.'}</div>
+            </div>
+        `;
+
+        // Policies Tab
+        var poContainer = document.getElementById('modal_policies_container');
+        poContainer.innerHTML = `
+            <div>
+                <h6 class="fw-bold text-indigo mb-1"><i class="fa-solid fa-shield-halved me-2 text-indigo"></i>Cancellation Policy</h6>
+                <p class="small text-secondary mb-0">${res.policies.cancellation_policy || 'Standard cancellation policy applies.'}</p>
+            </div>
+            <div>
+                <h6 class="fw-bold text-indigo mb-1"><i class="fa-solid fa-briefcase me-2 text-indigo"></i>Luggage Policy</h6>
+                <p class="small text-secondary mb-0">${res.policies.luggage_policy || 'Standard baggage allowances apply.'}</p>
+            </div>
+            <div>
+                <h6 class="fw-bold text-indigo mb-1"><i class="fa-solid fa-baby me-2 text-indigo"></i>Child Policy</h6>
+                <p class="small text-secondary mb-0">${res.policies.child_policy || 'Standard policies for child seats apply.'}</p>
+            </div>
+        `;
+
+        // Reviews Tab
+        var revSumContainer = document.getElementById('modal_reviews_summary_container');
+        var revListContainer = document.getElementById('modal_reviews_list_container');
+        
+        if (parseInt(res.reviews_summary.total_reviews) === 0) {
+            revSumContainer.innerHTML = '<div class="col-12 text-center text-secondary py-4">No passenger reviews available.</div>';
+            revListContainer.innerHTML = '';
+        } else {
+            revSumContainer.innerHTML = `
+                <div class="col-md-4 text-center d-flex flex-column justify-content-center align-items-center border-end border-secondary border-opacity-20">
+                    <h1 class="fw-bold text-warning mb-1">${parseFloat(res.reviews_summary.avg_rating).toFixed(1)}</h1>
+                    <div class="text-warning mb-1"><i class="fa-solid fa-star"></i></div>
+                    <span class="text-secondary small">${res.reviews_summary.total_reviews} Reviews</span>
+                </div>
+                <div class="col-md-8">
+                    <div class="row g-2">
+                        <div class="col-6 small text-secondary">Cleanliness: <span class="text-white fw-bold">${parseFloat(res.reviews_summary.avg_cleanliness).toFixed(1)}</span></div>
+                        <div class="col-6 small text-secondary">Comfort: <span class="text-white fw-bold">${parseFloat(res.reviews_summary.avg_comfort).toFixed(1)}</span></div>
+                        <div class="col-6 small text-secondary">Punctuality: <span class="text-white fw-bold">${parseFloat(res.reviews_summary.avg_punctuality).toFixed(1)}</span></div>
+                        <div class="col-6 small text-secondary">Staff Behavior: <span class="text-white fw-bold">${parseFloat(res.reviews_summary.avg_staff).toFixed(1)}</span></div>
+                        <div class="col-6 small text-secondary">Safety: <span class="text-white fw-bold">${parseFloat(res.reviews_summary.avg_safety).toFixed(1)}</span></div>
+                    </div>
+                </div>
+            `;
+
+            revListContainer.innerHTML = '';
+            res.reviews.forEach(function(r) {
+                var row = document.createElement('div');
+                row.className = 'p-3 rounded bg-dark border border-secondary border-opacity-15 mb-2';
+                row.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="fw-bold text-white small">${r.username}</span>
+                        <span class="text-warning small"><i class="fa-solid fa-star me-1"></i>${parseFloat(r.rating).toFixed(1)}</span>
+                    </div>
+                    <p class="small text-secondary mb-0">${r.review_text || ''}</p>
+                `;
+                revListContainer.appendChild(row);
+            });
+        }
+
+        // Live Tracking Tab
+        var trackingLi = document.getElementById('m-tracking-tab-li');
+        if (res.tracking) {
+            trackingLi.style.display = 'block';
+            document.getElementById('track_curr_loc').innerText = res.tracking.current_location_name || 'In Transit';
+            document.getElementById('track_eta').innerText = res.tracking.eta || 'Calculating...';
+
+            // Init Map on show
+            var tabEl = document.getElementById('m-tracking-tab');
+            tabEl.onclick = function() {
+                setTimeout(function() {
+                    initTrackingMap(parseFloat(res.tracking.latitude), parseFloat(res.tracking.longitude), res.tracking.current_location_name);
+                }, 200);
+            };
+        } else {
+            trackingLi.style.display = 'none';
+        }
+    });
+}
+
+function initTrackingMap(lat, lng, name) {
+    if (leafletMap) {
+        leafletMap.setView([lat, lng], 13);
+        leafletMarker.setLatLng([lat, lng]).bindPopup(name || 'Bus Current Location').openPopup();
+        leafletMap.invalidateSize();
+    } else {
+        leafletMap = L.map('modal_map').setView([lat, lng], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(leafletMap);
+
+        leafletMarker = L.marker([lat, lng]).addTo(leafletMap)
+            .bindPopup(name || 'Bus Current Location')
+            .openPopup();
+            
+        setTimeout(function() {
+            leafletMap.invalidateSize();
+        }, 100);
+    }
+}
 </script>
 
 <?php

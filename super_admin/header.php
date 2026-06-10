@@ -217,6 +217,9 @@ $user = get_logged_user();
                 <a href="<?= BASE_URL ?>/super_admin/owner_control.php" class="sidebar-link <?= ($cur === 'owner_control.php') ? 'active' : '' ?>">
                     <i class="fa-solid fa-shield-halved"></i><?= __('nav_owner_controls', 'Owner Controls') ?>
                 </a>
+                <a href="<?= BASE_URL ?>/super_admin/bus_audits.php" class="sidebar-link <?= ($cur === 'bus_audits.php') ? 'active' : '' ?>">
+                    <i class="fa-solid fa-clipboard-check"></i>Bus Experience Audits
+                </a>
                 <a href="<?= BASE_URL ?>/super_admin/audit_logs.php" class="sidebar-link <?= ($cur === 'audit_logs.php') ? 'active' : '' ?>">
                     <i class="fa-solid fa-clock-rotate-left"></i><?= __('nav_activity_logs', 'Activity Logs') ?>
                 </a>
@@ -249,6 +252,7 @@ $user = get_logged_user();
                         <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/super_admin/settlements.php"><?= __('nav_settlements', 'Settlements') ?></a></li>
                         <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/super_admin/wallets.php">Agent Wallets</a></li>
                         <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/super_admin/owner_control.php"><?= __('nav_owner_controls', 'Owner Controls') ?></a></li>
+                        <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/super_admin/bus_audits.php">Bus Experience Audits</a></li>
                         <li><a class="dropdown-item py-2" href="<?= BASE_URL ?>/super_admin/audit_logs.php"><?= __('nav_activity_logs', 'Activity Logs') ?></a></li>
                         <li><hr class="dropdown-divider border-secondary"></li>
                         <!-- Mobile Language Switcher Items -->

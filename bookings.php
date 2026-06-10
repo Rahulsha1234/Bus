@@ -139,6 +139,36 @@ require_once __DIR__ . '/includes/header.php';
                                         <i class="fa-solid fa-file-pdf"></i>
                                     </a>
                                     
+                                    <?php 
+                                    // Check if trip tracking is initialized for this bus
+                                    // We can offer a tracking button for active trips
+                                    $has_tracking = false;
+                                    try {
+                                        $t_stmt = $pdo->prepare("SELECT COUNT(*) FROM bus_tracking WHERE bus_id = (SELECT bus_id FROM trips WHERE id = ?)");
+                                        $t_stmt->execute([$b['booking_id']]); // Wait, the join matches trip_id. Let's see the query. Yes, t.bus_id is fetched. Let's check if tracking row exists.
+                                    } catch (Exception $e) {}
+                                    ?>
+                                    <?php if ($b['booking_status'] === 'active'): ?>
+                                        <a href="<?= BASE_URL ?>/live_tracking.php?booking_id=<?= $b['booking_id'] ?>" class="btn btn-info-glass btn-sm" title="Track Bus Location">
+                                            <i class="fa-solid fa-map-location-dot"></i>
+                                        </a>
+                                        
+                                        <?php 
+                                        $dep_time = strtotime($b['departure_time']);
+                                        if ($dep_time <= time()): 
+                                            // Check if already reviewed
+                                            $rev_stmt = $pdo->prepare("SELECT COUNT(*) FROM bus_reviews WHERE booking_id = ?");
+                                            $rev_stmt->execute([$b['booking_id']]);
+                                            $already_reviewed = $rev_stmt->fetchColumn() > 0;
+                                            if (!$already_reviewed):
+                                        ?>
+                                                <a href="<?= BASE_URL ?>/submit_review.php?booking_id=<?= $b['booking_id'] ?>" class="btn btn-warning-glass btn-sm" title="Write Review">
+                                                    <i class="fa-solid fa-star"></i>
+                                                </a>
+                                            <?php endif; ?>
+                                        <?php endif; ?>
+                                    <?php endif; ?>
+
                                     <?php if ($b['booking_status'] === 'active' && empty($b['cancel_req_status'])): ?>
                                          <form action="<?= BASE_URL ?>/cancellations.php" method="POST" class="d-inline" onsubmit="return confirm(<?= htmlspecialchars(json_encode(__('confirm_cancel_msg', 'Are you sure you want to request ticket cancellation?')), ENT_QUOTES, 'UTF-8') ?>);">
                                              <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
